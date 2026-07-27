@@ -20,7 +20,7 @@ import javscraper.ui.screens.*
 import javscraper.ui.theme.JavScraperTheme
 import kotlinx.coroutines.*
 import java.nio.file.Paths
-import javax.swing.JFileChooser
+import javscraper.io.pickDirectory
 
 enum class Screen { SCAN, PROGRESS, GALLERY, SETTINGS }
 
@@ -72,10 +72,8 @@ fun App() {
     val onSelectDir: () -> Unit = {
         scope.launch {
             try {
-                val c = JFileChooser()
-                c.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-                if (c.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    val dir = c.selectedFile.absolutePath
+                val dir = pickDirectory(Translations.scanDirectoryLabel, scanDir.value.ifBlank { null })
+                if (dir != null) {
                     scanDir.value = dir
                     saveBothDirs()
                 }
@@ -88,10 +86,8 @@ fun App() {
     val onSelectOutDir: () -> Unit = {
         scope.launch {
             try {
-                val c = JFileChooser()
-                c.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-                if (c.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    val dir = c.selectedFile.absolutePath
+                val dir = pickDirectory(Translations.commonBrowse, outputDir.value.ifBlank { null })
+                if (dir != null) {
                     outputDir.value = dir
                     saveBothDirs()
                 }
