@@ -39,6 +39,7 @@ fun App() {
     val sites = remember { mutableStateOf<List<SiteInfo>>(emptyList()) }
     val scanDir = remember { mutableStateOf(settings.scanDir) }
     val outputDir = remember { mutableStateOf(settings.outputDir) }
+    val currentLanguage = remember { mutableStateOf(settings.language) }
 
     val mgr = remember { SidecarManager(Paths.get(System.getProperty("user.dir"), settings.workerPath).toString()) }
     val orch = remember { mutableStateOf<ScrapeOrchestrator?>(null) }
