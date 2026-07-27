@@ -1,4 +1,4 @@
-package javscraper
+﻿package javscraper
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -40,6 +40,13 @@ fun App() {
     val scanDir = remember { mutableStateOf(settings.scanDir) }
     val outputDir = remember { mutableStateOf(settings.outputDir) }
     val currentLanguage = remember { mutableStateOf(settings.language) }
+    val showRestartHint = remember { mutableStateOf(false) }
+    val enabledSites = remember { mutableStateOf(settings.enabledSites) }
+    val scanRecursive = remember { mutableStateOf(settings.scanRecursive) }
+    val createMovieFolders = remember { mutableStateOf(settings.createMovieFolders) }
+    val hardlinkInsteadOfCopy = remember { mutableStateOf(settings.hardlinkInsteadOfCopy) }
+    val downloadImages = remember { mutableStateOf(settings.downloadImages) }
+    val autoScrape = remember { mutableStateOf(settings.autoScrape) }
 
     val mgr = remember { SidecarManager(Paths.get(System.getProperty("user.dir"), settings.workerPath).toString()) }
     val orch = remember { mutableStateOf<ScrapeOrchestrator?>(null) }
@@ -171,27 +178,27 @@ fun App() {
                     workerPath = settings.workerPath,
                     outputDir = outputDir.value,
                     scanDir = scanDir.value,
-                    scanRecursive = true,
-                    createMovieFolders = true,
-                    hardlinkInsteadOfCopy = true,
-                    downloadImages = true,
-                    autoScrape = false,
+                    scanRecursive = scanRecursive.value,
+                    createMovieFolders = createMovieFolders.value,
+                    hardlinkInsteadOfCopy = hardlinkInsteadOfCopy.value,
+                    downloadImages = downloadImages.value,
+                    autoScrape = autoScrape.value,
                     sites = sites.value,
-                    enabledSiteIds = settings.enabledSites,
-                    language = settings.language,
-                    onLanguageChange = { lang -> SettingsManager.update { it.copy(language = lang) } },
-                    showRestartHint = true,
+                    enabledSiteIds = enabledSites.value,
+                    language = currentLanguage.value,
+                    onLanguageChange = { lang -> currentLanguage.value = lang; Translations.init(lang); SettingsManager.update { it.copy(language = lang) } },
+                    showRestartHint = showRestartHint.value,
                     onWorkerPathChange = { _ -> },
                     onOutputDirChange = { _ -> },
                     onSelectOutputDir = onSelectOutDir,
                     onSelectScanDir = onSelectDir,
                     onSelectWorkerPath = { },
-                    onScanRecursiveChange = { _ -> },
-                    onCreateMovieFoldersChange = { _ -> },
-                    onHardlinkChange = { _ -> },
-                    onDownloadImagesChange = { _ -> },
-                    onAutoScrapeChange = { _ -> },
-                    onToggleSite = { _: String, _: Boolean -> },
+                    onScanRecursiveChange = { v -> scanRecursive.value = v; SettingsManager.update { it.copy(scanRecursive = v) } },
+                    onCreateMovieFoldersChange = { v -> createMovieFolders.value = v; SettingsManager.update { it.copy(createMovieFolders = v) } },
+                    onHardlinkChange = { v -> hardlinkInsteadOfCopy.value = v; SettingsManager.update { it.copy(hardlinkInsteadOfCopy = v) } },
+                    onDownloadImagesChange = { v -> downloadImages.value = v; SettingsManager.update { it.copy(downloadImages = v) } },
+                    onAutoScrapeChange = { v -> autoScrape.value = v; SettingsManager.update { it.copy(autoScrape = v) } },
+                    onToggleSite = { id, enabled -> enabledSites.value = if (enabled) enabledSites.value + id else enabledSites.value - id; SettingsManager.update { it.copy(enabledSites = enabledSites.value) } },
                     onReset = { SettingsManager.reset(); scanDir.value = ""; outputDir.value = "" }
                 )
             }

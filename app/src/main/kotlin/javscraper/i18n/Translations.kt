@@ -1,14 +1,14 @@
-package javscraper.i18n
+﻿package javscraper.i18n
 
 import java.text.MessageFormat
 import java.util.Locale
 import java.util.ResourceBundle
 
 object Translations {
-    private var bundle: ResourceBundle = ResourceBundle.getBundle("strings", Locale("en"))
+    private var bundle: ResourceBundle = ResourceBundle.getBundle("strings", Locale.forLanguageTag("en"))
 
     fun init(language: String) {
-        val locale = if (language == "zh") Locale("zh") else Locale("en")
+        val locale = if (language == "zh") Locale.forLanguageTag("zh") else Locale.forLanguageTag("en")
         bundle = ResourceBundle.getBundle("strings", locale)
     }
 
