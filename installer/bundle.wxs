@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+
+  <!--
+    JavScraper — WiX Bootstrapper Bundle
+    Merges the Kotlin Compose Desktop MSI with the Python Worker EXE
+    into a single installer package.
+  -->
+  <Bundle
+    Name="JavScraper"
+    Version="1.0.0"
+    Manufacturer="JavScraper"
+    UpgradeCode="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    Copyright="JavScraper 2024"
+    About="Local video metadata scraper for Jellyfin/Emby/Kodi"
+    IconSourceFile="..\app\src\main\resources\icon.ico">
+
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense">
+      <bal:WixStandardBootstrapperApplication
+        LicenseFile="..\LICENSE.rtf"
+        LogoFile="..\app\src\main\resources\logo.png"
+        Theme="standard" />
+    </BootstrapperApplicationRef>
+
+    <Chain>
+      <!-- Install Python Worker first -->
+      <ExePackage
+        Id="WorkerExe"
+        DisplayName="JavScraper Python Worker"
+        SourceFile="..\scraper-worker\dist\scraper-worker.exe"
+        InstallCommand=""
+        Permanent="yes"
+        Vital="yes" />
+
+      <!-- Install Kotlin Desktop App MSI -->
+      <MsiPackage
+        Id="JavScraperMsi"
+        DisplayName="JavScraper Desktop App"
+        SourceFile="..\app\build\compose\binaries\main\msi\JavScraper-1.0.0.msi"
+        Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

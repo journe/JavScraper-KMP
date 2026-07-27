@@ -21,6 +21,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.5.15")
+
+    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 }
 
 compose.desktop {
@@ -31,6 +35,23 @@ compose.desktop {
             packageName = "JavScraper"
             packageVersion = "1.0.0"
             vendor = "JavScraper"
+            description = "Local video metadata scraper for Jellyfin/Emby/Kodi"
+            licenseFile = rootProject.file("LICENSE.txt")
+
+            windows {
+                menuGroup = "JavScraper"
+                upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                // Include the worker executable in the package
+                appResourcesRootDir.set(rootProject.file("src/main/resources"))
+            }
+
+            macOS {
+                bundleID = "com.javscraper.app"
+            }
+
+            linux {
+                packageName = "javscraper"
+            }
         }
     }
 }

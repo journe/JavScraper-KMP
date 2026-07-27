@@ -31,7 +31,9 @@ scraper-worker/*.pyc
 scraper-worker/*.egg-info/
 scraper-worker/dist/
 scraper-worker/build/
-scraper-worker/*.spec
+
+# --- Packed binaries ---
+app/src/main/resources/worker/
 
 # --- Config (user-specific) ---
 app/config.json
