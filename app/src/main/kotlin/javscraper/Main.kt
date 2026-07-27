@@ -1,6 +1,7 @@
 package javscraper
 
 import androidx.compose.runtime.remember
+import javscraper.i18n.Translations
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -13,7 +14,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         state = windowState,
-        title = "JavScraper - JAV Video Metadata Scraper"
+        title = Translations.appTitle
     ) {
         window.minimumSize = Dimension(800, 600)
         App()

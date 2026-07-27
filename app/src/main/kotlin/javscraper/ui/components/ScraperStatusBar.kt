@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import javscraper.i18n.Translations
 
 enum class ScraperStatus { IDLE, SEARCHING, FOUND, FAILED }
 
@@ -18,7 +19,7 @@ data class ScraperState(val id: String, val name: String, val status: ScraperSta
 @Composable
 fun ScraperStatusBar(scrapers: List<ScraperState>, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Scraper Sites", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(Translations.statusbarTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         scrapers.forEach { scraper ->
             val c by animateColorAsState(
                 targetValue = when (scraper.status) { ScraperStatus.IDLE -> Color.Gray; ScraperStatus.SEARCHING -> Color(0xFFFFA726); ScraperStatus.FOUND -> Color(0xFF66BB6A); ScraperStatus.FAILED -> Color(0xFFEF5350) },
