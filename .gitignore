@@ -1,0 +1,42 @@
+﻿# --- IDE ---
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Kotlin / Gradle (app) ---
+app/.gradle/
+app/build/
+app/out/
+*.class
+*.jar
+!app/gradle/wrapper/gradle-wrapper.jar
+local.properties
+
+# --- Python (scraper-worker) ---
+scraper-worker/venv/
+scraper-worker/.venv/
+scraper-worker/.pytest_cache/
+scraper-worker/__pycache__/
+scraper-worker/**/__pycache__/
+scraper-worker/*.pyc
+scraper-worker/*.egg-info/
+scraper-worker/dist/
+scraper-worker/build/
+scraper-worker/*.spec
+
+# --- Config (user-specific) ---
+app/config.json
+app/*.log
+
+# --- Logs ---
+logs/
+*.log
