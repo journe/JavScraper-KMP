@@ -12,6 +12,7 @@ data class AppSettings(
     val workerPath: String = "worker/scraper-worker.exe", val outputDir: String = "", val scanDir: String = "",
     val scanRecursive: Boolean = true, val createMovieFolders: Boolean = true, val hardlinkInsteadOfCopy: Boolean = true,
     val downloadImages: Boolean = true, val autoScrape: Boolean = false,
+    val language: String = "en",
     val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2","heyzo")
 )
 

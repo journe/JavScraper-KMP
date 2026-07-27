@@ -1,4 +1,4 @@
-﻿package javscraper.settings
+package javscraper.settings
 
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -19,6 +19,7 @@ class SettingsManagerTest {
         assertEquals(true, settings.hardlinkInsteadOfCopy)
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.autoScrape)
+        assertEquals("en", settings.language)
         assertEquals(9, settings.enabledSites.size)
     }
 
@@ -42,6 +43,7 @@ class SettingsManagerTest {
             hardlinkInsteadOfCopy = false,
             downloadImages = false,
             autoScrape = true,
+            language = "zh",
             enabledSites = listOf("javbus", "javdb")
         )
         val jsonStr = json.encodeToString(AppSettings.serializer(), original)
@@ -54,6 +56,7 @@ class SettingsManagerTest {
         assertEquals(false, decoded.hardlinkInsteadOfCopy)
         assertEquals(false, decoded.downloadImages)
         assertEquals(true, decoded.autoScrape)
+        assertEquals("zh", decoded.language)
         assertEquals(2, decoded.enabledSites.size)
     }
 

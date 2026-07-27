@@ -12,32 +12,104 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import javscraper.i18n.Translations
 import javscraper.models.Video
 
 enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
-data class ScrapeTask(val number: String, val fileName: String, val status: ScrapeTaskStatus = ScrapeTaskStatus.PENDING, val video: Video? = null, val error: String = "")
+data class ScrapeTask(
+    val number: String,
+    val fileName: String,
+    val status: ScrapeTaskStatus = ScrapeTaskStatus.PENDING,
+    val video: Video? = null,
+    val error: String = ""
+)
 
 @Composable
-fun ScrapeProgressScreen(tasks: List<ScrapeTask>, isRunning: Boolean, onStartAll: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+fun ScrapeProgressScreen(
+    tasks: List<ScrapeTask>,
+    isRunning: Boolean,
+    onStartAll: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val done = tasks.count { it.status == ScrapeTaskStatus.SUCCESS || it.status == ScrapeTaskStatus.FAILED }
     val ok = tasks.count { it.status == ScrapeTaskStatus.SUCCESS }
     val progress = if (tasks.isNotEmpty()) done.toFloat() / tasks.size else 0f
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            Text("Scraping Progress", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            if (isRunning) Button(onClick = onCancel, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.Stop, null); Spacer(Modifier.width(8.dp)); Text("Cancel") }
-            else if (tasks.isNotEmpty()) Button(onClick = onStartAll) { Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text("Start All") }
+            Text(Translations.progressTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            if (isRunning) Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Icon(Icons.Default.Stop, null); Spacer(Modifier.width(8.dp)); Text(Translations.progressCancel) }
+            else if (tasks.isNotEmpty()) Button(onClick = onStartAll) {
+                Icon(Icons.Default.PlayArrow, null); Spacer(
+                Modifier.width(8.dp)
+            ); Text(Translations.progressStartAll)
+            }
         }
         Spacer(Modifier.height(16.dp))
-        if (tasks.isNotEmpty()) { LinearProgressIndicator({ progress }, Modifier.fillMaxWidth().height(8.dp)); Spacer(Modifier.height(8.dp)); Text("$ok / ${tasks.size} completed", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(16.dp)) }
+        if (tasks.isNotEmpty()) {
+            LinearProgressIndicator(
+                { progress },
+                Modifier.fillMaxWidth().height(8.dp)
+            ); Spacer(Modifier.height(8.dp)); Text(
+                Translations.progressCompleted(ok, tasks.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ); Spacer(Modifier.height(16.dp))
+        }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
             items(tasks) { task ->
-                val bg = when (task.status) { ScrapeTaskStatus.PENDING -> MaterialTheme.colorScheme.surfaceVariant; ScrapeTaskStatus.SCRAPING -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f); ScrapeTaskStatus.SUCCESS -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f); ScrapeTaskStatus.FAILED -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f) }
+                val bg = when (task.status) {
+                    ScrapeTaskStatus.PENDING -> MaterialTheme.colorScheme.surfaceVariant; ScrapeTaskStatus.SCRAPING -> MaterialTheme.colorScheme.primaryContainer.copy(
+                        alpha = 0.5f
+                    ); ScrapeTaskStatus.SUCCESS -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f); ScrapeTaskStatus.FAILED -> MaterialTheme.colorScheme.errorContainer.copy(
+                        alpha = 0.3f
+                    )
+                }
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = bg)) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(Modifier.weight(1f)) { Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold); Text(task.fileName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant); if (task.error.isNotBlank()) Text(task.error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+                    Row(
+                        Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                task.number,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            ); Text(
+                            task.fileName,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ); if (task.error.isNotBlank()) Text(
+                            task.error,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        }
                         Spacer(Modifier.width(8.dp))
-                        when (task.status) { ScrapeTaskStatus.PENDING -> Icon(Icons.Default.HourglassEmpty, null, tint = MaterialTheme.colorScheme.onSurfaceVariant); ScrapeTaskStatus.SCRAPING -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp); ScrapeTaskStatus.SUCCESS -> Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary); ScrapeTaskStatus.FAILED -> Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error) }
+                        when (task.status) {
+                            ScrapeTaskStatus.PENDING -> Icon(
+                                Icons.Default.HourglassEmpty,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            ); ScrapeTaskStatus.SCRAPING -> CircularProgressIndicator(
+                            Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        ); ScrapeTaskStatus.SUCCESS -> Icon(
+                            Icons.Default.CheckCircle,
+                            null,
+                            tint = MaterialTheme.colorScheme.tertiary
+                        ); ScrapeTaskStatus.FAILED -> Icon(
+                            Icons.Default.Error,
+                            null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        }
                     }
                 }
             }
