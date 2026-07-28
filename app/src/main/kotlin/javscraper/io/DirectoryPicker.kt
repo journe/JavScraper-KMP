@@ -1,29 +1,23 @@
-package javscraper.io
+﻿package javscraper.io
 
-import java.awt.FileDialog
-import java.awt.Frame
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
 import java.io.File
 
 /**
- * Opens a native OS directory selection dialog.
- * On macOS uses the built-in directory picker mode.
- * On Windows/Linux opens the native file dialog and returns the directory path.
+ * Opens a native OS directory selection dialog using FileKit.
  *
- * @param title Dialog window title
- * @param initialDir Optional initial directory to open the dialog to
- * @return Absolute path of the selected directory, or null if cancelled
+ * On Windows this invokes the modern `IFileOpenDialog` (the same folder
+ * picker seen in native Windows apps). On macOS it uses `NSOpenPanel`
+ * in directory mode. On Linux it uses the portal-based or XDG native
+ * dialog.
+ *
+ * @param title Dialog title.
+ * @param initialDir Optional initial directory for the dialog.
+ * @return Absolute path of the selected directory, or null if cancelled.
  */
-fun pickDirectory(title: String, initialDir: String? = null): String? {
-    System.setProperty("apple.awt.fileDialogForDirectories", "true")
-    return try {
-        val dialog = FileDialog(null as Frame?, title, FileDialog.LOAD)
-        dialog.isModal = true
-        if (!initialDir.isNullOrBlank()) {
-            dialog.directory = initialDir
-        }
-        dialog.isVisible = true
-        dialog.directory
-    } finally {
-        System.clearProperty("apple.awt.fileDialogForDirectories")
-    }
+suspend fun pickDirectory(title: String, initialDir: String? = null): String? {
+    val directory = FileKit.openDirectoryPicker()
+    val file = directory?.file ?: return null
+    return file.absolutePath.trimEnd(File.separatorChar)
 }

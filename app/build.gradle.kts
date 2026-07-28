@@ -1,4 +1,4 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+﻿import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("jvm") version "2.1.20"
@@ -22,9 +22,23 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.5.15")
 
+    // FileKit - cross-platform native file/directory pickers
+    implementation("io.github.vinceglb:filekit-core:0.14.2") {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
+    implementation("io.github.vinceglb:filekit-dialogs:0.14.2")
+
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+}
+
+kotlin {
+    compilerOptions {
+        // FileKit 0.14.2 was compiled with Kotlin 2.4.0; skip metadata check
+        // to allow it to work with the current 2.1.20 compiler.
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
+    }
 }
 
 compose.desktop {
@@ -41,7 +55,6 @@ compose.desktop {
             windows {
                 menuGroup = "JavScraper"
                 upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                // Include the worker executable in the package
                 appResourcesRootDir.set(rootProject.file("src/main/resources"))
             }
 

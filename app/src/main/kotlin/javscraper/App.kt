@@ -34,6 +34,7 @@ fun App() {
         JavScraperTheme {
             Scaffold(
                 topBar = {
+                    val t = LocalTranslations.current
                     TopAppBar(
                         title = { Text("JavScraper") },
                         colors = TopAppBarDefaults.topAppBarColors(
@@ -43,8 +44,18 @@ fun App() {
                             Text(
                                 viewModel.status,
                                 style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(end = 8.dp)
+                                modifier = Modifier.padding(end = 4.dp)
                             )
+                            IconButton(onClick = { viewModel.navigate(Screen.SETTINGS) }) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = t.navSettings,
+                                    tint = if (viewModel.currentScreen == Screen.SETTINGS)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     )
                 },
@@ -75,12 +86,6 @@ fun App() {
                             selected = viewModel.currentScreen == Screen.GALLERY,
                             onClick = { viewModel.navigate(Screen.GALLERY) },
                             enabled = viewModel.results.isNotEmpty()
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Settings, null) },
-                            label = { Text(t.navSettings) },
-                            selected = viewModel.currentScreen == Screen.SETTINGS,
-                            onClick = { viewModel.navigate(Screen.SETTINGS) }
                         )
                     }
                 }
