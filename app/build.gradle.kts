@@ -1,10 +1,10 @@
 ﻿import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    kotlin("jvm") version "2.1.20"
-    id("org.jetbrains.compose") version "1.8.0"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
-    kotlin("plugin.serialization") version "2.1.20"
+    kotlin("jvm") version "2.4.0"
+    id("org.jetbrains.compose") version "1.9.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.0"
+    kotlin("plugin.serialization") version "2.4.0"
 }
 
 group = "com.javscraper"
@@ -16,29 +16,19 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
-    implementation("ch.qos.logback:logback-classic:1.5.15")
+    implementation("ch.qos.logback:logback-classic:1.5.17")
 
     // FileKit - cross-platform native file/directory pickers
-    implementation("io.github.vinceglb:filekit-core:0.14.2") {
-        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
-    }
+    implementation("io.github.vinceglb:filekit-core:0.14.2")
     implementation("io.github.vinceglb:filekit-dialogs:0.14.2")
 
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-}
-
-kotlin {
-    compilerOptions {
-        // FileKit 0.14.2 was compiled with Kotlin 2.4.0; skip metadata check
-        // to allow it to work with the current 2.1.20 compiler.
-        freeCompilerArgs.add("-Xskip-metadata-version-check")
-    }
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 }
 
 compose.desktop {
