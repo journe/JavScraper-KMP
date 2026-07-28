@@ -1,4 +1,4 @@
-package javscraper.ui.screens
+﻿package javscraper.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import javscraper.i18n.Translations
+import javscraper.i18n.LocalTranslations
 import javscraper.models.ScannedFile
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,41 +26,40 @@ fun FileScanScreen(
     onStartScrape: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val t = LocalTranslations.current
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(Translations.scanTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(t.scanTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(
             value = scanDir,
             onValueChange = {},
-            label = { Text(Translations.scanDirectoryLabel) },
+            label = { Text(t.scanDirectoryLabel) },
             readOnly = true,
-            trailingIcon = { IconButton(onClick = onSelectDirectory) { Icon(Icons.Default.FolderOpen, Translations.commonBrowse) } },
+            trailingIcon = { IconButton(onClick = onSelectDirectory) { Icon(Icons.Default.FolderOpen, t.commonBrowse) } },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(onClick = onStartScan, enabled = !isScanning && scanDir.isNotBlank()) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = null
-                ); Spacer(Modifier.width(8.dp)); Text(if (isScanning) Translations.scanButtonScanning else Translations.scanButtonScan)
+                Icon(Icons.Default.Search, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (isScanning) t.scanButtonScanning else t.scanButtonScan)
             }
             Button(
                 onClick = onStartScrape,
                 enabled = scannedFiles.isNotEmpty() && !isScanning,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Icon(
-                    Icons.Default.CloudDownload,
-                    contentDescription = null
-                ); Spacer(Modifier.width(8.dp)); Text(Translations.scanButtonScrape)
+                Icon(Icons.Default.CloudDownload, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(t.scanButtonScrape)
             }
         }
         Spacer(Modifier.height(16.dp))
         if (scannedFiles.isNotEmpty()) {
             Text(
-                Translations.scanFound(scannedFiles.count { it.number.isNotBlank() }),
+                t.scanFound(scannedFiles.count { it.number.isNotBlank() }),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -70,9 +69,7 @@ fun FileScanScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (file.number.isNotBlank()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.errorContainer.copy(
-                                alpha = 0.3f
-                            )
+                            containerColor = if (file.number.isNotBlank()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
                         )
                     ) {
                         Row(
@@ -88,33 +85,25 @@ fun FileScanScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            if (file.number.isNotBlank()) Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    file.number,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
+                            if (file.number.isNotBlank()) {
+                                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.primaryContainer) {
+                                    Text(
+                                        file.number,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            } else {
+                                Text(t.scanNoNumber, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                             }
-                            else Text(
-                                Translations.scanNoNumber,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
                         }
                     }
                 }
             }
         } else if (!isScanning) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    Translations.scanEmptyHint,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(t.scanEmptyHint, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

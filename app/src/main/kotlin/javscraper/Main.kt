@@ -1,12 +1,12 @@
-package javscraper
+﻿package javscraper
 
 import androidx.compose.runtime.remember
-import javscraper.i18n.Translations
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import javscraper.i18n.LocalTranslations
 import java.awt.Dimension
 
 fun main() = application {
@@ -14,7 +14,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         state = windowState,
-        title = Translations.appTitle
+        title = LocalTranslations.current.appTitle
     ) {
         window.minimumSize = Dimension(800, 600)
         App()

@@ -3,7 +3,9 @@
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import javscraper.i18n.Translations
+import javscraper.i18n.LocalTranslations
+import javscraper.i18n.TranslationStrings
+import javscraper.i18n.TranslationZh
 import javscraper.io.FileScanner
 import javscraper.io.pickDirectory
 import javscraper.models.ScannedFile
@@ -31,7 +33,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         private set
 
     // --- Status bar ---
-    var status by mutableStateOf(Translations.statusInitializing)
+    var status by mutableStateOf("")
         private set
 
     // --- Scan state ---
@@ -76,32 +78,36 @@ class AppViewModel(private val scope: CoroutineScope) {
     var autoScrape by mutableStateOf(SettingsManager.get().autoScrape)
         private set
 
+    // --- Locale-aware strings ---
+    private val strings: TranslationStrings
+        get() = if (currentLanguage == "zh") TranslationZh() else TranslationStrings()
+
     // --- Dependencies ---
     private var mgr: SidecarManager? = null
     private var orch: ScrapeOrchestrator? = null
 
     /** Initialize the sidecar worker and load sites */
     fun init() {
+        status = strings.statusInitializing
         scope.launch {
             try {
-                Translations.init(currentLanguage)
-                status = Translations.statusStarting
+                status = strings.statusStarting
                 val m = SidecarManager(
                     Paths.get(System.getProperty("user.dir"), workerPath).toString()
                 )
                 if (m.start()) {
                     mgr = m
                     sites = m.listSites()
-                    status = Translations.statusReady(sites.size)
+                    status = strings.statusReady(sites.size)
                     orch = ScrapeOrchestrator(
                         m, outputDir,
                         createMovieFolders, hardlinkInsteadOfCopy, downloadImages
                     )
                 } else {
-                    status = Translations.statusFailed
+                    status = strings.statusFailed
                 }
             } catch (e: Exception) {
-                status = Translations.statusError(e.message ?: "")
+                status = strings.statusError(e.message ?: "")
             }
         }
     }
@@ -125,7 +131,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         scope.launch {
             try {
                 val dir = pickDirectory(
-                    Translations.scanDirectoryLabel,
+                    strings.scanDirectoryLabel,
                     scanDir.ifBlank { null }
                 )
                 if (dir != null) {
@@ -133,7 +139,7 @@ class AppViewModel(private val scope: CoroutineScope) {
                     saveBothDirs()
                 }
             } catch (e: Exception) {
-                status = Translations.statusDirError(e.message ?: "")
+                status = strings.statusDirError(e.message ?: "")
             }
         }
     }
@@ -142,7 +148,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         scope.launch {
             try {
                 val dir = pickDirectory(
-                    Translations.commonBrowse,
+                    strings.commonBrowse,
                     outputDir.ifBlank { null }
                 )
                 if (dir != null) {
@@ -150,7 +156,7 @@ class AppViewModel(private val scope: CoroutineScope) {
                     saveBothDirs()
                 }
             } catch (e: Exception) {
-                status = Translations.statusDirError(e.message ?: "")
+                status = strings.statusDirError(e.message ?: "")
             }
         }
     }
@@ -218,13 +224,13 @@ class AppViewModel(private val scope: CoroutineScope) {
                         val newTasks = tasks.toMutableList()
                         newTasks[i] = t.copy(
                             status = ScrapeTaskStatus.FAILED,
-                            error = Translations.statusFileNotFound
+                            error = strings.statusFileNotFound
                         )
                         tasks = newTasks
                     }
                 }
             } catch (e: Exception) {
-                status = Translations.statusScrapeError(e.message ?: "")
+                status = strings.statusScrapeError(e.message ?: "")
             }
             scraping = false
         }
@@ -243,8 +249,9 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     fun updateLanguage(lang: String) {
         currentLanguage = lang
-        Translations.init(lang)
         SettingsManager.update { it.copy(language = lang) }
+        // The UI recomposition is driven by currentLanguage change;
+        // composition-local [LocalTranslations] is updated by the App composable.
     }
 
     fun toggleSite(id: String, enabled: Boolean) {
