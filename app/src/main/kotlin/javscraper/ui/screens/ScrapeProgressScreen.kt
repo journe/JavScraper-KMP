@@ -51,7 +51,11 @@ fun ScrapeProgressScreen(
         if (tasks.isNotEmpty()) {
             LinearProgressIndicator({ progress }, Modifier.fillMaxWidth().height(8.dp))
             Spacer(Modifier.height(8.dp))
-            Text(t.progressCompleted(ok, tasks.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                t.progressCompleted(ok, tasks.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(16.dp))
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
@@ -63,18 +67,50 @@ fun ScrapeProgressScreen(
                     ScrapeTaskStatus.FAILED -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
                 }
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = bg)) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Column(Modifier.weight(1f)) {
                             Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text(task.fileName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (task.error.isNotBlank()) Text(task.error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                            Text(
+                                task.fileName,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (task.error.isNotBlank()) Text(
+                                task.error,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                         Spacer(Modifier.width(8.dp))
                         when (task.status) {
-                            ScrapeTaskStatus.PENDING -> Icon(Icons.Default.HourglassEmpty, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            ScrapeTaskStatus.SCRAPING -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                            ScrapeTaskStatus.SUCCESS -> Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
-                            ScrapeTaskStatus.FAILED -> Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
+                            ScrapeTaskStatus.PENDING -> Icon(
+                                Icons.Default.HourglassEmpty,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            ScrapeTaskStatus.SCRAPING -> CircularProgressIndicator(
+                                Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+
+                            ScrapeTaskStatus.SUCCESS -> Icon(
+                                Icons.Default.CheckCircle,
+                                null,
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+
+                            ScrapeTaskStatus.FAILED -> Icon(
+                                Icons.Default.Error,
+                                null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }

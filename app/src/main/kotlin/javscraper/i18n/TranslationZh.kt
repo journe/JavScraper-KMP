@@ -3,7 +3,7 @@
 /**
  * Chinese (Simplified) translations.
  */
-class TranslationZh : TranslationStrings() {
+class TranslationZh : TranslationEn() {
 
     override val appTitle: String = "JavScraper - JAV 影片刮削器"
     override val statusInitializing: String = "初始化中..."

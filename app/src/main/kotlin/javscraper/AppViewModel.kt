@@ -3,8 +3,7 @@
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import javscraper.i18n.LocalTranslations
-import javscraper.i18n.TranslationStrings
+import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.io.FileScanner
 import javscraper.io.pickDirectory
@@ -79,8 +78,8 @@ class AppViewModel(private val scope: CoroutineScope) {
         private set
 
     // --- Locale-aware strings ---
-    private val strings: TranslationStrings
-        get() = if (currentLanguage == "zh") TranslationZh() else TranslationStrings()
+    private val strings: TranslationEn
+        get() = if (currentLanguage == "zh") TranslationZh() else TranslationEn()
 
     // --- Dependencies ---
     private var mgr: SidecarManager? = null
@@ -128,35 +127,43 @@ class AppViewModel(private val scope: CoroutineScope) {
     // --- Directory selection ---
 
     fun selectScanDir() {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             try {
                 val dir = pickDirectory(
                     strings.scanDirectoryLabel,
                     scanDir.ifBlank { null }
                 )
                 if (dir != null) {
-                    scanDir = dir
-                    saveBothDirs()
+                    withContext(Dispatchers.Main) {
+                        scanDir = dir
+                        saveBothDirs()
+                    }
                 }
             } catch (e: Exception) {
-                status = strings.statusDirError(e.message ?: "")
+                withContext(Dispatchers.Main) {
+                    status = strings.statusDirError(e.message ?: "")
+                }
             }
         }
     }
 
     fun selectOutputDir() {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             try {
                 val dir = pickDirectory(
                     strings.commonBrowse,
                     outputDir.ifBlank { null }
                 )
                 if (dir != null) {
-                    outputDir = dir
-                    saveBothDirs()
+                    withContext(Dispatchers.Main) {
+                        outputDir = dir
+                        saveBothDirs()
+                    }
                 }
             } catch (e: Exception) {
-                status = strings.statusDirError(e.message ?: "")
+                withContext(Dispatchers.Main) {
+                    status = strings.statusDirError(e.message ?: "")
+                }
             }
         }
     }

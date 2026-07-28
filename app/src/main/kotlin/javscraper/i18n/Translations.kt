@@ -3,7 +3,7 @@
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
- * CompositionLocal that provides the current [TranslationStrings] instance
+ * CompositionLocal that provides the current [TranslationEn] instance
  * down the composable tree. Replace this value via [CompositionLocalProvider]
  * when the user changes language.
  *
@@ -11,4 +11,4 @@ import androidx.compose.runtime.staticCompositionLocalOf
  *   val t = LocalTranslations.current
  *   Text(t.scanTitle)
  */
-val LocalTranslations = staticCompositionLocalOf { TranslationStrings() }
+val LocalTranslations = staticCompositionLocalOf { TranslationEn() }

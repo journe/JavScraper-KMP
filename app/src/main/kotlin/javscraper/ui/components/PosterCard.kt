@@ -15,16 +15,51 @@ import javscraper.models.Video
 
 @Composable
 fun PosterCard(video: Video, onClick: () -> Unit = {}, modifier: Modifier = Modifier) {
-    Card(onClick = onClick, modifier = modifier.width(180.dp), shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(4.dp)) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.width(180.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
         Column {
-            Box(Modifier.fillMaxWidth().height(250.dp).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                Text(video.number, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Box(
+                Modifier.fillMaxWidth().height(250.dp).background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    video.number,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
             Column(Modifier.padding(8.dp)) {
-                Text(video.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (video.title.isNotBlank()) Text(video.title, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (video.actresses.isNotEmpty()) Text(video.actresses.joinToString(", "), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.tertiary)
-                if (video.maker.isNotBlank()) Text(video.maker, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    video.number,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (video.title.isNotBlank()) Text(
+                    video.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (video.actresses.isNotEmpty()) Text(
+                    video.actresses.joinToString(", "),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                if (video.maker.isNotBlank()) Text(
+                    video.maker,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             }
         }
     }

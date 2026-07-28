@@ -35,7 +35,14 @@ fun FileScanScreen(
             onValueChange = {},
             label = { Text(t.scanDirectoryLabel) },
             readOnly = true,
-            trailingIcon = { IconButton(onClick = onSelectDirectory) { Icon(Icons.Default.FolderOpen, t.commonBrowse) } },
+            trailingIcon = {
+                IconButton(onClick = onSelectDirectory) {
+                    Icon(
+                        Icons.Default.FolderOpen,
+                        t.commonBrowse
+                    )
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -69,7 +76,9 @@ fun FileScanScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (file.number.isNotBlank()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                            containerColor = if (file.number.isNotBlank()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.errorContainer.copy(
+                                alpha = 0.3f
+                            )
                         )
                     ) {
                         Row(
@@ -86,7 +95,10 @@ fun FileScanScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (file.number.isNotBlank()) {
-                                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.primaryContainer) {
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
                                     Text(
                                         file.number,
                                         style = MaterialTheme.typography.labelLarge,
@@ -95,7 +107,11 @@ fun FileScanScreen(
                                     )
                                 }
                             } else {
-                                Text(t.scanNoNumber, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    t.scanNoNumber,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         }
                     }
@@ -103,7 +119,11 @@ fun FileScanScreen(
             }
         } else if (!isScanning) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(t.scanEmptyHint, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    t.scanEmptyHint,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

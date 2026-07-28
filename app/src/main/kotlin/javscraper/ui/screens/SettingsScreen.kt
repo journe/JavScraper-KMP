@@ -64,14 +64,28 @@ fun SettingsScreen(
             onValueChange = actions.onWorkerPathChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            trailingIcon = { IconButton(onClick = actions.onSelectWorkerPath) { Icon(Icons.Default.FileOpen, t.commonBrowse) } }
+            trailingIcon = {
+                IconButton(onClick = actions.onSelectWorkerPath) {
+                    Icon(
+                        Icons.Default.FileOpen,
+                        t.commonBrowse
+                    )
+                }
+            }
         )
         Spacer(Modifier.height(16.dp))
         Text(t.settingsScanDir, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         OutlinedTextField(
             value = state.scanDir, onValueChange = {}, readOnly = true,
             modifier = Modifier.fillMaxWidth(), singleLine = true,
-            trailingIcon = { IconButton(onClick = actions.onSelectScanDir) { Icon(Icons.Default.FolderOpen, t.commonBrowse) } }
+            trailingIcon = {
+                IconButton(onClick = actions.onSelectScanDir) {
+                    Icon(
+                        Icons.Default.FolderOpen,
+                        t.commonBrowse
+                    )
+                }
+            }
         )
         Spacer(Modifier.height(8.dp))
         SettingsSwitchRow(t.settingsScanRecursive, state.scanRecursive, actions.onScanRecursiveChange)
@@ -80,7 +94,14 @@ fun SettingsScreen(
         OutlinedTextField(
             value = state.outputDir, onValueChange = {}, readOnly = true,
             modifier = Modifier.fillMaxWidth(), singleLine = true,
-            trailingIcon = { IconButton(onClick = actions.onSelectOutputDir) { Icon(Icons.Default.FolderOpen, t.commonBrowse) } }
+            trailingIcon = {
+                IconButton(onClick = actions.onSelectOutputDir) {
+                    Icon(
+                        Icons.Default.FolderOpen,
+                        t.commonBrowse
+                    )
+                }
+            }
         )
         Spacer(Modifier.height(12.dp))
         SettingsSwitchRow(t.settingsMovieFolders, state.createMovieFolders, actions.onCreateMovieFoldersChange)
@@ -89,7 +110,10 @@ fun SettingsScreen(
         Spacer(Modifier.height(20.dp))
         Text(t.settingsScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        SiteSelector(sites = state.sites.map { SiteItem(it.id, it.name, it.id in state.enabledSiteIds) }, onToggle = actions.onToggleSite)
+        SiteSelector(
+            sites = state.sites.map { SiteItem(it.id, it.name, it.id in state.enabledSiteIds) },
+            onToggle = actions.onToggleSite
+        )
         Spacer(Modifier.height(20.dp))
         Text(t.settingsLanguage, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
@@ -113,7 +137,12 @@ private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: 
 }
 
 @Composable
-private fun LanguageSelector(language: String, showRestartHint: Boolean, t: javscraper.i18n.TranslationStrings, onLanguageChange: (String) -> Unit) {
+private fun LanguageSelector(
+    language: String,
+    showRestartHint: Boolean,
+    t: javscraper.i18n.TranslationEn,
+    onLanguageChange: (String) -> Unit
+) {
     Column {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Text(t.settingsLanguageEn)
@@ -125,7 +154,11 @@ private fun LanguageSelector(language: String, showRestartHint: Boolean, t: javs
         }
         if (showRestartHint) {
             Spacer(Modifier.height(4.dp))
-            Text(t.settingsLanguageRestartHint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+            Text(
+                t.settingsLanguageRestartHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary
+            )
         }
     }
 }

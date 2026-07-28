@@ -4,7 +4,7 @@
  * Type-safe translation strings for the JavScraper UI.
  * Extend this class and override properties for each locale.
  */
-open class TranslationStrings {
+open class TranslationEn {
 
     // --- App ---
     open val appTitle: String = "JavScraper - JAV Video Metadata Scraper"

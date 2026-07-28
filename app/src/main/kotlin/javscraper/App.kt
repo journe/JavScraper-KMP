@@ -8,7 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
-import javscraper.i18n.TranslationStrings
+import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.ui.screens.*
 import javscraper.ui.theme.JavScraperTheme
@@ -26,8 +26,8 @@ fun App() {
         onDispose { viewModel.dispose() }
     }
 
-    val localeStrings: TranslationStrings = remember(viewModel.currentLanguage) {
-        if (viewModel.currentLanguage == "zh") TranslationZh() else TranslationStrings()
+    val localeStrings: TranslationEn = remember(viewModel.currentLanguage) {
+        if (viewModel.currentLanguage == "zh") TranslationZh() else TranslationEn()
     }
 
     CompositionLocalProvider(LocalTranslations provides localeStrings) {
@@ -95,18 +95,21 @@ fun App() {
                             onStartScan = viewModel::startScan,
                             onStartScrape = { viewModel.navigate(Screen.PROGRESS) }
                         )
+
                         Screen.PROGRESS -> ScrapeProgressScreen(
                             tasks = viewModel.tasks,
                             isRunning = viewModel.scraping,
                             onStartAll = viewModel::startAllScraping,
                             onCancel = viewModel::cancelScraping
                         )
+
                         Screen.GALLERY -> ResultGalleryScreen(
                             results = viewModel.results,
                             onClear = viewModel::clearResults,
                             onOpenOutputDir = {},
                             outputDir = viewModel.outputDir
                         )
+
                         Screen.SETTINGS -> SettingsScreen(
                             state = SettingsState(
                                 workerPath = viewModel.workerPath,
