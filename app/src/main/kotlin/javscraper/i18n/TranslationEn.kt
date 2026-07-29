@@ -88,4 +88,16 @@ open class TranslationEn {
 
     // --- Common ---
     open val commonBrowse: String = "Browse"
+
+    // --- Single Scrape Dialog ---
+    open val singleScrapeTitle: String = "Single Scrape"
+    open val singleScrapeNumberLabel: String = "Number"
+    open val singleScrapeSiteLabel: String = "Scraper Site"
+    open val singleScrapeSiteAuto: String = "Auto"
+    open val singleScrapeStart: String = "Start Scraping"
+    open val singleScrapeInProgress: String = "Scraping in progress..."
+    open val singleScrapeResultTitle: String = "Scrape Result"
+    open val singleScrapeResultError: String = "Error"
+    open val commonConfirm: String = "Confirm"
 }
+

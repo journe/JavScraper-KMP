@@ -78,4 +78,15 @@ class TranslationZh : TranslationEn() {
     override val statusbarTitle: String = "刮削站点"
 
     override val commonBrowse: String = "浏览"
+
+    // --- Single Scrape Dialog ---
+    override val singleScrapeTitle: String = "单个刮削"
+    override val singleScrapeNumberLabel: String = "番号"
+    override val singleScrapeSiteLabel: String = "刮削站点"
+    override val singleScrapeSiteAuto: String = "自动（由服务端决定）"
+    override val singleScrapeStart: String = "开始刮削"
+    override val singleScrapeInProgress: String = "正在刮削..."
+    override val singleScrapeResultTitle: String = "刮削结果"
+    override val singleScrapeResultError: String = "错误"
+    override val commonConfirm: String = "确认"
 }
