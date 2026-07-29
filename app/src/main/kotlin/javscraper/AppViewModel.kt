@@ -1,4 +1,4 @@
-﻿package javscraper
+package javscraper
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +75,17 @@ class AppViewModel(private val scope: CoroutineScope) {
     var downloadImages by mutableStateOf(SettingsManager.get().downloadImages)
         private set
     var autoScrape by mutableStateOf(SettingsManager.get().autoScrape)
+        private set
+
+    var folderLayers by mutableStateOf(SettingsManager.get().folderLayers)
+        private set
+    var filenameFormat by mutableStateOf(SettingsManager.get().filenameFormat)
+        private set
+    var maxTitleLength by mutableStateOf(SettingsManager.get().maxTitleLength)
+        private set
+    var maxFilenameLength by mutableStateOf(SettingsManager.get().maxFilenameLength)
+        private set
+    var suffixKeywords by mutableStateOf(SettingsManager.get().suffixKeywords)
         private set
 
     // --- Locale-aware strings ---
@@ -282,6 +293,12 @@ class AppViewModel(private val scope: CoroutineScope) {
         autoScrape = fresh.autoScrape
         enabledSites = fresh.enabledSites
         currentLanguage = fresh.language
+        folderLayers = fresh.folderLayers
+        filenameFormat = fresh.filenameFormat
+        maxTitleLength = fresh.maxTitleLength
+        maxFilenameLength = fresh.maxFilenameLength
+        suffixKeywords = fresh.suffixKeywords
+        updateRenameOrchestrator()
     }
 
     fun updateScanRecursive(v: Boolean) {
@@ -293,7 +310,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         createMovieFolders = v
         SettingsManager.update { it.copy(createMovieFolders = v) }
         mgr?.let { m ->
-            orch = ScrapeOrchestrator(m, outputDir, v, hardlinkInsteadOfCopy, downloadImages)
+                    orch = createScrapeOrchestrator(m)
         }
     }
 
@@ -321,5 +338,57 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun updateWorkerPath(v: String) {
         workerPath = v
         SettingsManager.update { it.copy(workerPath = v) }
+    }
+
+    fun updateFolderLayer(index: Int, value: String) {
+        folderLayers = folderLayers.toMutableList().also { it[index] = value }
+        SettingsManager.update { it.copy(folderLayers = folderLayers) }
+        updateRenameOrchestrator()
+    }
+
+    fun addLayer() {
+        folderLayers = folderLayers + ""
+        SettingsManager.update { it.copy(folderLayers = folderLayers) }
+    }
+
+    fun removeLayer(index: Int) {
+        folderLayers = folderLayers.toMutableList().also { it.removeAt(index) }
+        SettingsManager.update { it.copy(folderLayers = folderLayers) }
+        updateRenameOrchestrator()
+    }
+
+    fun updateFilenameFormat(v: String) {
+        filenameFormat = v
+        SettingsManager.update { it.copy(filenameFormat = v) }
+        updateRenameOrchestrator()
+    }
+
+    fun updateMaxTitleLength(v: Int) {
+        maxTitleLength = v
+        SettingsManager.update { it.copy(maxTitleLength = v) }
+    }
+
+    fun updateMaxFilenameLength(v: Int) {
+        maxFilenameLength = v
+        SettingsManager.update { it.copy(maxFilenameLength = v) }
+        updateRenameOrchestrator()
+    }
+
+    fun updateSuffixKeywords(v: List<String>) {
+        suffixKeywords = v
+        SettingsManager.update { it.copy(suffixKeywords = v) }
+        updateRenameOrchestrator()
+    }
+
+    private fun createScrapeOrchestrator(m: SidecarManager): ScrapeOrchestrator {
+        return ScrapeOrchestrator(
+            m, outputDir, createMovieFolders, hardlinkInsteadOfCopy,
+            downloadImages, folderLayers, filenameFormat,
+            maxTitleLength, maxFilenameLength, suffixKeywords
+        )
+    }
+
+    private fun updateRenameOrchestrator() {
+        mgr?.let { m -> orch = createScrapeOrchestrator(m) }
     }
 }
