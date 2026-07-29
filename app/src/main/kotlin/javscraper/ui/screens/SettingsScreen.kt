@@ -1,4 +1,4 @@
-﻿package javscraper.ui.screens
+package javscraper.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
@@ -129,6 +130,7 @@ fun SettingsScreen(
                         singleLine = true,
                         placeholder = { Text(t.settingsFolderLayerPlaceholder) }
                     )
+                    VariableInsertButton { v -> actions.onFolderLayerChange(index, layer + v) }
                     IconButton(onClick = { actions.onRemoveLayer(index) }) {
                         Icon(Icons.Default.RemoveCircleOutline, t.settingsRemoveLayer)
                     }
@@ -143,19 +145,16 @@ fun SettingsScreen(
 
         Text(t.settingsFilenameFormat, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(4.dp))
-        OutlinedTextField(
-            value = state.filenameFormat,
-            onValueChange = actions.onFilenameFormatChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text(t.settingsFilenamePlaceholder) }
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            t.settingsRenameVariables,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = state.filenameFormat,
+                onValueChange = actions.onFilenameFormatChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                placeholder = { Text(t.settingsFilenamePlaceholder) }
+            )
+            VariableInsertButton { v -> actions.onFilenameFormatChange(state.filenameFormat + v) }
+        }
         Spacer(Modifier.height(16.dp))
 
         var advancedExpanded by remember { mutableStateOf(false) }
@@ -218,6 +217,30 @@ fun SettingsScreen(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) { Icon(Icons.Default.SettingsBackupRestore, null); Spacer(Modifier.width(8.dp)); Text(t.settingsReset) }
         Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun VariableInsertButton(onInsert: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val variables = listOf(
+        "{num}", "{title}", "{actor}", "{actors}",
+        "{maker}", "{label}", "{series}", "{director}",
+        "{date}", "{year}", "{month}", "{day}", "{suffix}"
+    )
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.Add, "Insert variable")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            variables.forEach { v ->
+                DropdownMenuItem(
+                    text = { Text(v, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace) },
+                    onClick = { onInsert(v); expanded = false }
+                )
+            }
+        }
     }
 }
 
