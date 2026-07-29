@@ -24,3 +24,10 @@ data class ScannedFile(val path: String, val fileName: String, val number: Strin
 
 @Serializable
 data class SiteInfo(val id: String, val name: String)
+
+sealed interface SingleScrapeDialogState {
+    data object Closed : SingleScrapeDialogState
+    data object Input : SingleScrapeDialogState
+    data object Scraping : SingleScrapeDialogState
+    data class Result(val video: Video?, val error: String?) : SingleScrapeDialogState
+}
