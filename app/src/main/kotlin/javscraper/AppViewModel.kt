@@ -10,6 +10,7 @@ import javscraper.io.pickDirectory
 import javscraper.models.ScannedFile
 import javscraper.models.SiteInfo
 import javscraper.models.Video
+import javscraper.models.SingleScrapeDialogState
 import javscraper.scrape.ScrapeOrchestrator
 import javscraper.settings.SettingsManager
 import javscraper.sidecar.SidecarManager
@@ -53,6 +54,78 @@ class AppViewModel(private val scope: CoroutineScope) {
     var sites by mutableStateOf<List<SiteInfo>>(emptyList())
         private set
 
+    // --- Single scrape dialog state ---
+    var singleScrapeDialogState by mutableStateOf<SingleScrapeDialogState>(SingleScrapeDialogState.Closed)
+        private set
+    var singleScrapeFile by mutableStateOf<ScannedFile?>(null)
+        private set
+    var singleScrapeNumber by mutableStateOf("")
+        private set
+    var singleScrapeSite by mutableStateOf<String?>(null)
+        private set
+    var singleScrapeTask by mutableStateOf<ScrapeTask?>(null)
+        private set
+
+    // --- Single scrape dialog setters ---
+    fun updateSingleScrapeNumber(value: String) {
+        singleScrapeNumber = value
+    }
+
+    fun updateSingleScrapeSite(value: String?) {
+        singleScrapeSite = value
+    }
+
+    fun openSingleScrape(file: ScannedFile) {
+        singleScrapeFile = file
+        singleScrapeNumber = file.number
+        singleScrapeSite = null
+        singleScrapeTask = ScrapeTask(file.number, file.fileName, status = ScrapeTaskStatus.PENDING)
+        singleScrapeDialogState = SingleScrapeDialogState.Input
+    }
+
+    fun closeSingleScrape() {
+        singleScrapeDialogState = SingleScrapeDialogState.Closed
+        singleScrapeFile = null
+        singleScrapeTask = null
+    }
+
+    fun startSingleScrape() {
+        val file = singleScrapeFile ?: return
+        val number = singleScrapeNumber
+        val site = singleScrapeSite
+        if (number.isBlank()) return
+        singleScrapeDialogState = SingleScrapeDialogState.Scraping
+        scope.launch {
+            val sf = file.copy(number = number)
+            singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SCRAPING)
+            try {
+                val result = orch?.process(sf, site) ?: return@launch
+                if (result.success && result.data != null) {
+                    singleScrapeDialogState = SingleScrapeDialogState.Result(result.data, null)
+                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = result.data)
+                } else {
+                    val errMsg = result.error?.message ?: "Unknown error"
+                    singleScrapeDialogState = SingleScrapeDialogState.Result(null, errMsg)
+                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = errMsg)
+                }
+            } catch (e: Exception) {
+                singleScrapeDialogState = SingleScrapeDialogState.Result(null, e.message ?: "Unknown error")
+                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = e.message ?: "")
+            }
+        }
+    }
+
+    fun confirmSingleScrape() {
+        val task = singleScrapeTask
+        val state = singleScrapeDialogState
+        if (task != null) {
+            tasks = tasks + task
+        }
+        if (state is SingleScrapeDialogState.Result && state.video != null) {
+            results = results + state.video
+        }
+        closeSingleScrape()
+    }
     // --- Settings state ---
     var scanDir by mutableStateOf(SettingsManager.get().scanDir)
         private set
