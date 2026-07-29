@@ -35,14 +35,10 @@ object FileScanner {
         RegexOption.IGNORE_CASE
     )
 
-    // Pure-numeric codes: 6 digits, separator, 2-4 digits
+    // Numeric codes: 6 digits, separator (dash/en-dash/underscore), 2-4 digits
+    // Covers both 123456-789 and 011225_01 / 031226_001 formats
     private val RX3 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])(\\d{6}[-–]\\d{2,4})"
-    )
-
-    // Date-based codes: YYMMDD_NN or YYMMDD_NNN (e.g. 011225_01, 031226_001)
-    private val RX4 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])(\\d{6}_\\d{2,3})"
+        "(?:^|[\\s\\-_\\[\\(.,])(\\d{6}[-–_]\\d{2,4})"
     )
 
     private val EXCLUDE = setOf(
@@ -79,7 +75,7 @@ object FileScanner {
         val n = fileName.substringBeforeLast(".")
         if (isSample(fileName)) return ""
 
-        for (r in listOf(RX1, RX2, RX3, RX4)) {
+        for (r in listOf(RX1, RX2, RX3)) {
             val m = r.find(n)
             if (m != null) return m.groupValues[1].replace("–", "-").uppercase()
         }
