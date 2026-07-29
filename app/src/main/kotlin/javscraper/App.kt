@@ -109,6 +109,7 @@ fun App() {
                             onSingleScrapeClick = viewModel::openSingleScrapeFromTask,
                             singleScrapeDialogState = viewModel.singleScrapeDialogState,
                             singleScrapeNumber = viewModel.singleScrapeNumber,
+                            singleScrapeSite = viewModel.singleScrapeSite,
                             singleScrapeTask = viewModel.singleScrapeTask,
                             sites = viewModel.sites,
                             onSingleScrapeNumberChange = viewModel::updateSingleScrapeNumber,

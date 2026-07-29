@@ -16,8 +16,6 @@ import javscraper.i18n.LocalTranslations
 import javscraper.models.SingleScrapeDialogState
 import javscraper.models.SiteInfo
 import javscraper.models.Video
-import javscraper.ui.components.SiteItem
-import javscraper.ui.components.SiteSelector
 
 enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
 data class ScrapeTask(
@@ -31,6 +29,7 @@ data class ScrapeTask(
 )
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ScrapeProgressScreen(
     tasks: List<ScrapeTask>,
     isRunning: Boolean,
@@ -39,6 +38,7 @@ fun ScrapeProgressScreen(
     onSingleScrapeClick: (ScrapeTask) -> Unit,
     singleScrapeDialogState: SingleScrapeDialogState,
     singleScrapeNumber: String,
+    singleScrapeSite: String?,
     singleScrapeTask: ScrapeTask?,
     sites: List<SiteInfo>,
     onSingleScrapeNumberChange: (String) -> Unit,
@@ -176,11 +176,43 @@ fun ScrapeProgressScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            SiteSelector(
-                                sites = listOf(SiteItem("", t.singleScrapeSiteAuto, true)) +
-                                    sites.map { SiteItem(it.id, it.name, true) },
-                                onToggle = { id: String, _: Boolean -> onSingleScrapeSiteChange(id.ifEmpty { null }) }
-                            )
+                            val selectedSiteName = if (singleScrapeSite == null) t.singleScrapeSiteAuto
+                                else sites.find { it.id == singleScrapeSite }?.name ?: singleScrapeSite ?: ""
+                            var expanded by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = expanded,
+                                onExpandedChange = { expanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedSiteName,
+                                    onValueChange = {},
+                                    label = { Text(t.singleScrapeSiteLabel) },
+                                    readOnly = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(t.singleScrapeSiteAuto) },
+                                        onClick = {
+                                            onSingleScrapeSiteChange(null)
+                                            expanded = false
+                                        }
+                                    )
+                                    sites.forEach { site ->
+                                        DropdownMenuItem(
+                                            text = { Text(site.name) },
+                                            onClick = {
+                                                onSingleScrapeSiteChange(site.id)
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     },
                     confirmButton = {
