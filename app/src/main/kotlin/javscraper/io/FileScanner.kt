@@ -13,23 +13,23 @@ object FileScanner {
         "webm", "vob", "m4v", "3gp", "mpg", "mpeg", "rm", "rmvb"
     )
 
-    // Special prefixes that sometimes appear without a dash before the number, e.g. FC2-123456 or fc2ppv-123
+    // Special prefixes that may appear with or without a dash before the number
     private val SPECIAL_PREFIXES = arrayOf(
         "fc2", "heyzo", "siro", "carib", "10mu", "1pon",
         "mukd", "paco", "toky", "gano"
     )
 
-    // Build RX1 dynamically: allow optional dash (and "ppv-" for FC2) between prefix and digits
+    // Build RX1 dynamically: prefix, optional dash (+ "ppv-" for fc2), then digits only
     private val SPECIAL_ALTERNATION = SPECIAL_PREFIXES.joinToString("|") { pfx ->
-        if (pfx == "fc2") "(?:${pfx}-?(?:ppv-?)?\\d[\\d\\-]*)"
-        else "(?:${pfx}-?\\d[\\d\\-]*)"
+        if (pfx == "fc2") "(?:${pfx}-?(?:ppv-?)?\\d+)"
+        else "(?:${pfx}-?\\d+)"
     }
     private val RX1 = Regex(
         "(?:^|[\\s\\-_\\[\\(.,])((?:$SPECIAL_ALTERNATION))",
         RegexOption.IGNORE_CASE
     )
 
-    // Standard JAV: 2-6 letters, optional separator, 2-5 digits
+    // Standard JAV: 2-6 letters, separator, 2-5 digits
     private val RX2 = Regex(
         "(?:^|[\\s\\-_\\[\\(.,])([A-Za-z]{2,6}[-–]\\d{2,5})",
         RegexOption.IGNORE_CASE
