@@ -17,8 +17,10 @@ data class Video(
 
 @Serializable
 data class ScrapeResult(val success: Boolean, val data: Video? = null, val error: ScrapeError? = null)
+
 @Serializable
 data class ScrapeError(val code: Int = -1, val message: String = "")
 data class ScannedFile(val path: String, val fileName: String, val number: String = "")
+
 @Serializable
 data class SiteInfo(val id: String, val name: String)

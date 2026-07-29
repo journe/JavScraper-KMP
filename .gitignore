@@ -44,3 +44,6 @@ logs/
 *.log
 
 app/worker/
+mdcx
+OpenAver
+mdcxOpenAver

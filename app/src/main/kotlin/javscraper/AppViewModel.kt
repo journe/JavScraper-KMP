@@ -114,7 +114,10 @@ class AppViewModel(private val scope: CoroutineScope) {
     /** Clean up the sidecar process */
     fun dispose() {
         scope.launch {
-            try { mgr?.stop() } catch (_: Exception) {}
+            try {
+                mgr?.stop()
+            } catch (_: Exception) {
+            }
         }
     }
 
