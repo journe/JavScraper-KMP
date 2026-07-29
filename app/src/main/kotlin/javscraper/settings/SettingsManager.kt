@@ -13,7 +13,12 @@ data class AppSettings(
     val scanRecursive: Boolean = true, val createMovieFolders: Boolean = true, val hardlinkInsteadOfCopy: Boolean = true,
     val downloadImages: Boolean = true, val autoScrape: Boolean = false,
     val language: String = "en",
-    val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2","heyzo")
+    val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2","heyzo"),
+    val folderLayers: List<String> = listOf("{num} {title}"),
+    val filenameFormat: String = "{num} {title}",
+    val maxTitleLength: Int = 50,
+    val maxFilenameLength: Int = 60,
+    val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc")
 )
 
 object SettingsManager {
