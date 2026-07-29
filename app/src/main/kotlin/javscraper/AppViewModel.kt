@@ -195,9 +195,16 @@ class AppViewModel(private val scope: CoroutineScope) {
                 Paths.get(scanDir), scanRecursive
             )
             scanning = false
-            tasks = scannedFiles
+            val groups = scannedFiles
                 .filter { it.number.isNotBlank() }
-                .map { ScrapeTask(number = it.number, fileName = it.fileName) }
+                .groupBy { it.number }
+            tasks = groups.map { (number, groupedFiles) ->
+                ScrapeTask(
+                    number = number,
+                    fileName = groupedFiles.first().fileName,
+                    partCount = groupedFiles.size
+                )
+            }
         }
     }
 
@@ -215,10 +222,10 @@ class AppViewModel(private val scope: CoroutineScope) {
                     updated[i] = t.copy(status = ScrapeTaskStatus.SCRAPING)
                     tasks = updated
 
-                    val f = scannedFiles.find { it.number == t.number }
-                    if (f != null) {
+                      val taskFiles = scannedFiles.filter { it.number == t.number }
+                      if (taskFiles.isNotEmpty()) {
                         try {
-                            val r = withContext(Dispatchers.IO) { o.process(f) }
+                              val r = withContext(Dispatchers.IO) { o.processParts(taskFiles) }
                             val newTasks = tasks.toMutableList()
                             if (r.success && r.data != null) {
                                 results = results + r.data

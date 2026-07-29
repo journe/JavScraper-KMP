@@ -25,29 +25,44 @@ class ScrapeOrchestrator(
     private val log = KotlinLogging.logger {}
 
     suspend fun process(sf: ScannedFile, site: String? = null): ScrapeResult {
-        if (sf.number.isBlank()) return ScrapeResult(false, error = ScrapeError(-1, "No number"))
-        log.info { "Processing " }
-        val result = sidecar.scrape(sf.number, site)
+        return processParts(listOf(sf), site)
+    }
+
+    suspend fun processParts(files: List<ScannedFile>, site: String? = null): ScrapeResult {
+        if (files.isEmpty() || files.first().number.isBlank())
+            return ScrapeResult(false, error = ScrapeError(-1, "No number"))
+
+        val number = files.first().number
+        log.info { "Processing  ( part(s))" }
+
+        val result = sidecar.scrape(number, site)
         if (!result.success || result.data == null) return result
         val video = result.data
-        val paths = resolveOutputPaths(sf, video)
-        Files.createDirectories(paths.folder)
+
+        // Scrape once, write shared assets (NFO, images) from the first file
+        val firstPaths = resolveOutputPaths(files.first(), video)
+        Files.createDirectories(firstPaths.folder)
         try {
-            Files.writeString(paths.folder.resolve(".nfo"), NfoWriter.generate(video))
+            Files.writeString(firstPaths.folder.resolve(".nfo"), NfoWriter.generate(video))
         } catch (e: Exception) { log.error(e) { "NFO failed" } }
         if (downloadImages) try {
-            ImageSaver.download(paths.folder, video.coverUrl, video.posterUrl, video.sampleImages)
+            ImageSaver.download(firstPaths.folder, video.coverUrl, video.posterUrl, video.sampleImages)
         } catch (e: Exception) { log.warn(e) { "Images failed" } }
-        try {
-            val src = Path.of(sf.path)
-            val tgt = paths.fullPath
-            if (!Files.exists(tgt)) {
-                if (hardlinkInsteadOfCopy) {
-                    try { Files.createLink(tgt, src) }
-                    catch (_: Exception) { Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING) }
-                } else Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
-            }
-        } catch (e: Exception) { log.warn(e) { "File move failed" } }
+
+        // Copy/hardlink each part file with its own suffix
+        files.forEach { sf ->
+            try {
+                val paths = resolveOutputPaths(sf, video)
+                val src = Path.of(sf.path)
+                val tgt = paths.fullPath
+                if (!Files.exists(tgt)) {
+                    if (hardlinkInsteadOfCopy) {
+                        try { Files.createLink(tgt, src) }
+                        catch (_: Exception) { Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING) }
+                    } else Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
+                }
+            } catch (e: Exception) { log.warn(e) { "File move failed for " } }
+        }
         return result
     }
 

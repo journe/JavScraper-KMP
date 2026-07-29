@@ -1,4 +1,4 @@
-﻿package javscraper.ui.screens
+package javscraper.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +19,7 @@ enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
 data class ScrapeTask(
     val number: String,
     val fileName: String,
+    val partCount: Int = 1,
     val status: ScrapeTaskStatus = ScrapeTaskStatus.PENDING,
     val video: Video? = null,
     val error: String = ""
@@ -73,7 +74,22 @@ fun ScrapeProgressScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                if (task.partCount > 1) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Text(
+                                            " parts",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
                             Text(
                                 task.fileName,
                                 style = MaterialTheme.typography.bodySmall,
