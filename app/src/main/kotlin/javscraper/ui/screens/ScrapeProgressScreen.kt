@@ -13,13 +13,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
+import javscraper.models.SingleScrapeDialogState
+import javscraper.models.SiteInfo
 import javscraper.models.Video
+import javscraper.ui.components.SiteItem
+import javscraper.ui.components.SiteSelector
 
 enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
 data class ScrapeTask(
     val number: String,
     val fileName: String,
     val partCount: Int = 1,
+    val path: String = "",
     val status: ScrapeTaskStatus = ScrapeTaskStatus.PENDING,
     val video: Video? = null,
     val error: String = ""
@@ -31,6 +36,16 @@ fun ScrapeProgressScreen(
     isRunning: Boolean,
     onStartAll: () -> Unit,
     onCancel: () -> Unit,
+    onSingleScrapeClick: (ScrapeTask) -> Unit,
+    singleScrapeDialogState: SingleScrapeDialogState,
+    singleScrapeNumber: String,
+    singleScrapeTask: ScrapeTask?,
+    sites: List<SiteInfo>,
+    onSingleScrapeNumberChange: (String) -> Unit,
+    onSingleScrapeSiteChange: (String?) -> Unit,
+    onStartSingleScrape: () -> Unit,
+    onCloseSingleScrape: () -> Unit,
+    onConfirmScrapeResult: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val t = LocalTranslations.current
@@ -104,6 +119,18 @@ fun ScrapeProgressScreen(
                             )
                         }
                         Spacer(Modifier.width(8.dp))
+                        if (task.status == ScrapeTaskStatus.PENDING && !isRunning) {
+                            IconButton(
+                                onClick = { onSingleScrapeClick(task) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = "Single scrape",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         when (task.status) {
                             ScrapeTaskStatus.PENDING -> Icon(
                                 Icons.Default.HourglassEmpty,
@@ -130,6 +157,108 @@ fun ScrapeProgressScreen(
                         }
                     }
                 }
+            }
+        }
+
+        // --- Single scrape dialog ---
+        when (singleScrapeDialogState) {
+            SingleScrapeDialogState.Closed -> { }
+            SingleScrapeDialogState.Input -> {
+                AlertDialog(
+                    onDismissRequest = onCloseSingleScrape,
+                    title = { Text(t.singleScrapeTitle) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = singleScrapeNumber,
+                                onValueChange = onSingleScrapeNumberChange,
+                                label = { Text(t.singleScrapeNumberLabel) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            SiteSelector(
+                                sites = listOf(SiteItem("", t.singleScrapeSiteAuto, true)) +
+                                    sites.map { SiteItem(it.id, it.name, true) },
+                                onToggle = { id: String, _: Boolean -> onSingleScrapeSiteChange(id.ifEmpty { null }) }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = onStartSingleScrape,
+                            enabled = singleScrapeNumber.isNotBlank()
+                        ) { Text(t.singleScrapeStart) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = onCloseSingleScrape) { Text(t.progressCancel) }
+                    }
+                )
+            }
+            SingleScrapeDialogState.Scraping -> {
+                AlertDialog(
+                    onDismissRequest = {},
+                    title = { Text(t.singleScrapeTitle) },
+                    text = {
+                        val task = singleScrapeTask
+                        if (task != null) {
+                            Card(Modifier.fillMaxWidth()) {
+                                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        Text(t.singleScrapeInProgress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = onCloseSingleScrape) { Text(t.progressCancel) }
+                    }
+                )
+            }
+            is SingleScrapeDialogState.Result -> {
+                val resultState = singleScrapeDialogState as SingleScrapeDialogState.Result
+                AlertDialog(
+                    onDismissRequest = {},
+                    title = { Text(t.singleScrapeResultTitle) },
+                    text = {
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                if (resultState.video != null) {
+                                    val v = resultState.video
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(v.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Title: " + v.title, style = MaterialTheme.typography.bodySmall)
+                                    Text("Maker: " + v.maker, style = MaterialTheme.typography.bodySmall)
+                                    Text("Actresses: " + v.actresses.joinToString(", "), style = MaterialTheme.typography.bodySmall)
+                                    if (v.date.isNotBlank()) Text("Date: " + v.date, style = MaterialTheme.typography.bodySmall)
+                                } else {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(singleScrapeNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        resultState.error ?: t.singleScrapeResultError,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = onConfirmScrapeResult) { Text(t.commonConfirm) }
+                    },
+                    dismissButton = {}
+                )
             }
         }
     }

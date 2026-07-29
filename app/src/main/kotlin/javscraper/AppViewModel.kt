@@ -83,6 +83,12 @@ class AppViewModel(private val scope: CoroutineScope) {
         singleScrapeDialogState = SingleScrapeDialogState.Input
     }
 
+    fun openSingleScrapeFromTask(task: ScrapeTask) {
+        val sf = scannedFiles.find { it.fileName == task.fileName }
+            ?: ScannedFile(path = task.path, fileName = task.fileName, number = task.number)
+        openSingleScrape(sf)
+    }
+
     fun closeSingleScrape() {
         singleScrapeDialogState = SingleScrapeDialogState.Closed
         singleScrapeFile = null

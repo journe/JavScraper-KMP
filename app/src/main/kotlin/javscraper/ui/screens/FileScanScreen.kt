@@ -14,10 +14,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.ScannedFile
-import javscraper.models.SingleScrapeDialogState
-import javscraper.models.SiteInfo
-import javscraper.ui.components.SiteItem
-import javscraper.ui.components.SiteSelector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,16 +24,6 @@ fun FileScanScreen(
     onSelectDirectory: () -> Unit,
     onStartScan: () -> Unit,
     onStartScrape: () -> Unit,
-    onSingleScrapeClick: (ScannedFile) -> Unit,
-    singleScrapeDialogState: SingleScrapeDialogState,
-    singleScrapeNumber: String,
-    singleScrapeTask: ScrapeTask?,
-    sites: List<SiteInfo>,
-    onSingleScrapeNumberChange: (String) -> Unit,
-    onSingleScrapeSiteChange: (String?) -> Unit,
-    onStartSingleScrape: () -> Unit,
-    onCloseSingleScrape: () -> Unit,
-    onConfirmScrapeResult: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val t = LocalTranslations.current
@@ -109,18 +95,6 @@ fun FileScanScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (file.number.isNotBlank()) {
-                                IconButton(
-                                    onClick = { onSingleScrapeClick(file) },
-                                    enabled = !isScanning
-                                ) {
-                                    Icon(
-                                        Icons.Default.PlayArrow,
-                                        contentDescription = t.singleScrapeTitle,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                            if (file.number.isNotBlank()) {
                                 Surface(
                                     shape = MaterialTheme.shapes.small,
                                     color = MaterialTheme.colorScheme.primaryContainer
@@ -153,108 +127,6 @@ fun FileScanScreen(
             }
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        }
-
-        // --- Single scrape dialog ---
-        when (singleScrapeDialogState) {
-            SingleScrapeDialogState.Closed -> { }
-            SingleScrapeDialogState.Input -> {
-                AlertDialog(
-                    onDismissRequest = onCloseSingleScrape,
-                    title = { Text(t.singleScrapeTitle) },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
-                                value = singleScrapeNumber,
-                                onValueChange = onSingleScrapeNumberChange,
-                                label = { Text(t.singleScrapeNumberLabel) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            SiteSelector(
-                                sites = listOf(SiteItem("", t.singleScrapeSiteAuto, true)) +
-                                    sites.map { SiteItem(it.id, it.name, true) },
-                                onToggle = { id: String, _: Boolean -> onSingleScrapeSiteChange(id.ifEmpty { null }) }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = onStartSingleScrape,
-                            enabled = singleScrapeNumber.isNotBlank()
-                        ) { Text(t.singleScrapeStart) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = onCloseSingleScrape) { Text(t.progressCancel) }
-                    }
-                )
-            }
-            SingleScrapeDialogState.Scraping -> {
-                AlertDialog(
-                    onDismissRequest = {},
-                    title = { Text(t.singleScrapeTitle) },
-                    text = {
-                        val task = singleScrapeTask
-                        if (task != null) {
-                            Card(Modifier.fillMaxWidth()) {
-                                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                        Text(t.singleScrapeInProgress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {},
-                    dismissButton = {
-                        TextButton(onClick = onCloseSingleScrape) { Text(t.progressCancel) }
-                    }
-                )
-            }
-            is SingleScrapeDialogState.Result -> {
-                val resultState = singleScrapeDialogState
-                AlertDialog(
-                    onDismissRequest = {},
-                    title = { Text(t.singleScrapeResultTitle) },
-                    text = {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                if (resultState.video != null) {
-                                    val v = resultState.video
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(v.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("Title: " + v.title, style = MaterialTheme.typography.bodySmall)
-                                    Text("Maker: " + v.maker, style = MaterialTheme.typography.bodySmall)
-                                    Text("Actresses: " + v.actresses.joinToString(", "), style = MaterialTheme.typography.bodySmall)
-                                    if (v.date.isNotBlank()) Text("Date: " + v.date, style = MaterialTheme.typography.bodySmall)
-                                } else {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(singleScrapeNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        resultState.error ?: t.singleScrapeResultError,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(onClick = onConfirmScrapeResult) { Text(t.commonConfirm) }
-                    },
-                    dismissButton = {}
-                )
-            }
         }
     }
 }
