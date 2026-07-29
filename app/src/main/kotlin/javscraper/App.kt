@@ -1,4 +1,4 @@
-package javscraper
+﻿package javscraper
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -98,7 +98,17 @@ fun App() {
                             isScanning = viewModel.scanning,
                             onSelectDirectory = viewModel::selectScanDir,
                             onStartScan = viewModel::startScan,
-                            onStartScrape = { viewModel.navigate(Screen.PROGRESS) }
+                            onStartScrape = { viewModel.navigate(Screen.PROGRESS) },
+                            onSingleScrapeClick = viewModel::openSingleScrape,
+                            singleScrapeDialogState = viewModel.singleScrapeDialogState,
+                            singleScrapeNumber = viewModel.singleScrapeNumber,
+                            singleScrapeTask = viewModel.singleScrapeTask,
+                            sites = viewModel.sites,
+                            onSingleScrapeNumberChange = viewModel::updateSingleScrapeNumber,
+                            onSingleScrapeSiteChange = viewModel::updateSingleScrapeSite,
+                            onStartSingleScrape = viewModel::startSingleScrape,
+                            onCloseSingleScrape = viewModel::closeSingleScrape,
+                            onConfirmScrapeResult = viewModel::confirmSingleScrape
                         )
 
                         Screen.PROGRESS -> ScrapeProgressScreen(
