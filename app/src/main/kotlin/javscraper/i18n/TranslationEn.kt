@@ -1,4 +1,4 @@
-ï»¿package javscraper.i18n
+package javscraper.i18n
 
 /**
  * Type-safe translation strings for the JavScraper UI.
@@ -64,8 +64,24 @@ open class TranslationEn {
     open val settingsReset: String = "Reset to Defaults"
     open val settingsLanguage: String = "Language"
     open val settingsLanguageEn: String = "English"
-    open val settingsLanguageZh: String = "ä¸­æ–‡"
+    open val settingsLanguageZh: String = "ÖÐÎÄ"
     open val settingsLanguageRestartHint: String = "Restart to apply language change"
+
+    // --- Rename rules ---
+    open val settingsRenameTitle: String = "Naming Rules"
+    open val settingsFolderLayers: String = "Folder Layers"
+    open val settingsAddLayer: String = "+ Add Layer"
+    open val settingsRemoveLayer: String = "Remove"
+    open val settingsFilenameFormat: String = "Filename Format"
+    open val settingsMaxTitleLength: String = "Max Title Length"
+    open val settingsMaxFilenameLength: String = "Max Filename Length"
+    open val settingsSuffixKeywords: String = "Suffix Keywords"
+    open val settingsSuffixKeywordsHint: String = "Comma-separated, e.g. -cd1,-cd2,-4k"
+    open val settingsRenameVariables: String = "Available: {num} {title} {actor} {actors} {maker} {label} {series} {director} {date} {year} {month} {day} {suffix}"
+    open val settingsAdvanced: String = "Advanced"
+    open val settingsFolderLayerPlaceholder: String = "e.g. {num} {title}"
+    open val settingsFilenamePlaceholder: String = "e.g. {num} {title}"
+
 
     // --- StatusBar ---
     open val statusbarTitle: String = "Scraper Sites"
