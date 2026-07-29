@@ -63,7 +63,7 @@ class TranslationZh : TranslationEn() {
     // --- Rename rules ---
     override val settingsRenameTitle: String = "重命名规则"
     override val settingsFolderLayers: String = "文件夹层级"
-    override val settingsAddLayer: String = "+ 添加层级"
+    override val settingsAddLayer: String = "添加层级"
     override val settingsRemoveLayer: String = "删除"
     override val settingsFilenameFormat: String = "文件名格式"
     override val settingsMaxTitleLength: String = "标题最大长度"

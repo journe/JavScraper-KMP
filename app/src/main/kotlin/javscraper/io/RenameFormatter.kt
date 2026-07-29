@@ -1,4 +1,4 @@
-﻿package javscraper.io
+package javscraper.io
 
 import javscraper.models.Video
 
@@ -64,6 +64,12 @@ object RenameFormatter {
         return if (System.getProperty("os.name").lowercase().contains("win")) {
             name.trimEnd('.', ' ')
         } else name
+    }
+
+    /** Strip detected suffix from the end of a formatted name, returning the base name for shared assets (NFO/images). */
+    fun stripPartSuffix(name: String, suffix: String): String {
+        if (suffix.isBlank() || !name.endsWith(suffix)) return name
+        return name.dropLast(suffix.length).trimEnd()
     }
 
     fun cleanSourceSuffix(text: String): String {

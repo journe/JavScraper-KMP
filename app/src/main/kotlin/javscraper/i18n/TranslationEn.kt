@@ -64,13 +64,13 @@ open class TranslationEn {
     open val settingsReset: String = "Reset to Defaults"
     open val settingsLanguage: String = "Language"
     open val settingsLanguageEn: String = "English"
-    open val settingsLanguageZh: String = "ÖÐÎÄ"
+    open val settingsLanguageZh: String = "ï¿½ï¿½ï¿½ï¿½"
     open val settingsLanguageRestartHint: String = "Restart to apply language change"
 
     // --- Rename rules ---
     open val settingsRenameTitle: String = "Naming Rules"
     open val settingsFolderLayers: String = "Folder Layers"
-    open val settingsAddLayer: String = "+ Add Layer"
+    open val settingsAddLayer: String = "Add Layer"
     open val settingsRemoveLayer: String = "Remove"
     open val settingsFilenameFormat: String = "Filename Format"
     open val settingsMaxTitleLength: String = "Max Title Length"

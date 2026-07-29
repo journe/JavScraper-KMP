@@ -1,4 +1,4 @@
-﻿package javscraper.scrape
+package javscraper.scrape
 
 import javscraper.io.ImageSaver
 import javscraper.io.NfoWriter
@@ -26,14 +26,14 @@ class ScrapeOrchestrator(
 
     suspend fun process(sf: ScannedFile, site: String? = null): ScrapeResult {
         if (sf.number.isBlank()) return ScrapeResult(false, error = ScrapeError(-1, "No number"))
-        log.info { "Processing ${sf.number}" }
+        log.info { "Processing " }
         val result = sidecar.scrape(sf.number, site)
         if (!result.success || result.data == null) return result
         val video = result.data
         val paths = resolveOutputPaths(sf, video)
         Files.createDirectories(paths.folder)
         try {
-            Files.writeString(paths.folder.resolve("${video.number}.nfo"), NfoWriter.generate(video))
+            Files.writeString(paths.folder.resolve(".nfo"), NfoWriter.generate(video))
         } catch (e: Exception) { log.error(e) { "NFO failed" } }
         if (downloadImages) try {
             ImageSaver.download(paths.folder, video.coverUrl, video.posterUrl, video.sampleImages)
@@ -53,10 +53,10 @@ class ScrapeOrchestrator(
 
     private fun resolveOutputPaths(sf: ScannedFile, video: Video): OutputPaths {
         val ext = sf.fileName.substringAfterLast('.')
-        if (outputDir.isBlank()) return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName))
+        if (outputDir.isBlank()) return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName), sf.fileName.substringBeforeLast("."))
 
         val base = Path.of(outputDir)
-        if (!createMovieFolders) return OutputPaths(base, sf.fileName, base.resolve(sf.fileName))
+        if (!createMovieFolders) return OutputPaths(base, sf.fileName, base.resolve(sf.fileName), sf.fileName.substringBeforeLast("."))
 
         val suffix = RenameFormatter.detectSuffix(sf.fileName, suffixKeywords)
         val layers = RenameFormatter.formatFolder(video, folderLayers, suffix)
@@ -64,8 +64,11 @@ class ScrapeOrchestrator(
         val rawFilename = RenameFormatter.formatFilename(
             video, filenameFormat, suffix, maxFilenameLength, maxTitleLength
         )
-        return OutputPaths(folder, "$rawFilename.$ext", folder.resolve("$rawFilename.$ext"))
+        val nfoBase = RenameFormatter.stripPartSuffix(rawFilename, suffix)
+        return OutputPaths(folder, ".", folder.resolve("."), nfoBase)
     }
 
-    private data class OutputPaths(val folder: Path, val filename: String, val fullPath: Path)
+    private data class OutputPaths(
+        val folder: Path, val filename: String, val fullPath: Path, val nfoBase: String
+    )
 }
