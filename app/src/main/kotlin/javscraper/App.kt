@@ -1,4 +1,4 @@
-﻿package javscraper
+package javscraper
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -128,7 +128,12 @@ fun App() {
                                 sites = viewModel.sites,
                                 enabledSiteIds = viewModel.enabledSites,
                                 language = viewModel.currentLanguage,
-                                showRestartHint = viewModel.showRestartHint
+                                showRestartHint = viewModel.showRestartHint,
+                                folderLayers = viewModel.folderLayers,
+                                filenameFormat = viewModel.filenameFormat,
+                                maxTitleLength = viewModel.maxTitleLength,
+                                maxFilenameLength = viewModel.maxFilenameLength,
+                                suffixKeywords = viewModel.suffixKeywords
                             ),
                             actions = SettingsActions(
                                 onLanguageChange = viewModel::updateLanguage,
@@ -142,7 +147,14 @@ fun App() {
                                 onDownloadImagesChange = viewModel::updateDownloadImages,
                                 onAutoScrapeChange = viewModel::updateAutoScrape,
                                 onToggleSite = viewModel::toggleSite,
-                                onReset = viewModel::resetSettings
+                                onReset = viewModel::resetSettings,
+                                onFolderLayerChange = viewModel::updateFolderLayer,
+                                onAddLayer = viewModel::addLayer,
+                                onRemoveLayer = viewModel::removeLayer,
+                                onFilenameFormatChange = viewModel::updateFilenameFormat,
+                                onMaxTitleLengthChange = viewModel::updateMaxTitleLength,
+                                onMaxFilenameLengthChange = viewModel::updateMaxFilenameLength,
+                                onSuffixKeywordsChange = viewModel::updateSuffixKeywords
                             )
                         )
                     }

@@ -1,5 +1,6 @@
 ﻿package javscraper.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,7 +30,12 @@ data class SettingsState(
     val sites: List<SiteInfo>,
     val enabledSiteIds: List<String>,
     val language: String,
-    val showRestartHint: Boolean
+    val showRestartHint: Boolean,
+    val folderLayers: List<String>,
+    val filenameFormat: String,
+    val maxTitleLength: Int,
+    val maxFilenameLength: Int,
+    val suffixKeywords: List<String>
 )
 
 data class SettingsActions(
@@ -44,7 +50,14 @@ data class SettingsActions(
     val onDownloadImagesChange: (Boolean) -> Unit,
     val onAutoScrapeChange: (Boolean) -> Unit,
     val onToggleSite: (String, Boolean) -> Unit,
-    val onReset: () -> Unit
+    val onReset: () -> Unit,
+    val onFolderLayerChange: (Int, String) -> Unit,
+    val onAddLayer: () -> Unit,
+    val onRemoveLayer: (Int) -> Unit,
+    val onFilenameFormatChange: (String) -> Unit,
+    val onMaxTitleLengthChange: (Int) -> Unit,
+    val onMaxFilenameLengthChange: (Int) -> Unit,
+    val onSuffixKeywordsChange: (List<String>) -> Unit
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,10 +79,7 @@ fun SettingsScreen(
             singleLine = true,
             trailingIcon = {
                 IconButton(onClick = actions.onSelectWorkerPath) {
-                    Icon(
-                        Icons.Default.FileOpen,
-                        t.commonBrowse
-                    )
+                    Icon(Icons.Default.FileOpen, t.commonBrowse)
                 }
             }
         )
@@ -80,10 +90,7 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             trailingIcon = {
                 IconButton(onClick = actions.onSelectScanDir) {
-                    Icon(
-                        Icons.Default.FolderOpen,
-                        t.commonBrowse
-                    )
+                    Icon(Icons.Default.FolderOpen, t.commonBrowse)
                 }
             }
         )
@@ -96,10 +103,7 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             trailingIcon = {
                 IconButton(onClick = actions.onSelectOutputDir) {
-                    Icon(
-                        Icons.Default.FolderOpen,
-                        t.commonBrowse
-                    )
+                    Icon(Icons.Default.FolderOpen, t.commonBrowse)
                 }
             }
         )
@@ -107,6 +111,95 @@ fun SettingsScreen(
         SettingsSwitchRow(t.settingsMovieFolders, state.createMovieFolders, actions.onCreateMovieFoldersChange)
         SettingsSwitchRow(t.settingsHardlinks, state.hardlinkInsteadOfCopy, actions.onHardlinkChange)
         SettingsSwitchRow(t.settingsDownloadImages, state.downloadImages, actions.onDownloadImagesChange)
+
+        // --- Naming Rules ---
+        Spacer(Modifier.height(20.dp))
+        Text(t.settingsRenameTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+
+        Text(t.settingsFolderLayers, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(4.dp))
+        Column {
+            state.folderLayers.forEachIndexed { index, layer ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = layer,
+                        onValueChange = { actions.onFolderLayerChange(index, it) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        placeholder = { Text(t.settingsFolderLayerPlaceholder) }
+                    )
+                    IconButton(onClick = { actions.onRemoveLayer(index) }) {
+                        Icon(Icons.Default.RemoveCircleOutline, t.settingsRemoveLayer)
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+            OutlinedButton(onClick = actions.onAddLayer, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, null); Spacer(Modifier.width(4.dp)); Text(t.settingsAddLayer)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        Text(t.settingsFilenameFormat, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(4.dp))
+        OutlinedTextField(
+            value = state.filenameFormat,
+            onValueChange = actions.onFilenameFormatChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text(t.settingsFilenamePlaceholder) }
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            t.settingsRenameVariables,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(16.dp))
+
+        var advancedExpanded by remember { mutableStateOf(false) }
+        OutlinedButton(
+            onClick = { advancedExpanded = !advancedExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(if (advancedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+            Spacer(Modifier.width(8.dp))
+            Text(t.settingsAdvanced)
+        }
+        AnimatedVisibility(visible = advancedExpanded) {
+            Column(Modifier.padding(top = 8.dp)) {
+                OutlinedTextField(
+                    value = state.maxTitleLength.toString(),
+                    onValueChange = { it.toIntOrNull()?.let(actions.onMaxTitleLengthChange) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(t.settingsMaxTitleLength) }
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = state.maxFilenameLength.toString(),
+                    onValueChange = { it.toIntOrNull()?.let(actions.onMaxFilenameLengthChange) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(t.settingsMaxFilenameLength) }
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = state.suffixKeywords.joinToString(", "),
+                    onValueChange = {
+                        actions.onSuffixKeywordsChange(
+                            it.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() }
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(t.settingsSuffixKeywords) },
+                    placeholder = { Text(t.settingsSuffixKeywordsHint) }
+                )
+            }
+        }
+
         Spacer(Modifier.height(20.dp))
         Text(t.settingsScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
