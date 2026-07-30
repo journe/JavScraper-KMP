@@ -90,7 +90,7 @@ fun CollapsibleNavRail(
 
 @Preview
 @Composable
-private fun CollapsibleNavRailPreviewCollapsed() {
+fun CollapsibleNavRailPreviewCollapsed() {
     val t = TranslationEn()
     CompositionLocalProvider(LocalTranslations provides t) {
         JavScraperTheme {
@@ -107,7 +107,7 @@ private fun CollapsibleNavRailPreviewCollapsed() {
 
 @Preview
 @Composable
-private fun CollapsibleNavRailPreviewExpanded() {
+fun CollapsibleNavRailPreviewExpanded() {
     val t = TranslationEn()
     CompositionLocalProvider(LocalTranslations provides t) {
         JavScraperTheme {
@@ -121,3 +121,5 @@ private fun CollapsibleNavRailPreviewExpanded() {
         }
     }
 }
+
+
