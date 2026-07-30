@@ -35,23 +35,44 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             stdin = process!!.outputStream.bufferedWriter(Charsets.UTF_8)
             stdoutReader = process!!.inputStream.bufferedReader(Charsets.UTF_8)
             Thread {
-                try { process!!.errorStream.bufferedReader(Charsets.UTF_8).use { err -> var l: String?; while (err.readLine().also { l = it } != null) { log.warn { "[Worker stderr] $l" } } } } catch (_: IOException) {}
+                try {
+                    process!!.errorStream.bufferedReader(Charsets.UTF_8).use { err ->
+                        var l: String?; while (err.readLine().also { l = it } != null) {
+                        log.warn { "[Worker stderr] $l" }
+                    }
+                    }
+                } catch (_: IOException) {
+                }
             }.also { it.isDaemon = true; it.start() }
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             responseReader = scope?.launch { readResponses() }
             delay(500)
-            listSites()
             log.info { "Worker started" }
             true
-        } catch (e: Exception) { log.error(e) { "Worker start failed" }; cleanup(); false }
+        } catch (e: Exception) {
+            log.error(e) { "Worker start failed" }; cleanup(); false
+        }
     }
 
-    suspend fun stop() { mutex.withLock { try { sendRequest("shutdown", JsonObject(emptyMap())) } catch (_: Exception) {}; delay(300); cleanup() } }
+    suspend fun stop() {
+        mutex.withLock {
+            try {
+                sendRequest("shutdown", JsonObject(emptyMap()))
+            } catch (_: Exception) {
+            }; delay(300); cleanup()
+        }
+    }
+
     override fun close() = runBlocking { stop() }
 
     suspend fun listSites(): List<SiteInfo> {
         val resp = sendRequest("list_sites", JsonObject(emptyMap()))
-        return resp.jsonArray.map { SiteInfo(it.jsonObject["id"]?.jsonPrimitive?.content ?: "", it.jsonObject["name"]?.jsonPrimitive?.content ?: "") }
+        return resp.jsonArray.map {
+            SiteInfo(
+                it.jsonObject["id"]?.jsonPrimitive?.content ?: "",
+                it.jsonObject["name"]?.jsonPrimitive?.content ?: ""
+            )
+        }
     }
 
     suspend fun scrape(number: String, site: String? = null): ScrapeResult {
@@ -66,17 +87,52 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         pendingRequests[id] = deferred
         try {
             mutex.withLock {
-                stdin?.write(json.encodeToString(JsonObject.serializer(), buildJsonObject { put("jsonrpc", "2.0"); put("id", id); put("method", method); put("params", params) }))
+                stdin?.write(
+                    json.encodeToString(
+                        JsonObject.serializer(),
+                        buildJsonObject {
+                            put("jsonrpc", "2.0"); put("id", id); put("method", method); put(
+                            "params",
+                            params
+                        )
+                        })
+                )
                 stdin?.newLine(); stdin?.flush()
             }
             return withTimeout(60_000) { deferred.await() }
-        } catch (e: Exception) { pendingRequests.remove(id); throw e }
+        } catch (e: Exception) {
+            pendingRequests.remove(id); throw e
+        }
     }
 
     private suspend fun readResponses() {
-        try { var line: String?; while (stdoutReader?.readLine().also { line = it } != null) { if (line.isNullOrBlank()) continue; try { val resp = json.parseToJsonElement(line).jsonObject; val id = resp["id"]?.jsonPrimitive?.contentOrNull; if (id != null) { val d = pendingRequests.remove(id); if (d != null) { val err = resp["error"]; if (err != null && err !is JsonNull) d.completeExceptionally(RuntimeException(err.jsonObject["message"]?.jsonPrimitive?.contentOrNull ?: "")) else d.complete(resp["result"] ?: JsonNull) } } } catch (e: Exception) { log.warn { "Parse error: ${e.message}" } } } } catch (_: IOException) {}
+        try {
+            var line: String?; while (stdoutReader?.readLine().also { line = it } != null) {
+                if (line.isNullOrBlank()) continue; try {
+                    val resp = json.parseToJsonElement(line).jsonObject;
+                    val id = resp["id"]?.jsonPrimitive?.contentOrNull; if (id != null) {
+                        val d = pendingRequests.remove(id); if (d != null) {
+                            val err = resp["error"]; if (err != null && err !is JsonNull) d.completeExceptionally(
+                                RuntimeException(err.jsonObject["message"]?.jsonPrimitive?.contentOrNull ?: "")
+                            ) else d.complete(resp["result"] ?: JsonNull)
+                        }
+                    }
+                } catch (e: Exception) {
+                    log.warn { "Parse error: ${e.message}" }
+                }
+            }
+        } catch (_: IOException) {
+        }
     }
 
-    private fun ensureRunning() { if (process == null || !process!!.isAlive) throw RuntimeException("Worker not running") }
-    private fun cleanup() { try { process?.let { if (it.isAlive) it.destroyForcibly() } } catch (_: Exception) {}; responseReader?.cancel(); process = null; stdin = null; stdoutReader = null; pendingRequests.clear() }
+    private fun ensureRunning() {
+        if (process == null || !process!!.isAlive) throw RuntimeException("Worker not running")
+    }
+
+    private fun cleanup() {
+        try {
+            process?.let { if (it.isAlive) it.destroyForcibly() }
+        } catch (_: Exception) {
+        }; responseReader?.cancel(); process = null; stdin = null; stdoutReader = null; pendingRequests.clear()
+    }
 }
