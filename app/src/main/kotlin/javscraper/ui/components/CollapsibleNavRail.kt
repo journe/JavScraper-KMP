@@ -4,28 +4,29 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import javscraper.Screen
 import javscraper.i18n.LocalTranslations
+import javscraper.i18n.TranslationEn
+import javscraper.ui.theme.JavScraperTheme
 
 @Composable
 fun CollapsibleNavRail(
@@ -84,5 +85,39 @@ fun CollapsibleNavRail(
                 }
             }
         )
+    }
+}
+
+@Preview
+@Composable
+private fun CollapsibleNavRailPreviewCollapsed() {
+    val t = TranslationEn()
+    CompositionLocalProvider(LocalTranslations provides t) {
+        JavScraperTheme {
+            CollapsibleNavRail(
+                expanded = false,
+                currentScreen = Screen.SCAN,
+                onNavigate = {},
+                scrapeEnabled = true,
+                galleryEnabled = false
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun CollapsibleNavRailPreviewExpanded() {
+    val t = TranslationEn()
+    CompositionLocalProvider(LocalTranslations provides t) {
+        JavScraperTheme {
+            CollapsibleNavRail(
+                expanded = true,
+                currentScreen = Screen.GALLERY,
+                onNavigate = {},
+                scrapeEnabled = true,
+                galleryEnabled = true
+            )
+        }
     }
 }
