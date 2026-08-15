@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import javscraper.Screen
 import javscraper.i18n.LocalTranslations
@@ -51,7 +52,7 @@ fun CollapsibleNavRail(
 ) {
     val t = LocalTranslations.current
     val navWidth by animateDpAsState(
-        targetValue = if (expanded) 200.dp else 72.dp,
+        targetValue = if (expanded) 160.dp else 72.dp,
         animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
     )
 
@@ -110,7 +111,7 @@ private fun NavRailItem(
             .clip(RoundedCornerShape(24.dp))
             .background(backgroundColor)
             .selectable(selected = selected, enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 16.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = label, tint = contentColor)
@@ -123,7 +124,9 @@ private fun NavRailItem(
                 text = label,
                 modifier = Modifier.padding(start = 12.dp),
                 color = contentColor,
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -162,3 +165,4 @@ fun CollapsibleNavRailPreviewExpanded() {
         }
     }
 }
+
