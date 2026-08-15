@@ -28,7 +28,9 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
     suspend fun start(): Boolean = mutex.withLock {
         if (process != null && process!!.isAlive) return@withLock true
         try {
-            val pb = ProcessBuilder("cmd.exe", "/c", workerPath)
+            // cmd /c 需要引号包裹含空格的可执行文件路径，否则会按空格拆分
+            val cmd = if (workerPath.contains(' ')) "\"$workerPath\"" else workerPath
+            val pb = ProcessBuilder("cmd.exe", "/c", cmd)
             pb.redirectErrorStream(false)
             pb.environment()["PYTHONIOENCODING"] = "utf-8"
             pb.environment()["PYTHONUNBUFFERED"] = "1"

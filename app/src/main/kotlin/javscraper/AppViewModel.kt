@@ -223,8 +223,12 @@ class AppViewModel(private val scope: CoroutineScope) {
         }
     }
 
-    private fun resolveWorkerPath(): String =
-        Paths.get(System.getProperty("user.dir"), workerPath).toString()
+    private fun resolveWorkerPath(): String {
+        val configured = Paths.get(workerPath)
+        // 绝对路径（如用户通过对话框选择的路径）直接使用，避免与 user.dir 拼接产生非法路径
+        return if (configured.isAbsolute) configured.toString()
+            else Paths.get(System.getProperty("user.dir"), workerPath).toString()
+    }
 
     /** Open a file picker and retry starting the worker with the selected path. */
     fun selectWorkerPath() {
