@@ -1,4 +1,4 @@
-﻿package javscraper
+package javscraper
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,6 +12,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.ui.components.CollapsibleNavRail
+import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
 
 import javscraper.ui.theme.JavScraperTheme
@@ -142,7 +143,7 @@ fun App() {
                                     onLanguageChange = viewModel::updateLanguage,
                                     onSelectOutputDir = viewModel::selectOutputDir,
                                     onSelectScanDir = viewModel::selectScanDir,
-                                    onSelectWorkerPath = {},
+                                    onSelectWorkerPath = viewModel::selectWorkerPath,
                                     onWorkerPathChange = viewModel::updateWorkerPath,
                                     onScanRecursiveChange = viewModel::updateScanRecursive,
                                     onCreateMovieFoldersChange = viewModel::updateCreateMovieFolders,
@@ -163,6 +164,13 @@ fun App() {
                         }
                     }
                 }
+            }
+            if (viewModel.workerSetupVisible) {
+                WorkerSetupDialog(
+                    errorMessage = viewModel.workerSetupError,
+                    onSelect = viewModel::selectWorkerPath,
+                    onCancel = viewModel::dismissWorkerSetup
+                )
             }
         }
     }

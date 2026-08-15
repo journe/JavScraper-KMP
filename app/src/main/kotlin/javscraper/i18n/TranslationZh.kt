@@ -88,5 +88,12 @@ class TranslationZh : TranslationEn() {
     override val singleScrapeInProgress: String = "正在刮削..."
     override val singleScrapeResultTitle: String = "刮削结果"
     override val singleScrapeResultError: String = "错误"
+    // --- Worker setup dialog ---
+    override val workerSetupTitle: String = "Worker 未运行"
+    override val workerSetupMessage: String = "无法启动 scraper-worker.exe，请选择正确的 worker 可执行文件路径。"
+    override val workerSetupSelect: String = "选择文件..."
+    override val workerSetupSelectTitle: String = "选择 scraper-worker.exe"
+    override val workerSetupCancel: String = "取消"
+
     override val commonConfirm: String = "确认"
 }

@@ -64,7 +64,7 @@ open class TranslationEn {
     open val settingsReset: String = "Reset to Defaults"
     open val settingsLanguage: String = "Language"
     open val settingsLanguageEn: String = "English"
-    open val settingsLanguageZh: String = "����"
+    open val settingsLanguageZh: String = "Chinese"
     open val settingsLanguageRestartHint: String = "Restart to apply language change"
 
     // --- Rename rules ---
@@ -98,6 +98,13 @@ open class TranslationEn {
     open val singleScrapeInProgress: String = "Scraping in progress..."
     open val singleScrapeResultTitle: String = "Scrape Result"
     open val singleScrapeResultError: String = "Error"
+    // --- Worker setup dialog ---
+    open val workerSetupTitle: String = "Worker Not Running"
+    open val workerSetupMessage: String = "Unable to start scraper-worker.exe. Please select the correct path to the worker executable."
+    open val workerSetupSelect: String = "Select File..."
+    open val workerSetupSelectTitle: String = "Select scraper-worker.exe"
+    open val workerSetupCancel: String = "Cancel"
+
     open val commonConfirm: String = "Confirm"
 }
 

@@ -1,4 +1,4 @@
-﻿package javscraper
+package javscraper
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -7,6 +7,7 @@ import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.io.FileScanner
 import javscraper.io.pickDirectory
+import javscraper.io.pickFile
 import javscraper.models.ScannedFile
 import javscraper.models.SiteInfo
 import javscraper.models.Video
@@ -173,6 +174,12 @@ class AppViewModel(private val scope: CoroutineScope) {
     private val strings: TranslationEn
         get() = if (currentLanguage == "zh") TranslationZh() else TranslationEn()
 
+    // --- Worker setup dialog state ---
+    var workerSetupVisible by mutableStateOf(false)
+        private set
+    var workerSetupError by mutableStateOf<String?>(null)
+        private set
+
     // --- Dependencies ---
     private var mgr: SidecarManager? = null
     private var orch: ScrapeOrchestrator? = null
@@ -181,26 +188,68 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun init() {
         status = strings.statusInitializing
         scope.launch {
+            ensureWorkerRunning()
+        }
+    }
+
+    /**
+     * Starts (or restarts) the sidecar worker. If startup fails — for example when the
+     * scraper-worker.exe path is misconfigured — shows a dialog asking the user to pick
+     * the correct worker executable, and retries until it starts successfully or the
+     * user cancels.
+     */
+    private suspend fun ensureWorkerRunning() {
+        try {
+            status = strings.statusStarting
+            val m = SidecarManager(resolveWorkerPath())
+            val started = withContext(Dispatchers.IO) { m.start() }
+            if (started) {
+                val siteList = withContext(Dispatchers.IO) { m.listSites() }
+                mgr?.let { old -> if (old !== m) runCatching { old.stop() } }
+                mgr = m
+                sites = siteList
+                orch = createScrapeOrchestrator(m)
+                status = strings.statusReady(siteList.size)
+                workerSetupVisible = false
+                workerSetupError = null
+            } else {
+                workerSetupVisible = true
+                workerSetupError = null
+            }
+        } catch (e: Exception) {
+            status = strings.statusError(e.message ?: "")
+            workerSetupVisible = true
+            workerSetupError = e.message
+        }
+    }
+
+    private fun resolveWorkerPath(): String =
+        Paths.get(System.getProperty("user.dir"), workerPath).toString()
+
+    /** Open a file picker and retry starting the worker with the selected path. */
+    fun selectWorkerPath() {
+        scope.launch(Dispatchers.IO) {
             try {
-                status = strings.statusStarting
-                val m = SidecarManager(
-                    Paths.get(System.getProperty("user.dir"), workerPath).toString()
-                )
-                if (m.start()) {
-                    mgr = m
-                    sites = m.listSites()
-                    status = strings.statusReady(sites.size)
-                    orch = ScrapeOrchestrator(
-                        m, outputDir,
-                        createMovieFolders, hardlinkInsteadOfCopy, downloadImages
-                    )
-                } else {
-                    status = strings.statusFailed
+                val file = pickFile(strings.workerSetupSelectTitle, listOf("exe", "bat"))
+                if (file != null) {
+                    withContext(Dispatchers.Main) {
+                        workerPath = file
+                        SettingsManager.update { it.copy(workerPath = file) }
+                        ensureWorkerRunning()
+                    }
                 }
             } catch (e: Exception) {
-                status = strings.statusError(e.message ?: "")
+                withContext(Dispatchers.Main) {
+                    status = strings.statusDirError(e.message ?: "")
+                }
             }
         }
+    }
+
+    /** Dismiss the worker setup dialog without starting the worker. */
+    fun dismissWorkerSetup() {
+        workerSetupVisible = false
+        workerSetupError = null
     }
 
     /** Clean up the sidecar process */
@@ -482,5 +531,4 @@ class AppViewModel(private val scope: CoroutineScope) {
         mgr?.let { m -> orch = createScrapeOrchestrator(m) }
     }
 }
-
 

@@ -1,4 +1,4 @@
-﻿package javscraper.sidecar
+package javscraper.sidecar
 
 import javscraper.models.ScrapeResult
 import javscraper.models.SiteInfo
@@ -48,6 +48,11 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             responseReader = scope?.launch { readResponses() }
             delay(500)
+            if (process == null || !process!!.isAlive) {
+                log.warn { "Worker process exited shortly after start" }
+                cleanup()
+                return@withLock false
+            }
             log.info { "Worker started" }
             true
         } catch (e: Exception) {
