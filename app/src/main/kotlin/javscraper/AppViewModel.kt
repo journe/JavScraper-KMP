@@ -1,4 +1,4 @@
-package javscraper
+﻿package javscraper
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +19,8 @@ import javscraper.ui.screens.ScrapeTaskStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import java.nio.file.Paths
 
@@ -203,10 +205,12 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     /** Clean up the sidecar process */
     fun dispose() {
-        scope.launch {
-            try {
-                mgr?.stop()
-            } catch (_: Exception) {
+        runBlocking {
+            withTimeoutOrNull(2_000) {
+                try {
+                    mgr?.stop()
+                } catch (_: Exception) {
+                }
             }
         }
     }
@@ -478,3 +482,5 @@ class AppViewModel(private val scope: CoroutineScope) {
         mgr?.let { m -> orch = createScrapeOrchestrator(m) }
     }
 }
+
+

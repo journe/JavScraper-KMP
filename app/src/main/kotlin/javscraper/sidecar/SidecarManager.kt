@@ -1,4 +1,4 @@
-package javscraper.sidecar
+﻿package javscraper.sidecar
 
 import javscraper.models.ScrapeResult
 import javscraper.models.SiteInfo
@@ -7,6 +7,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 import java.io.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -57,9 +58,29 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
     suspend fun stop() {
         mutex.withLock {
             try {
-                sendRequest("shutdown", JsonObject(emptyMap()))
+                ensureRunning()
+                stdin?.write(
+                    json.encodeToString(
+                        JsonObject.serializer(),
+                        buildJsonObject {
+                            put("jsonrpc", "2.0")
+                            put("id", "shutdown")
+                            put("method", "shutdown")
+                            put("params", JsonObject(emptyMap()))
+                        }
+                    )
+                )
+                stdin?.newLine()
+                stdin?.flush()
             } catch (_: Exception) {
-            }; delay(300); cleanup()
+            }
+            // Give the worker a moment to exit on its own after receiving shutdown
+            repeat(15) {
+                val p = process
+                if (p == null || !p.isAlive) return@withLock
+                delay(100)
+            }
+            cleanup()
         }
     }
 
@@ -131,8 +152,24 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
 
     private fun cleanup() {
         try {
-            process?.let { if (it.isAlive) it.destroyForcibly() }
+            process?.let { p ->
+                if (p.isAlive) {
+                    try {
+                        ProcessBuilder("taskkill", "/PID", p.pid().toString(), "/T", "/F")
+                            .redirectErrorStream(true)
+                            .start()
+                            .waitFor(5, TimeUnit.SECONDS)
+                    } catch (_: Exception) {
+                    }
+                    if (p.isAlive) p.destroyForcibly()
+                }
+            }
         } catch (_: Exception) {
-        }; responseReader?.cancel(); process = null; stdin = null; stdoutReader = null; pendingRequests.clear()
+        }
+        responseReader?.cancel()
+        process = null
+        stdin = null
+        stdoutReader = null
+        pendingRequests.clear()
     }
 }
