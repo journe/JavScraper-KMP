@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from scrapers.registry import ScraperRegistry
 from scrapers.base import BaseScraper
 

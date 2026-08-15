@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from ipc_handler import handle_request
 from scrapers.registry import ScraperRegistry
 from scrapers.base import BaseScraper
