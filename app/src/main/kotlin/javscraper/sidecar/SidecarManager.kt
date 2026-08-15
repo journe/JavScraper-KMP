@@ -75,9 +75,9 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             } catch (_: Exception) {
             }
             // Give the worker a moment to exit on its own after receiving shutdown
-            repeat(15) {
+            for (i in 0 until 15) {
                 val p = process
-                if (p == null || !p.isAlive) return@withLock
+                if (p == null || !p.isAlive) break
                 delay(100)
             }
             cleanup()
@@ -173,3 +173,5 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         pendingRequests.clear()
     }
 }
+
+
