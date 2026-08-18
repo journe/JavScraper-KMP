@@ -1,10 +1,11 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.api.tasks.testing.Test
 
 plugins {
-    kotlin("jvm") version "2.4.0"
-    id("org.jetbrains.compose") version "1.9.0"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.4.0"
-    kotlin("plugin.serialization") version "2.4.0"
+    kotlin("jvm") version "2.4.10"
+    id("org.jetbrains.compose") version "1.10.3"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.10"
+    kotlin("plugin.serialization") version "2.4.10"
 }
 
 group = "com.javscraper"
@@ -14,18 +15,18 @@ repositories { mavenCentral(); google() }
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
-    implementation(compose.components.uiToolingPreview)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    implementation("org.jetbrains.compose.material3:material3:1.9.0")
+    implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+    implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.10.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
-    implementation("ch.qos.logback:logback-classic:1.5.17")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
 
     // FileKit - cross-platform native file/directory pickers
-    implementation("io.github.vinceglb:filekit-core:0.14.2")
-    implementation("io.github.vinceglb:filekit-dialogs:0.14.2")
+    implementation("io.github.vinceglb:filekit-core:0.15.0")
+    implementation("io.github.vinceglb:filekit-dialogs:0.15.0")
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
@@ -57,4 +58,9 @@ compose.desktop {
             }
         }
     }
+}
+tasks.withType<Test>().configureEach {
+    // 限制测试 JVM 并行度，避免 Windows 页面文件不足导致 JVM 崩溃（Gradle 9 默认并行 fork）
+    maxParallelForks = 1
+    maxHeapSize = "768m"
 }
