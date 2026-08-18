@@ -19,7 +19,7 @@ app/build/
 app/out/
 *.class
 *.jar
-!app/gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
 local.properties
 
 # --- Python (scraper-worker) ---
