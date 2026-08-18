@@ -53,6 +53,9 @@ open class TranslationEn {
 
     // --- Settings screen ---
     open val settingsTitle: String = "Settings"
+    open val settingsTabDirectories: String = "Directories"
+    open val settingsTabScraping: String = "Scraping"
+    open val settingsTabOther: String = "Other"
     open val settingsWorkerPath: String = "Worker Path"
     open val settingsScanDir: String = "Scan Directory"
     open val settingsScanRecursive: String = "Scan subdirectories"

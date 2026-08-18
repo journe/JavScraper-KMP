@@ -46,6 +46,9 @@ class TranslationZh : TranslationEn() {
     override fun galleryCount(n: Int): String = "$n 部影片已刮削"
 
     override val settingsTitle: String = "设置"
+    override val settingsTabDirectories: String = "目录"
+    override val settingsTabScraping: String = "刮削"
+    override val settingsTabOther: String = "其他"
     override val settingsWorkerPath: String = "工作进程路径"
     override val settingsScanDir: String = "扫描目录"
     override val settingsScanRecursive: String = "递归扫描子目录"

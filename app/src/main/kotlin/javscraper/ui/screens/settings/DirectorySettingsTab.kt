@@ -1,4 +1,4 @@
-package javscraper.ui.screens
+package javscraper.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
@@ -13,78 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
-import javscraper.models.SiteInfo
-import javscraper.ui.components.SiteItem
-import javscraper.ui.components.SiteSelector
 
-/** Bundled settings state to reduce parameter count on [SettingsScreen]. */
-data class SettingsState(
-    val workerPath: String,
-    val outputDir: String,
-    val scanDir: String,
-    val scanRecursive: Boolean,
-    val createMovieFolders: Boolean,
-    val hardlinkInsteadOfCopy: Boolean,
-    val downloadImages: Boolean,
-    val autoScrape: Boolean,
-    val sites: List<SiteInfo>,
-    val enabledSiteIds: List<String>,
-    val language: String,
-    val showRestartHint: Boolean,
-    val folderLayers: List<String>,
-    val filenameFormat: String,
-    val maxTitleLength: Int,
-    val maxFilenameLength: Int,
-    val suffixKeywords: List<String>
-)
-
-data class SettingsActions(
-    val onLanguageChange: (String) -> Unit,
-    val onSelectOutputDir: () -> Unit,
-    val onSelectScanDir: () -> Unit,
-    val onSelectWorkerPath: () -> Unit,
-    val onWorkerPathChange: (String) -> Unit,
-    val onScanRecursiveChange: (Boolean) -> Unit,
-    val onCreateMovieFoldersChange: (Boolean) -> Unit,
-    val onHardlinkChange: (Boolean) -> Unit,
-    val onDownloadImagesChange: (Boolean) -> Unit,
-    val onAutoScrapeChange: (Boolean) -> Unit,
-    val onToggleSite: (String, Boolean) -> Unit,
-    val onReset: () -> Unit,
-    val onFolderLayerChange: (Int, String) -> Unit,
-    val onAddLayer: () -> Unit,
-    val onRemoveLayer: (Int) -> Unit,
-    val onFilenameFormatChange: (String) -> Unit,
-    val onMaxTitleLengthChange: (Int) -> Unit,
-    val onMaxFilenameLengthChange: (Int) -> Unit,
-    val onSuffixKeywordsChange: (List<String>) -> Unit
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
+/** Scan/output directories and file naming rules. */
 @Composable
-fun SettingsScreen(
-    state: SettingsState,
-    actions: SettingsActions,
-    modifier: Modifier = Modifier
-) {
+fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
-    Column(modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
-        Text(t.settingsTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(20.dp))
-        Text(t.settingsWorkerPath, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        OutlinedTextField(
-            value = state.workerPath,
-            onValueChange = actions.onWorkerPathChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            trailingIcon = {
-                IconButton(onClick = actions.onSelectWorkerPath) {
-                    Icon(Icons.Default.FileOpen, t.commonBrowse)
-                }
-            }
-        )
-        Spacer(Modifier.height(16.dp))
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text(t.settingsScanDir, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         OutlinedTextField(
             value = state.scanDir, onValueChange = {}, readOnly = true,
@@ -111,13 +47,10 @@ fun SettingsScreen(
         Spacer(Modifier.height(12.dp))
         SettingsSwitchRow(t.settingsMovieFolders, state.createMovieFolders, actions.onCreateMovieFoldersChange)
         SettingsSwitchRow(t.settingsHardlinks, state.hardlinkInsteadOfCopy, actions.onHardlinkChange)
-        SettingsSwitchRow(t.settingsDownloadImages, state.downloadImages, actions.onDownloadImagesChange)
 
-        // --- Naming Rules ---
         Spacer(Modifier.height(20.dp))
         Text(t.settingsRenameTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-
         Text(t.settingsFolderLayers, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(4.dp))
         Column {
@@ -142,7 +75,6 @@ fun SettingsScreen(
             }
         }
         Spacer(Modifier.height(12.dp))
-
         Text(t.settingsFilenameFormat, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -198,24 +130,6 @@ fun SettingsScreen(
                 )
             }
         }
-
-        Spacer(Modifier.height(20.dp))
-        Text(t.settingsScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        SiteSelector(
-            sites = state.sites.map { SiteItem(it.id, it.name, it.id in state.enabledSiteIds) },
-            onToggle = actions.onToggleSite
-        )
-        Spacer(Modifier.height(20.dp))
-        Text(t.settingsLanguage, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        LanguageSelector(state.language, state.showRestartHint, t, actions.onLanguageChange)
-        Spacer(Modifier.height(24.dp))
-        OutlinedButton(
-            onClick = actions.onReset,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-        ) { Icon(Icons.Default.SettingsBackupRestore, null); Spacer(Modifier.width(8.dp)); Text(t.settingsReset) }
         Spacer(Modifier.height(32.dp))
     }
 }
@@ -236,7 +150,7 @@ private fun VariableInsertButton(onInsert: (String) -> Unit) {
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             variables.forEach { v ->
                 DropdownMenuItem(
-                    text = { Text(v, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace) },
+                    text = { Text(v, fontFamily = FontFamily.Monospace) },
                     onClick = { onInsert(v); expanded = false }
                 )
             }
@@ -244,37 +158,10 @@ private fun VariableInsertButton(onInsert: (String) -> Unit) {
     }
 }
 
+@Preview
 @Composable
-private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-        Text(label)
-        Switch(checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun LanguageSelector(
-    language: String,
-    showRestartHint: Boolean,
-    t: javscraper.i18n.TranslationEn,
-    onLanguageChange: (String) -> Unit
-) {
-    Column {
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            Text(t.settingsLanguageEn)
-            RadioButton(selected = language == "en", onClick = { onLanguageChange("en") })
-        }
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            Text(t.settingsLanguageZh)
-            RadioButton(selected = language == "zh", onClick = { onLanguageChange("zh") })
-        }
-        if (showRestartHint) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                t.settingsLanguageRestartHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary
-            )
-        }
+fun DirectorySettingsTabPreview() {
+    SettingsPreview {
+        DirectorySettingsTab(previewSettingsState(), previewSettingsActions())
     }
 }

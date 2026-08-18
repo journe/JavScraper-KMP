@@ -14,6 +14,7 @@ import javscraper.i18n.TranslationZh
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
+import javscraper.ui.screens.settings.*
 
 import javscraper.ui.theme.JavScraperTheme
 
