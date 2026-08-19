@@ -46,6 +46,7 @@ compose.desktop {
             windows {
                 menuGroup = "JavScraper"
                 upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                iconFile.set(project.file("src/main/resources/icon/app_icon.ico"))
                 appResourcesRootDir.set(rootProject.file("src/main/resources"))
             }
 
@@ -55,6 +56,7 @@ compose.desktop {
 
             linux {
                 packageName = "javscraper"
+                iconFile.set(project.file("src/main/resources/icon/app_icon.png"))
             }
         }
     }
