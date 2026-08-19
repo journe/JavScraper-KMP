@@ -189,7 +189,7 @@ fun ScrapeProgressScreen(
                                     label = { Text(t.singleScrapeSiteLabel) },
                                     readOnly = true,
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                                    modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                 )
                                 ExposedDropdownMenu(
                                     expanded = expanded,
