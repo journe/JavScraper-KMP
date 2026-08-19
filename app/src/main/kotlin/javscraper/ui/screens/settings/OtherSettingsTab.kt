@@ -6,8 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -46,6 +45,7 @@ fun OtherSettingsTab(state: SettingsState, actions: SettingsActions) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LanguageSelector(
     language: String,
@@ -53,14 +53,35 @@ private fun LanguageSelector(
     t: TranslationEn,
     onLanguageChange: (String) -> Unit
 ) {
+    val languages = listOf("en" to t.settingsLanguageEn, "zh" to t.settingsLanguageZh)
+    val currentLabel = languages.firstOrNull { it.first == language }?.second ?: language
+    var expanded by remember { mutableStateOf(false) }
     Column {
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            Text(t.settingsLanguageEn)
-            RadioButton(selected = language == "en", onClick = { onLanguageChange("en") })
-        }
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            Text(t.settingsLanguageZh)
-            RadioButton(selected = language == "zh", onClick = { onLanguageChange("zh") })
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            OutlinedTextField(
+                value = currentLabel,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                languages.forEach { (id, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            onLanguageChange(id)
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
         if (showRestartHint) {
             Spacer(Modifier.height(4.dp))
