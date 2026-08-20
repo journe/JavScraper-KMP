@@ -102,6 +102,43 @@ def test_check_sites_unregistered(monkeypatch):
     assert results[0]["error"] == "scraper not registered"
 
 
+def test_check_sites_filter_by_site_ids(monkeypatch):
+    monkeypatch.setattr(
+        ScraperRegistry, "_scrapers", {"fake": _FakeScraper, "other": _FakeScraper}
+    )
+    called = []
+
+    def fake_get(self, url, timeout):
+        called.append(url)
+        return _DummyResponse(200)
+
+    monkeypatch.setattr(requests.Session, "get", fake_get)
+    monkeypatch.setattr(
+        ScraperRegistry,
+        "list_sites",
+        classmethod(
+            lambda cls: [{"id": "fake", "name": "Fake"}, {"id": "other", "name": "Other"}]
+        ),
+    )
+    results = check_sites(site_ids=["other"])
+    assert len(results) == 1
+    assert results[0]["id"] == "other"
+    assert len(called) == 1
+
+
+def test_check_sites_no_filter_returns_all(monkeypatch):
+    _register(monkeypatch, _FakeScraper)
+    monkeypatch.setattr(
+        ScraperRegistry,
+        "list_sites",
+        classmethod(
+            lambda cls: [{"id": "fake", "name": "Fake"}, {"id": "other", "name": "Other"}]
+        ),
+    )
+    results = check_sites()
+    assert len(results) == 2
+
+
 def test_check_sites_parallel_order(monkeypatch):
     _register(monkeypatch, _FakeScraper)
 

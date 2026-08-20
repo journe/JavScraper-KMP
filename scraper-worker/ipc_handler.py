@@ -91,10 +91,10 @@ def _scrape(file_path: str = "", number: str = "", site: str = None) -> dict:
 
 @register_handler("search")
 @register_handler("check_sites")
-def _check_sites() -> list[dict]:
+def _check_sites(sites: list[str] = None) -> list[dict]:
     from scrapers.site_check import check_sites
 
-    return check_sites()
+    return check_sites(site_ids=sites)
 def _search(number: str, sites: list[str] = None) -> list:
     return [r.to_dict() for r in search_multi(number, sites=sites) if r]
 

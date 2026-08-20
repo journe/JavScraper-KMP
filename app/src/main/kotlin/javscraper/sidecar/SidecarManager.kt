@@ -104,8 +104,11 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         }
     }
 
-    suspend fun checkSites(): List<SiteCheckResult> {
-        val resp = sendRequest("check_sites", JsonObject(emptyMap()))
+    suspend fun checkSites(sites: List<String>? = null): List<SiteCheckResult> {
+        val params = buildJsonObject {
+            if (!sites.isNullOrEmpty()) put("sites", JsonArray(sites.map { JsonPrimitive(it) }))
+        }
+        val resp = sendRequest("check_sites", params)
         return resp.jsonArray.map { json.decodeFromJsonElement(it) }
     }
 
