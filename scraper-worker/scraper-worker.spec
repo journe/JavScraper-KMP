@@ -36,6 +36,7 @@ a = Analysis(
         'scrapers.openaver.d2pass',
         'scrapers.openaver.dmm',
         'scrapers.openaver.javlibrary',
+        'scrapers.openaver.mmtv',
         'curl_cffi',
         'lxml',
         'lxml._elementpath',

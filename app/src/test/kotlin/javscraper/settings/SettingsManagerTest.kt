@@ -20,7 +20,8 @@ class SettingsManagerTest {
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.autoScrape)
         assertEquals("en", settings.language)
-        assertEquals(9, settings.enabledSites.size)
+        assertEquals(10, settings.enabledSites.size)
+        assertTrue(settings.enabledSites.contains("mmtv"))
     }
 
     @Test

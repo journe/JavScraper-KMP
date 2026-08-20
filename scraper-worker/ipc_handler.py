@@ -103,4 +103,4 @@ def _search(number: str, sites: list[str] = None) -> list:
 # Scraper discovery - import all scraper modules to trigger auto-registration
 # ---------------------------------------------------------------------------
 from scrapers.openaver import javbus  # noqa: F401
-from scrapers.openaver import javdb, jav321, fc2, heyzo, avsox, d2pass, dmm, javlibrary  # noqa: F401
+from scrapers.openaver import javdb, jav321, fc2, heyzo, avsox, d2pass, dmm, javlibrary, mmtv  # noqa: F401

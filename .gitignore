@@ -46,7 +46,7 @@ logs/
 
 app/worker/
 mdcx
-OpenAver
+/OpenAver
 mdcxOpenAver
 samples
 .gradle
