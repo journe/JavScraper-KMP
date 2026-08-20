@@ -62,7 +62,7 @@ def _get_capabilities() -> dict:
     return {
         "version": "0.1.0",
         "sites": ScraperRegistry.list_sites(),
-        "features": ["scrape", "search", "probe_file", "list_sites", "shutdown"],
+        "features": ["scrape", "search", "probe_file", "list_sites", "check_sites", "shutdown"],
     }
 
 
@@ -90,6 +90,11 @@ def _scrape(file_path: str = "", number: str = "", site: str = None) -> dict:
 
 
 @register_handler("search")
+@register_handler("check_sites")
+def _check_sites() -> list[dict]:
+    from scrapers.site_check import check_sites
+
+    return check_sites()
 def _search(number: str, sites: list[str] = None) -> list:
     return [r.to_dict() for r in search_multi(number, sites=sites) if r]
 

@@ -38,7 +38,9 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     filenameFormat = "{num} {title}",
     maxTitleLength = 200,
     maxFilenameLength = 150,
-    suffixKeywords = listOf("-cd1", "-cd2")
+    suffixKeywords = listOf("-cd1", "-cd2"),
+    siteCheckRunning = false,
+    siteCheckResults = null
 )
 
 /** No-op actions so previews stay interactive-free. */
@@ -61,5 +63,6 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onFilenameFormatChange = {},
     onMaxTitleLengthChange = {},
     onMaxFilenameLengthChange = {},
-    onSuffixKeywordsChange = {}
+    onSuffixKeywordsChange = {},
+    onCheckSites = {}
 )

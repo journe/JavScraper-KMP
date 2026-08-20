@@ -1,6 +1,7 @@
 package javscraper.sidecar
 
 import javscraper.models.ScrapeResult
+import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -101,6 +102,11 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
                 it.jsonObject["name"]?.jsonPrimitive?.content ?: ""
             )
         }
+    }
+
+    suspend fun checkSites(): List<SiteCheckResult> {
+        val resp = sendRequest("check_sites", JsonObject(emptyMap()))
+        return resp.jsonArray.map { json.decodeFromJsonElement(it) }
     }
 
     suspend fun scrape(number: String, site: String? = null): ScrapeResult {

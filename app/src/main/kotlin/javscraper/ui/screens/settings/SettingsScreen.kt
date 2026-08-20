@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
+import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 
 /** Bundled settings state to reduce parameter count on [SettingsScreen]. */
@@ -37,7 +38,9 @@ data class SettingsState(
     val filenameFormat: String,
     val maxTitleLength: Int,
     val maxFilenameLength: Int,
-    val suffixKeywords: List<String>
+    val suffixKeywords: List<String>,
+    val siteCheckRunning: Boolean,
+    val siteCheckResults: List<SiteCheckResult>?
 )
 
 data class SettingsActions(
@@ -59,7 +62,8 @@ data class SettingsActions(
     val onFilenameFormatChange: (String) -> Unit,
     val onMaxTitleLengthChange: (Int) -> Unit,
     val onMaxFilenameLengthChange: (Int) -> Unit,
-    val onSuffixKeywordsChange: (List<String>) -> Unit
+    val onSuffixKeywordsChange: (List<String>) -> Unit,
+    val onCheckSites: () -> Unit
 )
 
 /** Settings categories rendered as floating tabs at the top of the screen. */

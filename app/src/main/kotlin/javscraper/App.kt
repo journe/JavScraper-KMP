@@ -138,7 +138,9 @@ fun App() {
                                     filenameFormat = viewModel.filenameFormat,
                                     maxTitleLength = viewModel.maxTitleLength,
                                     maxFilenameLength = viewModel.maxFilenameLength,
-                                    suffixKeywords = viewModel.suffixKeywords
+                                    suffixKeywords = viewModel.suffixKeywords,
+                                    siteCheckRunning = viewModel.siteCheckRunning,
+                                    siteCheckResults = viewModel.siteCheckResults
                                 ),
                                 actions = SettingsActions(
                                     onLanguageChange = viewModel::updateLanguage,
@@ -159,7 +161,8 @@ fun App() {
                                     onFilenameFormatChange = viewModel::updateFilenameFormat,
                                     onMaxTitleLengthChange = viewModel::updateMaxTitleLength,
                                     onMaxFilenameLengthChange = viewModel::updateMaxFilenameLength,
-                                    onSuffixKeywordsChange = viewModel::updateSuffixKeywords
+                                    onSuffixKeywordsChange = viewModel::updateSuffixKeywords,
+                                    onCheckSites = viewModel::checkSites
                                 )
                             )
                         }

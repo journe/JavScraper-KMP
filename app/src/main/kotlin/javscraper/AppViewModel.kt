@@ -9,6 +9,7 @@ import javscraper.io.FileScanner
 import javscraper.io.pickDirectory
 import javscraper.io.pickFile
 import javscraper.models.ScannedFile
+import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import javscraper.models.Video
 import javscraper.models.SingleScrapeDialogState
@@ -178,6 +179,12 @@ class AppViewModel(private val scope: CoroutineScope) {
     var workerSetupVisible by mutableStateOf(false)
         private set
     var workerSetupError by mutableStateOf<String?>(null)
+        private set
+
+    // --- Site connectivity check ---
+    var siteCheckRunning by mutableStateOf(false)
+        private set
+    var siteCheckResults by mutableStateOf<List<SiteCheckResult>?>(null)
         private set
 
     // --- Dependencies ---
@@ -416,6 +423,23 @@ class AppViewModel(private val scope: CoroutineScope) {
         SettingsManager.update { it.copy(language = lang) }
         // The UI recomposition is driven by currentLanguage change;
         // composition-local [LocalTranslations] is updated by the App composable.
+    }
+
+    fun checkSites() {
+        val m = mgr
+        if (m == null || siteCheckRunning) return
+        scope.launch {
+            siteCheckRunning = true
+            siteCheckResults = null
+            try {
+                siteCheckResults = withContext(Dispatchers.IO) { m.checkSites() }
+            } catch (e: Exception) {
+                siteCheckResults = emptyList()
+                status = strings.statusError(e.message ?: "check failed")
+            } finally {
+                siteCheckRunning = false
+            }
+        }
     }
 
     fun toggleSite(id: String, enabled: Boolean) {

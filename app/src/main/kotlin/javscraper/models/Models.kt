@@ -25,6 +25,16 @@ data class ScannedFile(val path: String, val fileName: String, val number: Strin
 @Serializable
 data class SiteInfo(val id: String, val name: String)
 
+@Serializable
+data class SiteCheckResult(
+    val id: String,
+    val ok: Boolean,
+    val status: Int? = null,
+    val latencyMs: Int? = null,
+    val error: String? = null,
+    val url: String? = null
+)
+
 sealed interface SingleScrapeDialogState {
     data object Closed : SingleScrapeDialogState
     data object Input : SingleScrapeDialogState
