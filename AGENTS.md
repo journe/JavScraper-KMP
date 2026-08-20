@@ -1,114 +1,122 @@
-﻿# Repository Guidelines
+# Repository Guidelines
 
-## Project Structure & Module Organization
+## 项目结构与模块组织
 
-This repository contains two main components:
+本仓库包含两个主要组件：
 
-- **`app/`** — Compose Desktop (Kotlin/JVM) built with Gradle. Source lives under `app/src/main/kotlin/javscraper/` organized into packages:
-  - `i18n/` — Type-safe translation strings via data classes + CompositionLocal
-  - `io/` — File I/O and persistence
-  - `models/` — Data classes and domain models
-  - `scrape/` — Scraping orchestration (ScrapeOrchestrator.kt)
-  - `settings/` — Application settings management
-  - `sidecar/` — Lifecycle management for the Python worker process
-  - `ui/` — Compose UI screens and components
-- **`scraper-worker/`** — Python JSON-RPC worker (Python 3.12+) with scrapers under scrapers/openaver/, core utilities in core/, and tests in tests/.
-- **`installer/`** — WiX toolset files (bundle.wxs, build.bat) for Windows packaging.
-- **`docs/superpowers/`** — Design specs and implementation plans.
+- **`app/`** — Compose Desktop（Kotlin/JVM）桌面应用，使用 Gradle 构建。源码位于 `app/src/main/kotlin/javscraper/`，按包组织：
+  - `i18n/` — 类型安全的多语言字符串（数据类 + CompositionLocal）
+  - `io/` — 文件读写与持久化
+  - `models/` — 数据类与领域模型
+  - `scrape/` — 刮削编排（ScrapeOrchestrator.kt）
+  - `settings/` — 应用设置管理（SettingsManager、AppSettings）
+  - `sidecar/` — Python worker 进程生命周期管理
+  - `ui/` — Compose UI 屏幕与组件（`ui/screens/settings/` 为设置页子包）
+  - 根包下另有 `SettingsController.kt`（设置状态与持久化）、`WorkerController.kt`（worker 生命周期与站点检查）、`AppViewModel.kt`（聚合门面）
+- **`scraper-worker/`** — Python JSON-RPC worker（Python 3.12+），刮削器位于 `scrapers/openaver/`，核心工具位于 `core/`，测试位于 `tests/`；站点连通性检查位于 `scrapers/site_check.py`
+- **`installer/`** — WiX 工具集文件（bundle.wxs、build.bat），用于 Windows 打包
+- **`docs/`** — 设计规格与实施计划（`docs/superpowers/`）及操作文档（如 `docs/worker-build-guide.md` 打包指南）
 
-Test sources mirror the source layout under `app/src/test/kotlin/javscraper/` and scraper-worker/tests/.
+测试源码与源码目录结构镜像：`app/src/test/kotlin/javscraper/` 与 `scraper-worker/tests/`。
 
-## Build Test and Development Commands
+## 构建、测试与开发命令
 
-### Kotlin (Compose Desktop)
+Gradle wrapper 统一位于**项目根目录**（不在 app 下），请从根目录执行。
+
+### Kotlin（Compose Desktop）
 
 ```powershell
-# Compile without running tests
-cd app; ./gradlew compileKotlin --no-daemon
+# 编译（不运行测试）
+.\gradlew :app:compileKotlin --no-daemon
 
-# Run all unit tests
-cd app; ./gradlew test --no-daemon
+# 运行全部单元测试
+.\gradlew :app:test --no-daemon
 
-# Run the desktop application
-cd app; ./gradlew run --no-daemon
+# 运行桌面应用
+.\gradlew :app:run --no-daemon
 ```
 
 ### Python Worker
 
 ```powershell
-# Install dependencies
-cd scraper-worker; pip install -r requirements.txt
+# 安装依赖（推荐使用 scraper-worker/venv）
+cd scraper-worker; venv\Scripts\python -m pip install -r requirements.txt
 
-# Run all tests
-cd scraper-worker; pytest tests/
+# 运行全部测试
+cd scraper-worker; venv\Scripts\python -m pytest tests/
 
-# Run a specific test file
-cd scraper-worker; pytest tests/test_registry.py
+# 运行指定测试文件
+cd scraper-worker; venv\Scripts\python -m pytest tests/test_registry.py
+
+# 打包 worker（修改 Python 源码后必须重新打包，详见 docs/worker-build-guide.md）
+cd scraper-worker; venv\Scripts\python -m PyInstaller scraper-worker.spec --noconfirm
 ```
-
-## Coding Style amp; Naming Conventions
+## 编码风格与命名约定
 
 ### Kotlin
 
-- Use 4-space indentation throughout.
-- Follow the Kotlin Coding Conventions.
-- Package names are lowercase: javscraper.models, javscraper.ui.
-- Classes use PascalCase; functions and properties use camelCase.
-- Prefer val over var; use immutable data classes for models.
-- Composable functions are PascalCase (e.g., SettingsScreen).
+- 全文件使用 4 空格缩进。
+- 遵循 Kotlin 编码规范。
+- 包名小写：javscraper.models、javscraper.ui。
+- 类名使用 PascalCase；函数与属性使用 camelCase。
+- 优先 val 而非 var；模型使用不可变 data class。
+- Composable 函数使用 PascalCase（如 SettingsScreen）。
 
 ### Python
 
-- Follow PEP 8 with 4-space indentation.
-- Modules and packages use snake_case.
-- Classes use PascalCase; functions and variables use snake_case.
+- 遵循 PEP 8，4 空格缩进。
+- 模块与包使用 snake_case。
+- 类名使用 PascalCase；函数与变量使用 snake_case。
 
-## Testing Guidelines
+## 测试指南
 
-### Kotlin Tests
+### Kotlin 测试
 
-- Use the built-in kotlin.test framework with JUnit runner.
-- Test files are named ClassTest.kt and placed in the corresponding package under app/src/test/kotlin/.
-- Test functions use descriptive names.
+- 使用 kotlin.test 框架 + JUnit 运行器。
+- 测试文件命名为 ClassTest.kt，放在 app/src/test/kotlin/ 对应包下。
+- 测试函数使用描述性名称。
 
-### Python Tests
+### Python 测试
 
-- Use pytest with plain assert statements.
-- Test files are named test_module.py inside scraper-worker/tests/.
-- Run with pytest tests/ from the scraper-worker/ directory.
+- 使用 pytest 与普通 assert。
+- 测试文件命名为 test_module.py，位于 scraper-worker/tests/。
+- 在 scraper-worker/ 目录下运行 pytest tests/。
 
-## Commit amp; Pull Request Guidelines
+## 提交与 PR 指南
 
-The project uses Conventional Commits (feat:, fix:, refactor:, docs:). Commit messages are short, imperative, and English-only. Pull requests should include a description of the change and reference related issues or design docs.
+- 使用 Conventional Commits 前缀（feat:、fix:、refactor:、docs:、build:）。
+- 提交信息使用中文，标题一行 + 空行 + 以 "- " 开头的要点正文（参照历史提交格式）。
+- PR 应包含变更描述并关联相关 issue 或设计文档。
 
-## Security amp; Configuration Tips
+## 安全与配置提示
 
-- Never commit user-specific configuration. These are gitignored.
-- The Python worker communicates with the Kotlin app via JSON-RPC over stdin/stdout.
-- When adding a new scraper source, register it in scrapers/registry.py and add a corresponding file under scrapers/openaver/.
+- 绝不提交用户特定配置（已通过 .gitignore 忽略）。
+- Python worker 通过 stdin/stdout 与 Kotlin 应用进行 JSON-RPC 通信。
+- 新增刮削站点时：在 scrapers/openaver/ 新建文件、在 scrapers/registry.py 注册、在 ipc_handler.py 末尾导入，并更新 scraper-worker.spec 的 hiddenimports。
+- 修改 Python 源码后必须重新打包 worker exe（详见 docs/worker-build-guide.md）。
 
-## Internationalization (i18n)
+## 国际化（i18n）
 
-Translations are defined as Kotlin classes in app/src/main/kotlin/javscraper/i18n/:
+翻译定义为 app/src/main/kotlin/javscraper/i18n/ 下的 Kotlin 类：
 
-- TranslationStrings.kt: Base open class with all UI strings as open val properties and open fun methods (for parameterized strings). Default values are English.
-- TranslationZh.kt: Chinese (Simplified) localization, overrides all properties.
-- Translations.kt: Exposes LocalTranslations (staticCompositionLocalOf) for Compose-native reactive access.
+- TranslationEn.kt：基类（open class），包含所有 UI 字符串的 open val 属性与 open fun 方法（用于带参数字符串），默认值为英文。
+- TranslationZh.kt：中文（简体）本地化，覆盖全部属性。
+- Translations.kt：暴露 LocalTranslations（staticCompositionLocalOf）供 Compose 响应式访问。
 
-### Usage in Composable functions
+### 在 Composable 中使用
 
 val t = LocalTranslations.current
 Text(t.scanTitle)
 Text(t.scanFound(matchedFiles.size))
 
-### Adding a new locale
+### 新增语言
 
-1. Create a new class extending TranslationStrings.
-2. Override all open val / open fun members with the translated text.
-3. In App.kt, add the locale to the localeStrings resolution.
+1. 新建继承 TranslationEn 的类。
+2. 覆盖所有 open val / open fun 成员为翻译文本。
+3. 在 App.kt 的 localeStrings 解析中加入新语言。
 
-### Adding a new UI string
+### 新增 UI 字符串
 
-1. Add an open val (or open fun if parameterized) to TranslationStrings.
-2. Override it in all locale subclasses.
-3. Reference it via LocalTranslations.current.xxx in composables.
+1. 在 TranslationEn 中添加 open val（带参数用 open fun）。
+2. 在所有语言子类中覆盖。
+3. 在 Composable 中通过 LocalTranslations.current.xxx 引用。
