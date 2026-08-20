@@ -4,33 +4,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javscraper.i18n.TranslationEn
-import javscraper.i18n.TranslationZh
 import javscraper.io.FileScanner
-import javscraper.io.pickDirectory
-import javscraper.io.pickFile
 import javscraper.models.ScannedFile
 import javscraper.models.SiteCheckResult
-import javscraper.models.SiteInfo
-import javscraper.models.Video
 import javscraper.models.SingleScrapeDialogState
-import javscraper.scrape.ScrapeOrchestrator
-import javscraper.settings.SettingsManager
-import javscraper.sidecar.SidecarManager
+import javscraper.models.Video
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import java.nio.file.Paths
 
 /**
  * MVVM ViewModel for the main application.
- * Encapsulates all UI state and business logic, keeping composables stateless.
+ * Coordinates settings ([SettingsController]), worker lifecycle ([WorkerController])
+ * and scan/scrape orchestration, keeping composables stateless.
  */
 class AppViewModel(private val scope: CoroutineScope) {
+
+    private val settings = SettingsController(scope)
+    private val worker = WorkerController(scope, settings)
+
+    init {
+        settings.onScrapeSettingsChanged = { worker.rebuildOrchestrator() }
+        settings.onStatusChange = { status = it }
+        worker.onStatusChange = { status = it }
+    }
 
     // --- Screen navigation ---
     var currentScreen by mutableStateOf(Screen.SCAN)
@@ -54,10 +55,6 @@ class AppViewModel(private val scope: CoroutineScope) {
     var results by mutableStateOf<List<Video>>(emptyList())
         private set
 
-    // --- Sites ---
-    var sites by mutableStateOf<List<SiteInfo>>(emptyList())
-        private set
-
     // --- Single scrape dialog state ---
     var singleScrapeDialogState by mutableStateOf<SingleScrapeDialogState>(SingleScrapeDialogState.Closed)
         private set
@@ -70,209 +67,48 @@ class AppViewModel(private val scope: CoroutineScope) {
     var singleScrapeTask by mutableStateOf<ScrapeTask?>(null)
         private set
 
-    // --- Single scrape dialog setters ---
-    fun updateSingleScrapeNumber(value: String) {
-        singleScrapeNumber = value
-    }
+    // --- Settings state (delegated to SettingsController) ---
+    var scanDir by settings::scanDir
+    var outputDir by settings::outputDir
+    var workerPath by settings::workerPath
+    var currentLanguage by settings::currentLanguage
+    var showRestartHint by settings::showRestartHint
+    var enabledSites by settings::enabledSites
+    var scanRecursive by settings::scanRecursive
+    var createMovieFolders by settings::createMovieFolders
+    var hardlinkInsteadOfCopy by settings::hardlinkInsteadOfCopy
+    var downloadImages by settings::downloadImages
+    var autoScrape by settings::autoScrape
+    var folderLayers by settings::folderLayers
+    var filenameFormat by settings::filenameFormat
+    var maxTitleLength by settings::maxTitleLength
+    var maxFilenameLength by settings::maxFilenameLength
+    var suffixKeywords by settings::suffixKeywords
 
-    fun updateSingleScrapeSite(value: String?) {
-        singleScrapeSite = value
-    }
-
-    fun openSingleScrape(file: ScannedFile) {
-        singleScrapeFile = file
-        singleScrapeNumber = file.number
-        singleScrapeSite = null
-        singleScrapeTask = ScrapeTask(file.number, file.fileName, status = ScrapeTaskStatus.PENDING)
-        singleScrapeDialogState = SingleScrapeDialogState.Input
-    }
-
-    fun openSingleScrapeFromTask(task: ScrapeTask) {
-        val sf = scannedFiles.find { it.fileName == task.fileName }
-            ?: ScannedFile(path = task.path, fileName = task.fileName, number = task.number)
-        openSingleScrape(sf)
-    }
-
-    fun closeSingleScrape() {
-        singleScrapeDialogState = SingleScrapeDialogState.Closed
-        singleScrapeFile = null
-        singleScrapeTask = null
-    }
-
-    fun startSingleScrape() {
-        val file = singleScrapeFile ?: return
-        val number = singleScrapeNumber
-        val site = singleScrapeSite
-        if (number.isBlank()) return
-        singleScrapeDialogState = SingleScrapeDialogState.Scraping
-        scope.launch {
-            val sf = file.copy(number = number)
-            singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SCRAPING)
-            try {
-                val result = orch?.process(sf, site) ?: return@launch
-                if (result.success && result.data != null) {
-                    singleScrapeDialogState = SingleScrapeDialogState.Result(result.data, null)
-                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = result.data)
-                } else {
-                    val errMsg = result.error?.message ?: "Unknown error"
-                    singleScrapeDialogState = SingleScrapeDialogState.Result(null, errMsg)
-                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = errMsg)
-                }
-            } catch (e: Exception) {
-                singleScrapeDialogState = SingleScrapeDialogState.Result(null, e.message ?: "Unknown error")
-                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = e.message ?: "")
-            }
-        }
-    }
-
-    fun confirmSingleScrape() {
-        val task = singleScrapeTask
-        val state = singleScrapeDialogState
-        if (task != null) {
-            tasks = tasks + task
-        }
-        if (state is SingleScrapeDialogState.Result && state.video != null) {
-            results = results + state.video
-        }
-        closeSingleScrape()
-    }
-    // --- Settings state ---
-    var scanDir by mutableStateOf(SettingsManager.get().scanDir)
-        private set
-    var outputDir by mutableStateOf(SettingsManager.get().outputDir)
-        private set
-    var workerPath by mutableStateOf(SettingsManager.get().workerPath)
-        private set
-    var currentLanguage by mutableStateOf(SettingsManager.get().language)
-        private set
-    var showRestartHint by mutableStateOf(false)
-        private set
-    var enabledSites by mutableStateOf(SettingsManager.get().enabledSites)
-        private set
-    var scanRecursive by mutableStateOf(SettingsManager.get().scanRecursive)
-        private set
-    var createMovieFolders by mutableStateOf(SettingsManager.get().createMovieFolders)
-        private set
-    var hardlinkInsteadOfCopy by mutableStateOf(SettingsManager.get().hardlinkInsteadOfCopy)
-        private set
-    var downloadImages by mutableStateOf(SettingsManager.get().downloadImages)
-        private set
-    var autoScrape by mutableStateOf(SettingsManager.get().autoScrape)
-        private set
-
-    var folderLayers by mutableStateOf(SettingsManager.get().folderLayers)
-        private set
-    var filenameFormat by mutableStateOf(SettingsManager.get().filenameFormat)
-        private set
-    var maxTitleLength by mutableStateOf(SettingsManager.get().maxTitleLength)
-        private set
-    var maxFilenameLength by mutableStateOf(SettingsManager.get().maxFilenameLength)
-        private set
-    var suffixKeywords by mutableStateOf(SettingsManager.get().suffixKeywords)
-        private set
+    // --- Worker state (delegated to WorkerController) ---
+    var sites by worker::sites
+    var workerSetupVisible by worker::workerSetupVisible
+    var workerSetupError by worker::workerSetupError
+    var siteCheckRunning by worker::siteCheckRunning
+    var siteCheckResults by worker::siteCheckResults
 
     // --- Locale-aware strings ---
     private val strings: TranslationEn
-        get() = if (currentLanguage == "zh") TranslationZh() else TranslationEn()
+        get() = settings.strings
 
-    // --- Worker setup dialog state ---
-    var workerSetupVisible by mutableStateOf(false)
-        private set
-    var workerSetupError by mutableStateOf<String?>(null)
-        private set
+    // --- Lifecycle ---
 
-    // --- Site connectivity check ---
-    var siteCheckRunning by mutableStateOf(false)
-        private set
-    var siteCheckResults by mutableStateOf<List<SiteCheckResult>?>(null)
-        private set
-
-    // --- Dependencies ---
-    private var mgr: SidecarManager? = null
-    private var orch: ScrapeOrchestrator? = null
-
-    /** Initialize the sidecar worker and load sites */
+    /** Initialize the sidecar worker and load sites. */
     fun init() {
         status = strings.statusInitializing
         scope.launch {
-            ensureWorkerRunning()
+            worker.ensureWorkerRunning()
         }
     }
 
-    /**
-     * Starts (or restarts) the sidecar worker. If startup fails — for example when the
-     * scraper-worker.exe path is misconfigured — shows a dialog asking the user to pick
-     * the correct worker executable, and retries until it starts successfully or the
-     * user cancels.
-     */
-    private suspend fun ensureWorkerRunning() {
-        try {
-            status = strings.statusStarting
-            val m = SidecarManager(resolveWorkerPath())
-            val started = withContext(Dispatchers.IO) { m.start() }
-            if (started) {
-                val siteList = withContext(Dispatchers.IO) { m.listSites() }
-                mgr?.let { old -> if (old !== m) runCatching { old.stop() } }
-                mgr = m
-                sites = siteList
-                orch = createScrapeOrchestrator(m)
-                status = strings.statusReady(siteList.size)
-                workerSetupVisible = false
-                workerSetupError = null
-            } else {
-                workerSetupVisible = true
-                workerSetupError = null
-            }
-        } catch (e: Exception) {
-            status = strings.statusError(e.message ?: "")
-            workerSetupVisible = true
-            workerSetupError = e.message
-        }
-    }
-
-    private fun resolveWorkerPath(): String {
-        val configured = Paths.get(workerPath)
-        // 绝对路径（如用户通过对话框选择的路径）直接使用，避免与 user.dir 拼接产生非法路径
-        return if (configured.isAbsolute) configured.toString()
-            else Paths.get(System.getProperty("user.dir"), workerPath).toString()
-    }
-
-    /** Open a file picker and retry starting the worker with the selected path. */
-    fun selectWorkerPath() {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val file = pickFile(strings.workerSetupSelectTitle, listOf("exe", "bat"))
-                if (file != null) {
-                    withContext(Dispatchers.Main) {
-                        workerPath = file
-                        SettingsManager.update { it.copy(workerPath = file) }
-                        ensureWorkerRunning()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    status = strings.statusDirError(e.message ?: "")
-                }
-            }
-        }
-    }
-
-    /** Dismiss the worker setup dialog without starting the worker. */
-    fun dismissWorkerSetup() {
-        workerSetupVisible = false
-        workerSetupError = null
-    }
-
-    /** Clean up the sidecar process */
+    /** Clean up the sidecar process. */
     fun dispose() {
-        runBlocking {
-            withTimeoutOrNull(2_000) {
-                try {
-                    mgr?.stop()
-                } catch (_: Exception) {
-                }
-            }
-        }
+        worker.dispose()
     }
 
     // --- Navigation ---
@@ -281,53 +117,32 @@ class AppViewModel(private val scope: CoroutineScope) {
         currentScreen = screen
     }
 
-    // --- Directory selection ---
+    // --- Settings (forwarded to SettingsController) ---
 
-    fun selectScanDir() {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val dir = pickDirectory(
-                    strings.scanDirectoryLabel,
-                    scanDir.ifBlank { null }
-                )
-                if (dir != null) {
-                    withContext(Dispatchers.Main) {
-                        scanDir = dir
-                        saveBothDirs()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    status = strings.statusDirError(e.message ?: "")
-                }
-            }
-        }
-    }
+    fun updateLanguage(lang: String) = settings.updateLanguage(lang)
+    fun selectScanDir() = settings.selectScanDir()
+    fun selectOutputDir() = settings.selectOutputDir()
+    fun updateWorkerPath(v: String) = settings.updateWorkerPath(v)
+    fun updateScanRecursive(v: Boolean) = settings.updateScanRecursive(v)
+    fun updateCreateMovieFolders(v: Boolean) = settings.updateCreateMovieFolders(v)
+    fun updateHardlink(v: Boolean) = settings.updateHardlink(v)
+    fun updateDownloadImages(v: Boolean) = settings.updateDownloadImages(v)
+    fun updateAutoScrape(v: Boolean) = settings.updateAutoScrape(v)
+    fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
+    fun resetSettings() = settings.resetSettings()
+    fun updateFolderLayer(index: Int, value: String) = settings.updateFolderLayer(index, value)
+    fun addLayer() = settings.addLayer()
+    fun removeLayer(index: Int) = settings.removeLayer(index)
+    fun updateFilenameFormat(v: String) = settings.updateFilenameFormat(v)
+    fun updateMaxTitleLength(v: Int) = settings.updateMaxTitleLength(v)
+    fun updateMaxFilenameLength(v: Int) = settings.updateMaxFilenameLength(v)
+    fun updateSuffixKeywords(v: List<String>) = settings.updateSuffixKeywords(v)
 
-    fun selectOutputDir() {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val dir = pickDirectory(
-                    strings.commonBrowse,
-                    outputDir.ifBlank { null }
-                )
-                if (dir != null) {
-                    withContext(Dispatchers.Main) {
-                        outputDir = dir
-                        saveBothDirs()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    status = strings.statusDirError(e.message ?: "")
-                }
-            }
-        }
-    }
+    // --- Worker (forwarded to WorkerController) ---
 
-    private fun saveBothDirs() {
-        SettingsManager.update { it.copy(scanDir = scanDir, outputDir = outputDir) }
-    }
+    fun selectWorkerPath() = worker.selectWorkerPath()
+    fun dismissWorkerSetup() = worker.dismissWorkerSetup()
+    fun checkSites() = worker.checkSites()
 
     // --- Scan ---
 
@@ -356,7 +171,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun startAllScraping() {
         scope.launch {
             scraping = true
-            val o = orch ?: run { scraping = false; return@launch }
+            val o = worker.orch ?: run { scraping = false; return@launch }
             try {
                 for (i in tasks.indices) {
                     if (!scraping) break
@@ -365,10 +180,10 @@ class AppViewModel(private val scope: CoroutineScope) {
                     updated[i] = t.copy(status = ScrapeTaskStatus.SCRAPING)
                     tasks = updated
 
-                      val taskFiles = scannedFiles.filter { it.number == t.number }
-                      if (taskFiles.isNotEmpty()) {
+                    val taskFiles = scannedFiles.filter { it.number == t.number }
+                    if (taskFiles.isNotEmpty()) {
                         try {
-                              val r = withContext(Dispatchers.IO) { o.processParts(taskFiles) }
+                            val r = withContext(Dispatchers.IO) { o.processParts(taskFiles) }
                             val newTasks = tasks.toMutableList()
                             if (r.success && r.data != null) {
                                 results = results + r.data
@@ -416,147 +231,71 @@ class AppViewModel(private val scope: CoroutineScope) {
         tasks = emptyList()
     }
 
-    // --- Settings ---
+    // --- Single scrape dialog ---
 
-    fun updateLanguage(lang: String) {
-        currentLanguage = lang
-        SettingsManager.update { it.copy(language = lang) }
-        // The UI recomposition is driven by currentLanguage change;
-        // composition-local [LocalTranslations] is updated by the App composable.
+    fun updateSingleScrapeNumber(value: String) {
+        singleScrapeNumber = value
     }
 
-    fun checkSites() {
-        val m = mgr
-        if (m == null || siteCheckRunning) return
+    fun updateSingleScrapeSite(value: String?) {
+        singleScrapeSite = value
+    }
+
+    fun openSingleScrape(file: ScannedFile) {
+        singleScrapeFile = file
+        singleScrapeNumber = file.number
+        singleScrapeSite = null
+        singleScrapeTask = ScrapeTask(file.number, file.fileName, status = ScrapeTaskStatus.PENDING)
+        singleScrapeDialogState = SingleScrapeDialogState.Input
+    }
+
+    fun openSingleScrapeFromTask(task: ScrapeTask) {
+        val sf = scannedFiles.find { it.fileName == task.fileName }
+            ?: ScannedFile(path = task.path, fileName = task.fileName, number = task.number)
+        openSingleScrape(sf)
+    }
+
+    fun closeSingleScrape() {
+        singleScrapeDialogState = SingleScrapeDialogState.Closed
+        singleScrapeFile = null
+        singleScrapeTask = null
+    }
+
+    fun startSingleScrape() {
+        val file = singleScrapeFile ?: return
+        val number = singleScrapeNumber
+        val site = singleScrapeSite
+        if (number.isBlank()) return
+        singleScrapeDialogState = SingleScrapeDialogState.Scraping
         scope.launch {
-            siteCheckRunning = true
-            siteCheckResults = null
+            val sf = file.copy(number = number)
+            singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SCRAPING)
             try {
-                siteCheckResults = withContext(Dispatchers.IO) { m.checkSites() }
+                val result = worker.orch?.process(sf, site) ?: return@launch
+                if (result.success && result.data != null) {
+                    singleScrapeDialogState = SingleScrapeDialogState.Result(result.data, null)
+                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = result.data)
+                } else {
+                    val errMsg = result.error?.message ?: "Unknown error"
+                    singleScrapeDialogState = SingleScrapeDialogState.Result(null, errMsg)
+                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = errMsg)
+                }
             } catch (e: Exception) {
-                siteCheckResults = emptyList()
-                status = strings.statusError(e.message ?: "check failed")
-            } finally {
-                siteCheckRunning = false
+                singleScrapeDialogState = SingleScrapeDialogState.Result(null, e.message ?: "Unknown error")
+                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = e.message ?: "")
             }
         }
     }
 
-    fun toggleSite(id: String, enabled: Boolean) {
-        enabledSites = if (enabled) enabledSites + id else enabledSites - id
-        SettingsManager.update { it.copy(enabledSites = enabledSites) }
-    }
-
-    fun resetSettings() {
-        SettingsManager.reset()
-        val fresh = SettingsManager.get()
-        scanDir = fresh.scanDir
-        outputDir = fresh.outputDir
-        workerPath = fresh.workerPath
-        scanRecursive = fresh.scanRecursive
-        createMovieFolders = fresh.createMovieFolders
-        hardlinkInsteadOfCopy = fresh.hardlinkInsteadOfCopy
-        downloadImages = fresh.downloadImages
-        autoScrape = fresh.autoScrape
-        enabledSites = fresh.enabledSites
-        currentLanguage = fresh.language
-        folderLayers = fresh.folderLayers
-        filenameFormat = fresh.filenameFormat
-        maxTitleLength = fresh.maxTitleLength
-        maxFilenameLength = fresh.maxFilenameLength
-        suffixKeywords = fresh.suffixKeywords
-        updateRenameOrchestrator()
-    }
-
-    fun updateScanRecursive(v: Boolean) {
-        scanRecursive = v
-        SettingsManager.update { it.copy(scanRecursive = v) }
-    }
-
-    fun updateCreateMovieFolders(v: Boolean) {
-        createMovieFolders = v
-        SettingsManager.update { it.copy(createMovieFolders = v) }
-        mgr?.let { m ->
-                    orch = createScrapeOrchestrator(m)
+    fun confirmSingleScrape() {
+        val task = singleScrapeTask
+        val state = singleScrapeDialogState
+        if (task != null) {
+            tasks = tasks + task
         }
-    }
-
-    fun updateHardlink(v: Boolean) {
-        hardlinkInsteadOfCopy = v
-        SettingsManager.update { it.copy(hardlinkInsteadOfCopy = v) }
-        mgr?.let { m ->
-            orch = ScrapeOrchestrator(m, outputDir, createMovieFolders, v, downloadImages)
+        if (state is SingleScrapeDialogState.Result && state.video != null) {
+            results = results + state.video
         }
-    }
-
-    fun updateDownloadImages(v: Boolean) {
-        downloadImages = v
-        SettingsManager.update { it.copy(downloadImages = v) }
-        mgr?.let { m ->
-            orch = ScrapeOrchestrator(m, outputDir, createMovieFolders, hardlinkInsteadOfCopy, v)
-        }
-    }
-
-    fun updateAutoScrape(v: Boolean) {
-        autoScrape = v
-        SettingsManager.update { it.copy(autoScrape = v) }
-    }
-
-    fun updateWorkerPath(v: String) {
-        workerPath = v
-        SettingsManager.update { it.copy(workerPath = v) }
-    }
-
-    fun updateFolderLayer(index: Int, value: String) {
-        folderLayers = folderLayers.toMutableList().also { it[index] = value }
-        SettingsManager.update { it.copy(folderLayers = folderLayers) }
-        updateRenameOrchestrator()
-    }
-
-    fun addLayer() {
-        folderLayers = folderLayers + ""
-        SettingsManager.update { it.copy(folderLayers = folderLayers) }
-    }
-
-    fun removeLayer(index: Int) {
-        folderLayers = folderLayers.toMutableList().also { it.removeAt(index) }
-        SettingsManager.update { it.copy(folderLayers = folderLayers) }
-        updateRenameOrchestrator()
-    }
-
-    fun updateFilenameFormat(v: String) {
-        filenameFormat = v
-        SettingsManager.update { it.copy(filenameFormat = v) }
-        updateRenameOrchestrator()
-    }
-
-    fun updateMaxTitleLength(v: Int) {
-        maxTitleLength = v
-        SettingsManager.update { it.copy(maxTitleLength = v) }
-    }
-
-    fun updateMaxFilenameLength(v: Int) {
-        maxFilenameLength = v
-        SettingsManager.update { it.copy(maxFilenameLength = v) }
-        updateRenameOrchestrator()
-    }
-
-    fun updateSuffixKeywords(v: List<String>) {
-        suffixKeywords = v
-        SettingsManager.update { it.copy(suffixKeywords = v) }
-        updateRenameOrchestrator()
-    }
-
-    private fun createScrapeOrchestrator(m: SidecarManager): ScrapeOrchestrator {
-        return ScrapeOrchestrator(
-            m, outputDir, createMovieFolders, hardlinkInsteadOfCopy,
-            downloadImages, folderLayers, filenameFormat,
-            maxTitleLength, maxFilenameLength, suffixKeywords
-        )
-    }
-
-    private fun updateRenameOrchestrator() {
-        mgr?.let { m -> orch = createScrapeOrchestrator(m) }
+        closeSingleScrape()
     }
 }
-
