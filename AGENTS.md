@@ -92,7 +92,7 @@ cd scraper-worker; venv\Scripts\python -m PyInstaller scraper-worker.spec --noco
 
 - 绝不提交用户特定配置（已通过 .gitignore 忽略）。
 - Python worker 通过 stdin/stdout 与 Kotlin 应用进行 JSON-RPC 通信。
-- 新增刮削站点时：在 scrapers/openaver/ 新建文件、在 scrapers/registry.py 注册、在 ipc_handler.py 末尾导入，并更新 scraper-worker.spec 的 hiddenimports。
+- 新增或迁移刮削站点时，遵循完整流程（详见 docs/scraper-development-guide.md）：在 scrapers/openaver/ 新建文件、文件末尾注册 ScraperRegistry、在 ipc_handler.py 末尾导入、更新 smart_search.py 优先级链、更新 scraper-worker.spec 的 hiddenimports 与 AppSettings 默认站点列表，并编写测试。
 - 修改 Python 源码后必须重新打包 worker exe（详见 docs/worker-build-guide.md）。
 
 ## 国际化（i18n）
