@@ -1,4 +1,4 @@
-﻿# -*- mode: python ; coding: utf-8 -*-
+# -*- mode: python ; coding: utf-8 -*-
 
 """
 JavScraper Python Worker - PyInstaller spec
@@ -26,6 +26,7 @@ a = Analysis(
         'scrapers.models',
         'core.file_prober',
         'core.smart_search',
+        'scrapers.site_check',
         'scrapers.openaver.javbus',
         'scrapers.openaver.javdb',
         'scrapers.openaver.jav321',
