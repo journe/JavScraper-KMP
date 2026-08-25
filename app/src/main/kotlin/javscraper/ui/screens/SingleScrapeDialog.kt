@@ -2,7 +2,6 @@ package javscraper.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,7 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.SingleScrapeDialogState
-import javscraper.models.Video
+import javscraper.ui.components.VideoInfoCard
 
 /** Dialog shown when the user scrapes a single task from the progress screen. */
 @Composable
@@ -195,7 +194,7 @@ private fun PreviewDialog(
     AlertDialog(
         onDismissRequest = actions.onCancelPreviewWrite,
         title = { Text(t.singleScrapePreviewTitle) },
-        text = { VideoInfoCard(dialogState.video, t) },
+        text = { VideoInfoCard(dialogState.video) },
         confirmButton = {
             Button(onClick = actions.onConfirmPreviewWrite) { Text(t.singleScrapeWriteConfirm) }
         },
@@ -217,7 +216,7 @@ private fun ResultDialog(
         text = {
             val video = dialogState.video
             if (video != null) {
-                VideoInfoCard(video, t)
+                VideoInfoCard(video)
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
@@ -235,22 +234,4 @@ private fun ResultDialog(
         },
         dismissButton = {}
     )
-}
-
-@Composable
-private fun VideoInfoCard(video: Video, t: javscraper.i18n.TranslationEn) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
-                Spacer(Modifier.width(8.dp))
-                Text(video.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(8.dp))
-            Text("Title: " + video.title, style = MaterialTheme.typography.bodySmall)
-            Text("Maker: " + video.maker, style = MaterialTheme.typography.bodySmall)
-            Text("Actresses: " + video.actresses.joinToString(", "), style = MaterialTheme.typography.bodySmall)
-            if (video.date.isNotBlank()) Text("Date: " + video.date, style = MaterialTheme.typography.bodySmall)
-        }
-    }
 }

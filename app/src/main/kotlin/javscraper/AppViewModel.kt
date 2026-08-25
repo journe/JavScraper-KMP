@@ -6,7 +6,6 @@ import androidx.compose.runtime.setValue
 import javscraper.i18n.TranslationEn
 import javscraper.io.FileScanner
 import javscraper.models.ScannedFile
-import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import javscraper.models.Video
 import javscraper.ui.screens.FileScanActions
@@ -17,10 +16,10 @@ import javscraper.ui.screens.ScrapeProgressActions
 import javscraper.ui.screens.ScrapeProgressState
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
-import javscraper.ui.screens.upsertScrapeTask
-import javscraper.ui.screens.upsertVideo
 import javscraper.ui.screens.settings.SettingsActions
 import javscraper.ui.screens.settings.SettingsState
+import javscraper.ui.screens.upsertScrapeTask
+import javscraper.ui.screens.upsertVideo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,6 +36,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     private val settings = SettingsController(scope)
     private val worker = WorkerController(scope, settings)
     private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir })
+
     init {
         settings.onScrapeSettingsChanged = { worker.rebuildOrchestrator() }
         settings.onStatusChange = { status = it }
@@ -77,6 +77,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     var singleScrapeTask by singleScrape::singleScrapeTask
     var singleScrapeError by singleScrape::singleScrapeError
     var showMissingOutputDir by singleScrape::showMissingOutputDir
+
     // --- Settings state (delegated to SettingsController) ---
     var scanDir by settings::scanDir
     var outputDir by settings::outputDir
@@ -250,7 +251,9 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun updateSingleScrapeNumber(value: String) = singleScrape.updateSingleScrapeNumber(value)
     fun updateSingleScrapeSite(value: String?) = singleScrape.updateSingleScrapeSite(value)
     fun openSingleScrape(file: ScannedFile) = singleScrape.openSingleScrape(file)
-    fun openSingleScrapeFromTask(task: ScrapeTask) = singleScrape.openSingleScrapeFromTask(task, scannedFiles)
+    fun openSingleScrapeFromTask(task: ScrapeTask) =
+        singleScrape.openSingleScrapeFromTask(task, scannedFiles)
+
     fun closeSingleScrape() = singleScrape.closeSingleScrape()
     fun startSingleScrape() = singleScrape.startSingleScrape()
     fun cancelSingleScrape() = singleScrape.cancelSingleScrape()
