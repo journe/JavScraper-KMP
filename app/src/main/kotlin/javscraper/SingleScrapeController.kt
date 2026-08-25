@@ -40,6 +40,7 @@ class SingleScrapeController(
 
     fun updateSingleScrapeNumber(value: String) {
         singleScrapeNumber = value
+        singleScrapeTask = singleScrapeTask?.copy(number = value)
     }
 
     fun updateSingleScrapeSite(value: String?) {

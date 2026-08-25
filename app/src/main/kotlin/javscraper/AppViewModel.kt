@@ -17,6 +17,8 @@ import javscraper.ui.screens.ScrapeProgressActions
 import javscraper.ui.screens.ScrapeProgressState
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
+import javscraper.ui.screens.upsertScrapeTask
+import javscraper.ui.screens.upsertVideo
 import javscraper.ui.screens.settings.SettingsActions
 import javscraper.ui.screens.settings.SettingsState
 import kotlinx.coroutines.CoroutineScope
@@ -40,8 +42,8 @@ class AppViewModel(private val scope: CoroutineScope) {
         settings.onStatusChange = { status = it }
         worker.onStatusChange = { status = it }
         singleScrape.onConfirmResult = { task, video ->
-            if (task.number.isNotBlank()) tasks = tasks + task
-            if (video != null) results = results + video
+            if (task.number.isNotBlank()) tasks = upsertScrapeTask(tasks, task)
+            if (video != null) results = upsertVideo(results, video)
         }
     }
 

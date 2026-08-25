@@ -112,8 +112,16 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         return resp.jsonArray.map { json.decodeFromJsonElement(it) }
     }
 
-    suspend fun scrape(number: String, site: String? = null): ScrapeResult {
-        val params = buildJsonObject { put("number", number); site?.let { put("site", it) } }
+    suspend fun scrape(
+        number: String,
+        site: String? = null,
+        enabledSites: List<String>? = null
+    ): ScrapeResult {
+        val params = buildJsonObject {
+            put("number", number)
+            site?.let { put("site", it) }
+            enabledSites?.let { put("sites", JsonArray(it.map(::JsonPrimitive))) }
+        }
         return json.decodeFromJsonElement(sendRequest("scrape", params))
     }
 

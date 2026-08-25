@@ -137,9 +137,17 @@ class WorkerController(
 
     private fun createScrapeOrchestrator(m: SidecarManager): ScrapeOrchestrator {
         return ScrapeOrchestrator(
-            m, settings.outputDir, settings.createMovieFolders, settings.hardlinkInsteadOfCopy,
-            settings.downloadImages, settings.folderLayers, settings.filenameFormat,
-            settings.maxTitleLength, settings.maxFilenameLength, settings.suffixKeywords
+            sidecar = m,
+            outputDir = settings.outputDir,
+            createMovieFolders = settings.createMovieFolders,
+            hardlinkInsteadOfCopy = settings.hardlinkInsteadOfCopy,
+            downloadImages = settings.downloadImages,
+            folderLayers = settings.folderLayers,
+            filenameFormat = settings.filenameFormat,
+            maxTitleLength = settings.maxTitleLength,
+            maxFilenameLength = settings.maxFilenameLength,
+            suffixKeywords = settings.suffixKeywords,
+            enabledSites = settings.enabledSites.toSet()
         )
     }
 }

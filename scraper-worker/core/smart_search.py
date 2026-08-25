@@ -1,4 +1,5 @@
 import re
+from collections.abc import Iterable
 from typing import Optional
 
 from scrapers.registry import ScraperRegistry
@@ -9,17 +10,11 @@ UNCENSORED = ["fc2", "heyzo", "avsox", "d2pass", "mmtv"]
 
 
 def _is_uncensored(number: str) -> bool:
-    """Check whether *number* belongs to an uncensored category.
-
-    Uncensored categories are FC2 / HEYZO releases and date-pattern
-    IDs such as ``041417-413``.
-    """
+    """Check whether *number* belongs to an uncensored category."""
     upper = number.strip().upper()
     if upper.startswith("FC2") or upper.startswith("HEYZO"):
         return True
-    if re.match(r"^d{6}-d{2,}$", upper):
-        return True
-    return False
+    return re.match(r"^\d{6}-\d{2,}$", upper) is not None
 
 
 def _priority_chain(number: str) -> list[str]:
@@ -27,20 +22,27 @@ def _priority_chain(number: str) -> list[str]:
     return UNCENSORED if _is_uncensored(number) else CENSORED
 
 
-def smart_search(number: str, site: str | None = None) -> Video | None:
-    """Search for *number* on a specific *site* or through the priority chain.
+def _enabled_chain(number: str, enabled_sites: Iterable[str] | None) -> list[str]:
+    chain = _priority_chain(number)
+    if enabled_sites is None:
+        return chain
+    enabled = set(enabled_sites)
+    return [site_id for site_id in chain if site_id in enabled]
 
-    When *site* is ``None`` the function automatically detects whether the
-    number is censored or uncensored and iterates the corresponding list of
-    sites until a result is found.
-    """
+
+def smart_search(
+    number: str,
+    site: str | None = None,
+    enabled_sites: Iterable[str] | None = None,
+) -> Optional[Video]:
+    """Search *number* on a specific enabled site or through the priority chain."""
     if site is not None:
         cls = ScraperRegistry.get(site)
-        if cls is None:
+        if cls is None or (enabled_sites is not None and site not in set(enabled_sites)):
             return None
         return cls().search(number)
 
-    for sid in _priority_chain(number):
+    for sid in _enabled_chain(number, enabled_sites):
         cls = ScraperRegistry.get(sid)
         if cls is None:
             continue
@@ -52,19 +54,13 @@ def smart_search(number: str, site: str | None = None) -> Video | None:
 
 def search_multi(
     number: str, sites: list[str] | None = None
-) -> list[Video | None]:
-    """Search *number* across all specified *sites* (or all registered sites).
-
-    Returns a list of results in the same order as the *sites* parameter.
-    """
+) -> list[Optional[Video]]:
+    """Search *number* across all specified sites (or all registered sites)."""
     if sites is None:
         sites = [s["id"] for s in ScraperRegistry.list_sites()]
 
-    results: list[Video | None] = []
+    results: list[Optional[Video]] = []
     for sid in sites:
         cls = ScraperRegistry.get(sid)
-        if cls is None:
-            results.append(None)
-        else:
-            results.append(cls().search(number))
+        results.append(cls().search(number) if cls is not None else None)
     return results

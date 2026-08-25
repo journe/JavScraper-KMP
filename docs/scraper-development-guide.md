@@ -77,7 +77,8 @@ from scrapers.openaver import javbus, ... , xxx  # noqa: F401
 
 ### 3. 配置自动搜索优先级
 
-在 `core/smart_search.py` 的 `CENSORED` / `UNCENSORED` 列表中加入新站点 id。
+在 `core/smart_search.py` 的 `CENSORED` / `UNCENSORED` 列表中加入新站点 id。自动搜索会在该优先级链基础上继续应用应用设置传入的启用站点列表；新增站点若要参与自动搜索，也必须加入应用设置默认启用列表。
+
 原则：追加到**列表末尾**作为兜底，不改变现有站点优先级；无码/素人站点加 `UNCENSORED`，有码站点加 `CENSORED`（综合站点可两边都加）。
 
 ### 4. 更新 PyInstaller 配置

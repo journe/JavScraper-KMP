@@ -20,7 +20,8 @@ class ScrapeOrchestrator(
     private val filenameFormat: String = "{num} {title}",
     private val maxTitleLength: Int = 50,
     private val maxFilenameLength: Int = 60,
-    private val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc")
+    private val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc"),
+    private val enabledSites: Set<String>? = null
 ) {
     private val log = KotlinLogging.logger {}
 
@@ -32,25 +33,37 @@ class ScrapeOrchestrator(
     suspend fun fetch(sf: ScannedFile, site: String? = null): ScrapeResult {
         if (sf.number.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "No number"))
-        return sidecar.scrape(sf.number, site)
+        return sidecar.scrape(sf.number, site, enabledSites?.toList())
     }
 
     /** Write scraped metadata (NFO/images) and organize files to the output directory. */
     suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {
         if (files.isEmpty())
             return ScrapeResult(false, error = ScrapeError(-1, "No files"))
+        if (outputDir.isBlank())
+            return ScrapeResult(false, error = ScrapeError(-1, "Output directory is empty"))
 
-        // Scrape once, write shared assets (NFO, images) from the first file
+        val ioErrors = mutableListOf<String>()
         val firstPaths = resolveOutputPaths(files.first(), video)
-        Files.createDirectories(firstPaths.folder)
+        try {
+            Files.createDirectories(firstPaths.folder)
+        } catch (e: Exception) {
+            log.error(e) { "Directory creation failed" }
+            ioErrors += "Directory creation failed: ${e.message}"
+        }
         try {
             Files.writeString(firstPaths.folder.resolve(".nfo"), NfoWriter.generate(video))
-        } catch (e: Exception) { log.error(e) { "NFO failed" } }
+        } catch (e: Exception) {
+            log.error(e) { "NFO failed" }
+            ioErrors += "NFO failed: ${e.message}"
+        }
         if (downloadImages) try {
             ImageSaver.download(firstPaths.folder, video.coverUrl, video.posterUrl, video.sampleImages)
-        } catch (e: Exception) { log.warn(e) { "Images failed" } }
+        } catch (e: Exception) {
+            log.warn(e) { "Images failed" }
+            ioErrors += "Images failed: ${e.message}"
+        }
 
-        // Copy/hardlink each part file with its own suffix
         files.forEach { sf ->
             try {
                 val paths = resolveOutputPaths(sf, video)
@@ -58,13 +71,27 @@ class ScrapeOrchestrator(
                 val tgt = paths.fullPath
                 if (!Files.exists(tgt)) {
                     if (hardlinkInsteadOfCopy) {
-                        try { Files.createLink(tgt, src) }
-                        catch (_: Exception) { Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING) }
-                    } else Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
+                        try {
+                            Files.createLink(tgt, src)
+                        } catch (e: Exception) {
+                            log.warn(e) { "Hardlink failed, falling back to copy" }
+                            Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
+                        }
+                    } else {
+                        Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
+                    }
                 }
-            } catch (e: Exception) { log.warn(e) { "File move failed for " } }
+            } catch (e: Exception) {
+                log.warn(e) { "File move failed for ${sf.fileName}" }
+                ioErrors += "File move failed for ${sf.fileName}: ${e.message}"
+            }
         }
-        return ScrapeResult(true, data = video)
+
+        return if (ioErrors.isEmpty()) {
+            ScrapeResult(true, data = video)
+        } else {
+            ScrapeResult(false, error = ScrapeError(-20, ioErrors.joinToString("; ")))
+        }
     }
 
     suspend fun processParts(files: List<ScannedFile>, site: String? = null): ScrapeResult {
@@ -90,7 +117,8 @@ class ScrapeOrchestrator(
             video, filenameFormat, suffix, maxFilenameLength, maxTitleLength
         )
         val nfoBase = RenameFormatter.stripPartSuffix(rawFilename, suffix)
-        return OutputPaths(folder, ".", folder.resolve("."), nfoBase)
+        val filename = "$rawFilename.$ext"
+        return OutputPaths(folder, filename, folder.resolve(filename), nfoBase)
     }
 
     private data class OutputPaths(

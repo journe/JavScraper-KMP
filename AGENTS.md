@@ -51,6 +51,7 @@ cd scraper-worker; venv\Scripts\python -m pytest tests/test_registry.py
 # 打包 worker（修改 Python 源码后必须重新打包，详见 docs/worker-build-guide.md）
 cd scraper-worker; venv\Scripts\python -m PyInstaller scraper-worker.spec --noconfirm
 ```
+> 打包完成并生成新的 ``dist/scraper-worker.exe`` 后，必须由 Codex 自动将该文件部署（复制）到应用运行目录：默认目标为 ``app/worker/scraper-worker.exe``。
 ## 编码风格与命名约定
 
 ### Kotlin
@@ -94,6 +95,16 @@ cd scraper-worker; venv\Scripts\python -m PyInstaller scraper-worker.spec --noco
 - Python worker 通过 stdin/stdout 与 Kotlin 应用进行 JSON-RPC 通信。
 - 新增或迁移刮削站点时，遵循完整流程（详见 docs/scraper-development-guide.md）：在 scrapers/openaver/ 新建文件、文件末尾注册 ScraperRegistry、在 ipc_handler.py 末尾导入、更新 smart_search.py 优先级链、更新 scraper-worker.spec 的 hiddenimports 与 AppSettings 默认站点列表，并编写测试。
 - 修改 Python 源码后必须重新打包 worker exe（详见 docs/worker-build-guide.md）。
+
+## 单文件刮削
+
+- 修改单文件刮削链路前，先阅读 `docs/single-file-scrape-flow.md`。
+- 保持核心顺序：元数据抓取 → 结果预览 → 用户确认 → 磁盘写入；进入预览确认前不得创建目录、写 NFO、下载图片或复制/链接视频。
+- 站点选择必须遵守设置中的 `enabledSites`；显式选择和自动搜索都不能访问未启用站点。
+- 输出目录为空时不启动任务；抓取或写入失败时保留输入态并显示错误。
+- 修改番号时同步任务展示与回填；任务回填按同源文件替换，结果回填按番号替换。
+- `writeToDisk` 必须聚合目录创建、NFO、图片和文件复制/链接错误；任一关键 IO 失败时返回失败。
+- 涉及状态机、站点过滤、IO 结果或回填逻辑的修改必须补充对应 Kotlin/Python 测试；修改 Python worker 后重新打包并部署 exe。
 
 ## 国际化（i18n）
 

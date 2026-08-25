@@ -78,12 +78,17 @@ def _probe_file(file_path: str) -> dict:
 
 
 @register_handler("scrape")
-def _scrape(file_path: str = "", number: str = "", site: str = None) -> dict:
+def _scrape(
+    file_path: str = "",
+    number: str = "",
+    site: str = None,
+    sites: list[str] = None,
+) -> dict:
     if not number and file_path:
         number = extract_number(file_path)
     if not number:
         return scrape_error("Cannot extract number", -10)
-    result = smart_search(number, site=site)
+    result = smart_search(number, site=site, enabled_sites=sites)
     if not result:
         return scrape_error(f"No data for {number}", -11)
     return scrape_success(result)
