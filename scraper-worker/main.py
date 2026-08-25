@@ -4,7 +4,16 @@ import json
 from ipc_handler import handle_request
 
 
+def _ensure_utf8_io() -> None:
+    """Force UTF-8 on stdio so JSON over stdin/stdout is not garbled by the Windows codepage."""
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def main():
+    _ensure_utf8_io()
     for line in sys.stdin:
         line = line.strip()
         if not line:
