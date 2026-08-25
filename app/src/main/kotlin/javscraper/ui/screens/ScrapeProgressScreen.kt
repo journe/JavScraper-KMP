@@ -12,9 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import javscraper.AppViewModel
 import javscraper.i18n.LocalTranslations
+import javscraper.ui.LocalAppViewModel
 import javscraper.models.SingleScrapeDialogState
-import javscraper.models.SiteInfo
 import javscraper.models.Video
 
 enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
@@ -31,24 +32,25 @@ data class ScrapeTask(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun ScrapeProgressScreen(
-    tasks: List<ScrapeTask>,
-    isRunning: Boolean,
-    onStartAll: () -> Unit,
-    onCancel: () -> Unit,
-    onSingleScrapeClick: (ScrapeTask) -> Unit,
-    singleScrapeDialogState: SingleScrapeDialogState,
-    singleScrapeNumber: String,
-    singleScrapeSite: String?,
-    singleScrapeTask: ScrapeTask?,
-    sites: List<SiteInfo>,
-    onSingleScrapeNumberChange: (String) -> Unit,
-    onSingleScrapeSiteChange: (String?) -> Unit,
-    onStartSingleScrape: () -> Unit,
-    onCloseSingleScrape: () -> Unit,
-    onConfirmScrapeResult: () -> Unit,
+    viewModel: AppViewModel = LocalAppViewModel.current,
     modifier: Modifier = Modifier
 ) {
     val t = LocalTranslations.current
+    val tasks = viewModel.tasks
+    val isRunning = viewModel.scraping
+    val onStartAll = viewModel::startAllScraping
+    val onCancel = viewModel::cancelScraping
+    val onSingleScrapeClick = viewModel::openSingleScrapeFromTask
+    val singleScrapeDialogState = viewModel.singleScrapeDialogState
+    val singleScrapeNumber = viewModel.singleScrapeNumber
+    val singleScrapeSite = viewModel.singleScrapeSite
+    val singleScrapeTask = viewModel.singleScrapeTask
+    val sites = viewModel.sites
+    val onSingleScrapeNumberChange = viewModel::updateSingleScrapeNumber
+    val onSingleScrapeSiteChange = viewModel::updateSingleScrapeSite
+    val onStartSingleScrape = viewModel::startSingleScrape
+    val onCloseSingleScrape = viewModel::closeSingleScrape
+    val onConfirmScrapeResult = viewModel::confirmSingleScrape
     val done = tasks.count { it.status == ScrapeTaskStatus.SUCCESS || it.status == ScrapeTaskStatus.FAILED }
     val ok = tasks.count { it.status == ScrapeTaskStatus.SUCCESS }
     val progress = if (tasks.isNotEmpty()) done.toFloat() / tasks.size else 0f

@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
+import javscraper.ui.LocalAppViewModel
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
@@ -36,7 +37,7 @@ fun App() {
         if (viewModel.currentLanguage == "zh") TranslationZh() else TranslationEn()
     }
 
-    CompositionLocalProvider(LocalTranslations provides localeStrings) {
+    CompositionLocalProvider(LocalTranslations provides localeStrings, LocalAppViewModel provides viewModel) {
         JavScraperTheme {
             var navExpanded by remember { mutableStateOf(false) }
             Scaffold(
@@ -95,23 +96,7 @@ fun App() {
                                 onStartScrape = { viewModel.navigate(Screen.PROGRESS) }
                             )
 
-                            Screen.PROGRESS -> ScrapeProgressScreen(
-                                tasks = viewModel.tasks,
-                                isRunning = viewModel.scraping,
-                                onStartAll = viewModel::startAllScraping,
-                                onCancel = viewModel::cancelScraping,
-                                onSingleScrapeClick = viewModel::openSingleScrapeFromTask,
-                                singleScrapeDialogState = viewModel.singleScrapeDialogState,
-                                singleScrapeNumber = viewModel.singleScrapeNumber,
-                                singleScrapeSite = viewModel.singleScrapeSite,
-                                singleScrapeTask = viewModel.singleScrapeTask,
-                                sites = viewModel.sites,
-                                onSingleScrapeNumberChange = viewModel::updateSingleScrapeNumber,
-                                onSingleScrapeSiteChange = viewModel::updateSingleScrapeSite,
-                                onStartSingleScrape = viewModel::startSingleScrape,
-                                onCloseSingleScrape = viewModel::closeSingleScrape,
-                                onConfirmScrapeResult = viewModel::confirmSingleScrape
-                            )
+                            Screen.PROGRESS -> ScrapeProgressScreen()
 
                             Screen.GALLERY -> ResultGalleryScreen(
                                 results = viewModel.results,
