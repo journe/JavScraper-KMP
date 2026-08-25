@@ -36,7 +36,10 @@ data class ScrapeProgressState(
     val singleScrapeNumber: String,
     val singleScrapeSite: String?,
     val singleScrapeTask: ScrapeTask?,
-    val sites: List<SiteInfo>
+    val sites: List<SiteInfo>,
+    val outputDir: String,
+    val singleScrapeError: String?,
+    val showMissingOutputDir: Boolean
 )
 
 data class ScrapeProgressActions(
@@ -47,6 +50,10 @@ data class ScrapeProgressActions(
     val onSingleScrapeSiteChange: (String?) -> Unit,
     val onStartSingleScrape: () -> Unit,
     val onCloseSingleScrape: () -> Unit,
+    val onCancelSingleScrape: () -> Unit,
+    val onConfirmPreviewWrite: () -> Unit,
+    val onCancelPreviewWrite: () -> Unit,
+    val onDismissMissingOutputDir: () -> Unit,
     val onConfirmScrapeResult: () -> Unit
 )
 
@@ -187,16 +194,8 @@ fun ScrapeProgressScreen(
 
     // --- Single scrape dialog ---
     SingleScrapeDialog(
-        state = singleScrapeDialogState,
-        number = singleScrapeNumber,
-        site = singleScrapeSite,
-        task = singleScrapeTask,
-        sites = sites,
-        onNumberChange = onSingleScrapeNumberChange,
-        onSiteChange = onSingleScrapeSiteChange,
-        onStart = onStartSingleScrape,
-        onClose = onCloseSingleScrape,
-        onConfirm = onConfirmScrapeResult
+        state = state,
+        actions = actions
     )
     }
 }

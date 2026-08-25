@@ -39,5 +39,6 @@ sealed interface SingleScrapeDialogState {
     data object Closed : SingleScrapeDialogState
     data object Input : SingleScrapeDialogState
     data object Scraping : SingleScrapeDialogState
+    data class Preview(val video: Video) : SingleScrapeDialogState
     data class Result(val video: Video?, val error: String?) : SingleScrapeDialogState
 }

@@ -12,154 +12,245 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.SingleScrapeDialogState
-import javscraper.models.SiteInfo
+import javscraper.models.Video
 
 /** Dialog shown when the user scrapes a single task from the progress screen. */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun SingleScrapeDialog(
-    state: SingleScrapeDialogState,
-    number: String,
-    site: String?,
-    task: ScrapeTask?,
-    sites: List<SiteInfo>,
-    onNumberChange: (String) -> Unit,
-    onSiteChange: (String?) -> Unit,
-    onStart: () -> Unit,
-    onClose: () -> Unit,
-    onConfirm: () -> Unit
+    state: ScrapeProgressState,
+    actions: ScrapeProgressActions,
+    modifier: Modifier = Modifier
 ) {
     val t = LocalTranslations.current
-    when (state) {
+    when (state.singleScrapeDialogState) {
         SingleScrapeDialogState.Closed -> { }
-        SingleScrapeDialogState.Input -> {
-            AlertDialog(
-                onDismissRequest = onClose,
-                title = { Text(t.singleScrapeTitle) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = number,
-                            onValueChange = onNumberChange,
-                            label = { Text(t.singleScrapeNumberLabel) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+        SingleScrapeDialogState.Input -> InputDialog(state, actions, t)
+        SingleScrapeDialogState.Scraping -> ScrapingDialog(state, actions, t)
+        is SingleScrapeDialogState.Preview -> PreviewDialog(state.singleScrapeDialogState, actions, t)
+        is SingleScrapeDialogState.Result -> ResultDialog(state.singleScrapeDialogState, actions, t)
+    }
+    if (state.showMissingOutputDir) {
+        AlertDialog(
+            onDismissRequest = actions.onDismissMissingOutputDir,
+            title = { Text(t.singleScrapeMissingOutputTitle) },
+            text = { Text(t.singleScrapeMissingOutputMessage) },
+            confirmButton = {
+                TextButton(onClick = actions.onDismissMissingOutputDir) { Text(t.commonConfirm) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun InputDialog(
+    state: ScrapeProgressState,
+    actions: ScrapeProgressActions,
+    t: javscraper.i18n.TranslationEn
+) {
+    val number = state.singleScrapeNumber
+    val site = state.singleScrapeSite
+    AlertDialog(
+        onDismissRequest = actions.onCloseSingleScrape,
+        title = { Text(t.singleScrapeTitle) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // 输出目录提示
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        t.settingsOutputDir + ": ",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        state.outputDir.ifBlank { t.singleScrapeOutputDirMissing },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (state.outputDir.isBlank()) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                state.singleScrapeError?.let { error ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
                         )
-                        val selectedSiteName = if (site == null) t.singleScrapeSiteAuto
-                            else sites.find { it.id == site }?.name ?: site ?: ""
-                        var expanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expanded,
-                            onExpandedChange = { expanded = it }
-                        ) {
-                            OutlinedTextField(
-                                value = selectedSiteName,
-                                onValueChange = {},
-                                label = { Text(t.singleScrapeSiteLabel) },
-                                readOnly = true,
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                                modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    }
+                }
+                OutlinedTextField(
+                    value = number,
+                    onValueChange = actions.onSingleScrapeNumberChange,
+                    label = { Text(t.singleScrapeNumberLabel) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                SiteDropdown(state, actions, t)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = actions.onStartSingleScrape,
+                enabled = number.isNotBlank()
+            ) { Text(t.singleScrapeStart) }
+        },
+        dismissButton = {
+            TextButton(onClick = actions.onCloseSingleScrape) { Text(t.progressCancel) }
+        }
+    )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun SiteDropdown(
+    state: ScrapeProgressState,
+    actions: ScrapeProgressActions,
+    t: javscraper.i18n.TranslationEn
+) {
+    val site = state.singleScrapeSite
+    val selectedSiteName = if (site == null) t.singleScrapeSiteAuto
+        else state.sites.find { it.id == site }?.name ?: site ?: ""
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = selectedSiteName,
+            onValueChange = {},
+            label = { Text(t.singleScrapeSiteLabel) },
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(t.singleScrapeSiteAuto) },
+                onClick = {
+                    actions.onSingleScrapeSiteChange(null)
+                    expanded = false
+                }
+            )
+            state.sites.forEach { siteItem ->
+                DropdownMenuItem(
+                    text = { Text(siteItem.name) },
+                    onClick = {
+                        actions.onSingleScrapeSiteChange(siteItem.id)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScrapingDialog(
+    state: ScrapeProgressState,
+    actions: ScrapeProgressActions,
+    t: javscraper.i18n.TranslationEn
+) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(t.singleScrapeTitle) },
+        text = {
+            val task = state.singleScrapeTask
+            if (task != null) {
+                Card(Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(
+                                t.singleScrapeInProgress,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            ExposedDropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(t.singleScrapeSiteAuto) },
-                                    onClick = {
-                                        onSiteChange(null)
-                                        expanded = false
-                                    }
-                                )
-                                sites.forEach { siteItem ->
-                                    DropdownMenuItem(
-                                        text = { Text(siteItem.name) },
-                                        onClick = {
-                                            onSiteChange(siteItem.id)
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                            }
                         }
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = onStart,
-                        enabled = number.isNotBlank()
-                    ) { Text(t.singleScrapeStart) }
-                },
-                dismissButton = {
-                    TextButton(onClick = onClose) { Text(t.progressCancel) }
                 }
-            )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = actions.onCancelSingleScrape,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) { Text(t.singleScrapeCancelJob) }
+        },
+        dismissButton = {}
+    )
+}
+
+@Composable
+private fun PreviewDialog(
+    dialogState: SingleScrapeDialogState.Preview,
+    actions: ScrapeProgressActions,
+    t: javscraper.i18n.TranslationEn
+) {
+    AlertDialog(
+        onDismissRequest = actions.onCancelPreviewWrite,
+        title = { Text(t.singleScrapePreviewTitle) },
+        text = { VideoInfoCard(dialogState.video, t) },
+        confirmButton = {
+            Button(onClick = actions.onConfirmPreviewWrite) { Text(t.singleScrapeWriteConfirm) }
+        },
+        dismissButton = {
+            TextButton(onClick = actions.onCancelPreviewWrite) { Text(t.progressCancel) }
         }
-        SingleScrapeDialogState.Scraping -> {
-            AlertDialog(
-                onDismissRequest = {},
-                title = { Text(t.singleScrapeTitle) },
-                text = {
-                    val current = task
-                    if (current != null) {
-                        Card(Modifier.fillMaxWidth()) {
-                            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(current.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    Text(t.singleScrapeInProgress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                            }
-                        }
-                    }
-                },
-                confirmButton = {},
-                dismissButton = {
-                    TextButton(onClick = onClose) { Text(t.progressCancel) }
+    )
+}
+
+@Composable
+private fun ResultDialog(
+    dialogState: SingleScrapeDialogState.Result,
+    actions: ScrapeProgressActions,
+    t: javscraper.i18n.TranslationEn
+) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(if (dialogState.video != null) t.singleScrapeResultTitle else t.singleScrapeFailedTitle) },
+        text = {
+            val video = dialogState.video
+            if (video != null) {
+                VideoInfoCard(video, t)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        dialogState.error ?: t.singleScrapeResultError,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
-            )
-        }
-        is SingleScrapeDialogState.Result -> {
-            val resultState = state as SingleScrapeDialogState.Result
-            AlertDialog(
-                onDismissRequest = {},
-                title = { Text(t.singleScrapeResultTitle) },
-                text = {
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp)) {
-                            if (resultState.video != null) {
-                                val v = resultState.video
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(v.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Text("Title: " + v.title, style = MaterialTheme.typography.bodySmall)
-                                Text("Maker: " + v.maker, style = MaterialTheme.typography.bodySmall)
-                                Text("Actresses: " + v.actresses.joinToString(", "), style = MaterialTheme.typography.bodySmall)
-                                if (v.date.isNotBlank()) Text("Date: " + v.date, style = MaterialTheme.typography.bodySmall)
-                            } else {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    resultState.error ?: t.singleScrapeResultError,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = onConfirm) { Text(t.commonConfirm) }
-                },
-                dismissButton = {}
-            )
+            }
+        },
+        confirmButton = {
+            Button(onClick = actions.onConfirmScrapeResult) { Text(t.commonConfirm) }
+        },
+        dismissButton = {}
+    )
+}
+
+@Composable
+private fun VideoInfoCard(video: Video, t: javscraper.i18n.TranslationEn) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
+                Spacer(Modifier.width(8.dp))
+                Text(video.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("Title: " + video.title, style = MaterialTheme.typography.bodySmall)
+            Text("Maker: " + video.maker, style = MaterialTheme.typography.bodySmall)
+            Text("Actresses: " + video.actresses.joinToString(", "), style = MaterialTheme.typography.bodySmall)
+            if (video.date.isNotBlank()) Text("Date: " + video.date, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -28,16 +28,17 @@ class ScrapeOrchestrator(
         return processParts(listOf(sf), site)
     }
 
-    suspend fun processParts(files: List<ScannedFile>, site: String? = null): ScrapeResult {
-        if (files.isEmpty() || files.first().number.isBlank())
+    /** Fetch metadata only, without any file IO. */
+    suspend fun fetch(sf: ScannedFile, site: String? = null): ScrapeResult {
+        if (sf.number.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "No number"))
+        return sidecar.scrape(sf.number, site)
+    }
 
-        val number = files.first().number
-        log.info { "Processing  ( part(s))" }
-
-        val result = sidecar.scrape(number, site)
-        if (!result.success || result.data == null) return result
-        val video = result.data
+    /** Write scraped metadata (NFO/images) and organize files to the output directory. */
+    suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {
+        if (files.isEmpty())
+            return ScrapeResult(false, error = ScrapeError(-1, "No files"))
 
         // Scrape once, write shared assets (NFO, images) from the first file
         val firstPaths = resolveOutputPaths(files.first(), video)
@@ -63,7 +64,16 @@ class ScrapeOrchestrator(
                 }
             } catch (e: Exception) { log.warn(e) { "File move failed for " } }
         }
-        return result
+        return ScrapeResult(true, data = video)
+    }
+
+    suspend fun processParts(files: List<ScannedFile>, site: String? = null): ScrapeResult {
+        if (files.isEmpty() || files.first().number.isBlank())
+            return ScrapeResult(false, error = ScrapeError(-1, "No number"))
+
+        val result = fetch(files.first(), site)
+        if (!result.success || result.data == null) return result
+        return writeToDisk(files, result.data)
     }
 
     private fun resolveOutputPaths(sf: ScannedFile, video: Video): OutputPaths {

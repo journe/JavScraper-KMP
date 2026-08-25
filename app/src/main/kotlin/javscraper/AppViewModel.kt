@@ -8,7 +8,6 @@ import javscraper.io.FileScanner
 import javscraper.models.ScannedFile
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
-import javscraper.models.SingleScrapeDialogState
 import javscraper.models.Video
 import javscraper.ui.screens.FileScanActions
 import javscraper.ui.screens.FileScanState
@@ -35,11 +34,15 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     private val settings = SettingsController(scope)
     private val worker = WorkerController(scope, settings)
-
+    private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir })
     init {
         settings.onScrapeSettingsChanged = { worker.rebuildOrchestrator() }
         settings.onStatusChange = { status = it }
         worker.onStatusChange = { status = it }
+        singleScrape.onConfirmResult = { task, video ->
+            if (task.number.isNotBlank()) tasks = tasks + task
+            if (video != null) results = results + video
+        }
     }
 
     // --- Screen navigation ---
@@ -64,18 +67,14 @@ class AppViewModel(private val scope: CoroutineScope) {
     var results by mutableStateOf<List<Video>>(emptyList())
         private set
 
-    // --- Single scrape dialog state ---
-    var singleScrapeDialogState by mutableStateOf<SingleScrapeDialogState>(SingleScrapeDialogState.Closed)
-        private set
-    var singleScrapeFile by mutableStateOf<ScannedFile?>(null)
-        private set
-    var singleScrapeNumber by mutableStateOf("")
-        private set
-    var singleScrapeSite by mutableStateOf<String?>(null)
-        private set
-    var singleScrapeTask by mutableStateOf<ScrapeTask?>(null)
-        private set
-
+    // --- Single scrape dialog state (delegated to SingleScrapeController) ---
+    var singleScrapeDialogState by singleScrape::singleScrapeDialogState
+    var singleScrapeFile by singleScrape::singleScrapeFile
+    var singleScrapeNumber by singleScrape::singleScrapeNumber
+    var singleScrapeSite by singleScrape::singleScrapeSite
+    var singleScrapeTask by singleScrape::singleScrapeTask
+    var singleScrapeError by singleScrape::singleScrapeError
+    var showMissingOutputDir by singleScrape::showMissingOutputDir
     // --- Settings state (delegated to SettingsController) ---
     var scanDir by settings::scanDir
     var outputDir by settings::outputDir
@@ -244,74 +243,19 @@ class AppViewModel(private val scope: CoroutineScope) {
         tasks = emptyList()
     }
 
-    // --- Single scrape dialog ---
+    // --- Single scrape dialog (forwarded to SingleScrapeController) ---
 
-    fun updateSingleScrapeNumber(value: String) {
-        singleScrapeNumber = value
-    }
-
-    fun updateSingleScrapeSite(value: String?) {
-        singleScrapeSite = value
-    }
-
-    fun openSingleScrape(file: ScannedFile) {
-        singleScrapeFile = file
-        singleScrapeNumber = file.number
-        singleScrapeSite = null
-        singleScrapeTask = ScrapeTask(file.number, file.fileName, status = ScrapeTaskStatus.PENDING)
-        singleScrapeDialogState = SingleScrapeDialogState.Input
-    }
-
-    fun openSingleScrapeFromTask(task: ScrapeTask) {
-        val sf = scannedFiles.find { it.fileName == task.fileName }
-            ?: ScannedFile(path = task.path, fileName = task.fileName, number = task.number)
-        openSingleScrape(sf)
-    }
-
-    fun closeSingleScrape() {
-        singleScrapeDialogState = SingleScrapeDialogState.Closed
-        singleScrapeFile = null
-        singleScrapeTask = null
-    }
-
-    fun startSingleScrape() {
-        val file = singleScrapeFile ?: return
-        val number = singleScrapeNumber
-        val site = singleScrapeSite
-        if (number.isBlank()) return
-        singleScrapeDialogState = SingleScrapeDialogState.Scraping
-        scope.launch {
-            val sf = file.copy(number = number)
-            singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SCRAPING)
-            try {
-                val result = worker.orch?.process(sf, site) ?: return@launch
-                if (result.success && result.data != null) {
-                    singleScrapeDialogState = SingleScrapeDialogState.Result(result.data, null)
-                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = result.data)
-                } else {
-                    val errMsg = result.error?.message ?: "Unknown error"
-                    singleScrapeDialogState = SingleScrapeDialogState.Result(null, errMsg)
-                    singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = errMsg)
-                }
-            } catch (e: Exception) {
-                singleScrapeDialogState = SingleScrapeDialogState.Result(null, e.message ?: "Unknown error")
-                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = e.message ?: "")
-            }
-        }
-    }
-
-    fun confirmSingleScrape() {
-        val task = singleScrapeTask
-        val state = singleScrapeDialogState
-        if (task != null) {
-            tasks = tasks + task
-        }
-        if (state is SingleScrapeDialogState.Result && state.video != null) {
-            results = results + state.video
-        }
-        closeSingleScrape()
-    }
-
+    fun updateSingleScrapeNumber(value: String) = singleScrape.updateSingleScrapeNumber(value)
+    fun updateSingleScrapeSite(value: String?) = singleScrape.updateSingleScrapeSite(value)
+    fun openSingleScrape(file: ScannedFile) = singleScrape.openSingleScrape(file)
+    fun openSingleScrapeFromTask(task: ScrapeTask) = singleScrape.openSingleScrapeFromTask(task, scannedFiles)
+    fun closeSingleScrape() = singleScrape.closeSingleScrape()
+    fun startSingleScrape() = singleScrape.startSingleScrape()
+    fun cancelSingleScrape() = singleScrape.cancelSingleScrape()
+    fun confirmPreviewWrite() = singleScrape.confirmPreviewWrite()
+    fun cancelPreviewWrite() = singleScrape.cancelPreviewWrite()
+    fun dismissMissingOutputDir() = singleScrape.dismissMissingOutputDir()
+    fun confirmSingleScrape() = singleScrape.confirmSingleScrape()
     // --- UI state mappings (consumed by App.kt; screens stay stateless) ---
 
     val scanState: FileScanState
@@ -323,12 +267,15 @@ class AppViewModel(private val scope: CoroutineScope) {
     val scrapeProgressState: ScrapeProgressState
         get() = ScrapeProgressState(
             tasks, scraping, singleScrapeDialogState, singleScrapeNumber,
-            singleScrapeSite, singleScrapeTask, enabledSiteInfos
+            singleScrapeSite, singleScrapeTask, enabledSiteInfos,
+            outputDir, singleScrapeError, showMissingOutputDir
         )
     val scrapeProgressActions: ScrapeProgressActions = ScrapeProgressActions(
         ::startAllScraping, ::cancelScraping, ::openSingleScrapeFromTask,
         ::updateSingleScrapeNumber, ::updateSingleScrapeSite,
-        ::startSingleScrape, ::closeSingleScrape, ::confirmSingleScrape
+        ::startSingleScrape, ::closeSingleScrape, ::cancelSingleScrape,
+        ::confirmPreviewWrite, ::cancelPreviewWrite, ::dismissMissingOutputDir,
+        ::confirmSingleScrape
     )
 
     val galleryState: GalleryState
