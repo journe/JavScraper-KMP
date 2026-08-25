@@ -102,7 +102,7 @@ fun App() {
                                     viewModel.tasks, viewModel.scraping,
                                     viewModel.singleScrapeDialogState, viewModel.singleScrapeNumber,
                                     viewModel.singleScrapeSite, viewModel.singleScrapeTask,
-                                    viewModel.sites
+                                    viewModel.enabledSiteInfos
                                 ),
                                 actions = ScrapeProgressActions(
                                     viewModel::startAllScraping,

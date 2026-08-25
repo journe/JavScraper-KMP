@@ -7,6 +7,7 @@ import javscraper.i18n.TranslationEn
 import javscraper.io.FileScanner
 import javscraper.models.ScannedFile
 import javscraper.models.SiteCheckResult
+import javscraper.models.SiteInfo
 import javscraper.models.SingleScrapeDialogState
 import javscraper.models.Video
 import javscraper.ui.screens.ScrapeTask
@@ -87,6 +88,10 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     // --- Worker state (delegated to WorkerController) ---
     var sites by worker::sites
+
+    /** Sites that the user enabled in settings, for single-scrape site selection. */
+    val enabledSiteInfos: List<SiteInfo>
+        get() = sites.filter { it.id in enabledSites }
     var workerSetupVisible by worker::workerSetupVisible
     var workerSetupError by worker::workerSetupError
     var siteCheckRunning by worker::siteCheckRunning

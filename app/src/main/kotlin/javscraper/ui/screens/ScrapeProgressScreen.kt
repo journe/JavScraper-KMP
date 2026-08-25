@@ -184,138 +184,19 @@ fun ScrapeProgressScreen(
             }
         }
 
-        // --- Single scrape dialog ---
-        when (singleScrapeDialogState) {
-            SingleScrapeDialogState.Closed -> { }
-            SingleScrapeDialogState.Input -> {
-                AlertDialog(
-                    onDismissRequest = onCloseSingleScrape,
-                    title = { Text(t.singleScrapeTitle) },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
-                                value = singleScrapeNumber,
-                                onValueChange = onSingleScrapeNumberChange,
-                                label = { Text(t.singleScrapeNumberLabel) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            val selectedSiteName = if (singleScrapeSite == null) t.singleScrapeSiteAuto
-                                else sites.find { it.id == singleScrapeSite }?.name ?: singleScrapeSite ?: ""
-                            var expanded by remember { mutableStateOf(false) }
-                            ExposedDropdownMenuBox(
-                                expanded = expanded,
-                                onExpandedChange = { expanded = it }
-                            ) {
-                                OutlinedTextField(
-                                    value = selectedSiteName,
-                                    onValueChange = {},
-                                    label = { Text(t.singleScrapeSiteLabel) },
-                                    readOnly = true,
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                                    modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text(t.singleScrapeSiteAuto) },
-                                        onClick = {
-                                            onSingleScrapeSiteChange(null)
-                                            expanded = false
-                                        }
-                                    )
-                                    sites.forEach { site ->
-                                        DropdownMenuItem(
-                                            text = { Text(site.name) },
-                                            onClick = {
-                                                onSingleScrapeSiteChange(site.id)
-                                                expanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = onStartSingleScrape,
-                            enabled = singleScrapeNumber.isNotBlank()
-                        ) { Text(t.singleScrapeStart) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = onCloseSingleScrape) { Text(t.progressCancel) }
-                    }
-                )
-            }
-            SingleScrapeDialogState.Scraping -> {
-                AlertDialog(
-                    onDismissRequest = {},
-                    title = { Text(t.singleScrapeTitle) },
-                    text = {
-                        val task = singleScrapeTask
-                        if (task != null) {
-                            Card(Modifier.fillMaxWidth()) {
-                                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(task.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                        Text(t.singleScrapeInProgress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {},
-                    dismissButton = {
-                        TextButton(onClick = onCloseSingleScrape) { Text(t.progressCancel) }
-                    }
-                )
-            }
-            is SingleScrapeDialogState.Result -> {
-                val resultState = singleScrapeDialogState as SingleScrapeDialogState.Result
-                AlertDialog(
-                    onDismissRequest = {},
-                    title = { Text(t.singleScrapeResultTitle) },
-                    text = {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                if (resultState.video != null) {
-                                    val v = resultState.video
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.tertiary)
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(v.number, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("Title: " + v.title, style = MaterialTheme.typography.bodySmall)
-                                    Text("Maker: " + v.maker, style = MaterialTheme.typography.bodySmall)
-                                    Text("Actresses: " + v.actresses.joinToString(", "), style = MaterialTheme.typography.bodySmall)
-                                    if (v.date.isNotBlank()) Text("Date: " + v.date, style = MaterialTheme.typography.bodySmall)
-                                } else {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(singleScrapeNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        resultState.error ?: t.singleScrapeResultError,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(onClick = onConfirmScrapeResult) { Text(t.commonConfirm) }
-                    },
-                    dismissButton = {}
-                )
-            }
-        }
+
+    // --- Single scrape dialog ---
+    SingleScrapeDialog(
+        state = singleScrapeDialogState,
+        number = singleScrapeNumber,
+        site = singleScrapeSite,
+        task = singleScrapeTask,
+        sites = sites,
+        onNumberChange = onSingleScrapeNumberChange,
+        onSiteChange = onSingleScrapeSiteChange,
+        onStart = onStartSingleScrape,
+        onClose = onCloseSingleScrape,
+        onConfirm = onConfirmScrapeResult
+    )
     }
 }
