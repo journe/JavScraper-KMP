@@ -87,84 +87,23 @@ fun App() {
                     Box(Modifier.weight(1f)) {
                         when (viewModel.currentScreen) {
                             Screen.SCAN -> FileScanScreen(
-                                state = FileScanState(
-                                    viewModel.scannedFiles, viewModel.scanDir, viewModel.scanning
-                                ),
-                                actions = FileScanActions(
-                                    viewModel::selectScanDir,
-                                    viewModel::startScan,
-                                    { viewModel.navigate(Screen.PROGRESS) }
-                                )
+                                state = viewModel.scanState,
+                                actions = viewModel.scanActions
                             )
 
                             Screen.PROGRESS -> ScrapeProgressScreen(
-                                state = ScrapeProgressState(
-                                    viewModel.tasks, viewModel.scraping,
-                                    viewModel.singleScrapeDialogState, viewModel.singleScrapeNumber,
-                                    viewModel.singleScrapeSite, viewModel.singleScrapeTask,
-                                    viewModel.enabledSiteInfos
-                                ),
-                                actions = ScrapeProgressActions(
-                                    viewModel::startAllScraping,
-                                    viewModel::cancelScraping,
-                                    viewModel::openSingleScrapeFromTask,
-                                    viewModel::updateSingleScrapeNumber,
-                                    viewModel::updateSingleScrapeSite,
-                                    viewModel::startSingleScrape,
-                                    viewModel::closeSingleScrape,
-                                    viewModel::confirmSingleScrape
-                                )
+                                state = viewModel.scrapeProgressState,
+                                actions = viewModel.scrapeProgressActions
                             )
 
                             Screen.GALLERY -> ResultGalleryScreen(
-                                state = GalleryState(viewModel.results, viewModel.outputDir),
-                                actions = GalleryActions(viewModel::clearResults, {})
+                                state = viewModel.galleryState,
+                                actions = viewModel.galleryActions
                             )
 
                             Screen.SETTINGS -> SettingsScreen(
-                                state = SettingsState(
-                                    workerPath = viewModel.workerPath,
-                                    outputDir = viewModel.outputDir,
-                                    scanDir = viewModel.scanDir,
-                                    scanRecursive = viewModel.scanRecursive,
-                                    createMovieFolders = viewModel.createMovieFolders,
-                                    hardlinkInsteadOfCopy = viewModel.hardlinkInsteadOfCopy,
-                                    downloadImages = viewModel.downloadImages,
-                                    autoScrape = viewModel.autoScrape,
-                                    sites = viewModel.sites,
-                                    enabledSiteIds = viewModel.enabledSites,
-                                    language = viewModel.currentLanguage,
-                                    showRestartHint = viewModel.showRestartHint,
-                                    folderLayers = viewModel.folderLayers,
-                                    filenameFormat = viewModel.filenameFormat,
-                                    maxTitleLength = viewModel.maxTitleLength,
-                                    maxFilenameLength = viewModel.maxFilenameLength,
-                                    suffixKeywords = viewModel.suffixKeywords,
-                                    siteCheckRunning = viewModel.siteCheckRunning,
-                                    siteCheckResults = viewModel.siteCheckResults
-                                ),
-                                actions = SettingsActions(
-                                    onLanguageChange = viewModel::updateLanguage,
-                                    onSelectOutputDir = viewModel::selectOutputDir,
-                                    onSelectScanDir = viewModel::selectScanDir,
-                                    onSelectWorkerPath = viewModel::selectWorkerPath,
-                                    onWorkerPathChange = viewModel::updateWorkerPath,
-                                    onScanRecursiveChange = viewModel::updateScanRecursive,
-                                    onCreateMovieFoldersChange = viewModel::updateCreateMovieFolders,
-                                    onHardlinkChange = viewModel::updateHardlink,
-                                    onDownloadImagesChange = viewModel::updateDownloadImages,
-                                    onAutoScrapeChange = viewModel::updateAutoScrape,
-                                    onToggleSite = viewModel::toggleSite,
-                                    onReset = viewModel::resetSettings,
-                                    onFolderLayerChange = viewModel::updateFolderLayer,
-                                    onAddLayer = viewModel::addLayer,
-                                    onRemoveLayer = viewModel::removeLayer,
-                                    onFilenameFormatChange = viewModel::updateFilenameFormat,
-                                    onMaxTitleLengthChange = viewModel::updateMaxTitleLength,
-                                    onMaxFilenameLengthChange = viewModel::updateMaxFilenameLength,
-                                    onSuffixKeywordsChange = viewModel::updateSuffixKeywords,
-                                    onCheckSites = viewModel::checkSites
-                                )
+                                state = viewModel.settingsState,
+                                actions = viewModel.settingsActions
                             )
                         }
                     }

@@ -10,8 +10,16 @@ import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import javscraper.models.SingleScrapeDialogState
 import javscraper.models.Video
+import javscraper.ui.screens.FileScanActions
+import javscraper.ui.screens.FileScanState
+import javscraper.ui.screens.GalleryActions
+import javscraper.ui.screens.GalleryState
+import javscraper.ui.screens.ScrapeProgressActions
+import javscraper.ui.screens.ScrapeProgressState
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
+import javscraper.ui.screens.settings.SettingsActions
+import javscraper.ui.screens.settings.SettingsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -303,4 +311,44 @@ class AppViewModel(private val scope: CoroutineScope) {
         }
         closeSingleScrape()
     }
+
+    // --- UI state mappings (consumed by App.kt; screens stay stateless) ---
+
+    val scanState: FileScanState
+        get() = FileScanState(scannedFiles, scanDir, scanning)
+    val scanActions: FileScanActions = FileScanActions(
+        ::selectScanDir, ::startScan, { navigate(Screen.PROGRESS) }
+    )
+
+    val scrapeProgressState: ScrapeProgressState
+        get() = ScrapeProgressState(
+            tasks, scraping, singleScrapeDialogState, singleScrapeNumber,
+            singleScrapeSite, singleScrapeTask, enabledSiteInfos
+        )
+    val scrapeProgressActions: ScrapeProgressActions = ScrapeProgressActions(
+        ::startAllScraping, ::cancelScraping, ::openSingleScrapeFromTask,
+        ::updateSingleScrapeNumber, ::updateSingleScrapeSite,
+        ::startSingleScrape, ::closeSingleScrape, ::confirmSingleScrape
+    )
+
+    val galleryState: GalleryState
+        get() = GalleryState(results, outputDir)
+    val galleryActions: GalleryActions = GalleryActions(::clearResults, {})
+
+    val settingsState: SettingsState
+        get() = SettingsState(
+            workerPath, outputDir, scanDir, scanRecursive, createMovieFolders,
+            hardlinkInsteadOfCopy, downloadImages, autoScrape, sites, enabledSites,
+            currentLanguage, showRestartHint, folderLayers, filenameFormat,
+            maxTitleLength, maxFilenameLength, suffixKeywords,
+            siteCheckRunning, siteCheckResults
+        )
+    val settingsActions: SettingsActions = SettingsActions(
+        ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectWorkerPath,
+        ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
+        ::updateHardlink, ::updateDownloadImages, ::updateAutoScrape,
+        ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
+        ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,
+        ::updateMaxFilenameLength, ::updateSuffixKeywords, ::checkSites
+    )
 }
