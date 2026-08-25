@@ -1,4 +1,4 @@
-﻿package javscraper.ui.screens
+package javscraper.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -16,15 +16,28 @@ import javscraper.i18n.LocalTranslations
 import javscraper.models.Video
 import javscraper.ui.components.PosterCard
 
+/** Bundled gallery state to reduce parameter count on [ResultGalleryScreen]. */
+data class GalleryState(
+    val results: List<Video>,
+    val outputDir: String
+)
+
+data class GalleryActions(
+    val onClear: () -> Unit,
+    val onOpenOutputDir: () -> Unit
+)
+
 @Composable
 fun ResultGalleryScreen(
-    results: List<Video>,
-    onClear: () -> Unit,
-    onOpenOutputDir: () -> Unit,
-    outputDir: String,
+    state: GalleryState,
+    actions: GalleryActions,
     modifier: Modifier = Modifier
 ) {
     val t = LocalTranslations.current
+    val results = state.results
+    val outputDir = state.outputDir
+    val onClear = actions.onClear
+    val onOpenOutputDir = actions.onOpenOutputDir
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Column {

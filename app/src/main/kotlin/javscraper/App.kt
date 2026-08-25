@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
-import javscraper.ui.LocalAppViewModel
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
@@ -37,7 +36,7 @@ fun App() {
         if (viewModel.currentLanguage == "zh") TranslationZh() else TranslationEn()
     }
 
-    CompositionLocalProvider(LocalTranslations provides localeStrings, LocalAppViewModel provides viewModel) {
+    CompositionLocalProvider(LocalTranslations provides localeStrings) {
         JavScraperTheme {
             var navExpanded by remember { mutableStateOf(false) }
             Scaffold(
@@ -88,21 +87,38 @@ fun App() {
                     Box(Modifier.weight(1f)) {
                         when (viewModel.currentScreen) {
                             Screen.SCAN -> FileScanScreen(
-                                scannedFiles = viewModel.scannedFiles,
-                                scanDir = viewModel.scanDir,
-                                isScanning = viewModel.scanning,
-                                onSelectDirectory = viewModel::selectScanDir,
-                                onStartScan = viewModel::startScan,
-                                onStartScrape = { viewModel.navigate(Screen.PROGRESS) }
+                                state = FileScanState(
+                                    viewModel.scannedFiles, viewModel.scanDir, viewModel.scanning
+                                ),
+                                actions = FileScanActions(
+                                    viewModel::selectScanDir,
+                                    viewModel::startScan,
+                                    { viewModel.navigate(Screen.PROGRESS) }
+                                )
                             )
 
-                            Screen.PROGRESS -> ScrapeProgressScreen()
+                            Screen.PROGRESS -> ScrapeProgressScreen(
+                                state = ScrapeProgressState(
+                                    viewModel.tasks, viewModel.scraping,
+                                    viewModel.singleScrapeDialogState, viewModel.singleScrapeNumber,
+                                    viewModel.singleScrapeSite, viewModel.singleScrapeTask,
+                                    viewModel.sites
+                                ),
+                                actions = ScrapeProgressActions(
+                                    viewModel::startAllScraping,
+                                    viewModel::cancelScraping,
+                                    viewModel::openSingleScrapeFromTask,
+                                    viewModel::updateSingleScrapeNumber,
+                                    viewModel::updateSingleScrapeSite,
+                                    viewModel::startSingleScrape,
+                                    viewModel::closeSingleScrape,
+                                    viewModel::confirmSingleScrape
+                                )
+                            )
 
                             Screen.GALLERY -> ResultGalleryScreen(
-                                results = viewModel.results,
-                                onClear = viewModel::clearResults,
-                                onOpenOutputDir = {},
-                                outputDir = viewModel.outputDir
+                                state = GalleryState(viewModel.results, viewModel.outputDir),
+                                actions = GalleryActions(viewModel::clearResults, {})
                             )
 
                             Screen.SETTINGS -> SettingsScreen(

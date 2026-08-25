@@ -1,4 +1,4 @@
-﻿package javscraper.ui.screens
+package javscraper.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,18 +15,33 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.ScannedFile
 
+/** Bundled scan-screen state to reduce parameter count on [FileScanScreen]. */
+data class FileScanState(
+    val scannedFiles: List<ScannedFile>,
+    val scanDir: String,
+    val isScanning: Boolean
+)
+
+data class FileScanActions(
+    val onSelectDirectory: () -> Unit,
+    val onStartScan: () -> Unit,
+    val onStartScrape: () -> Unit
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileScanScreen(
-    scannedFiles: List<ScannedFile>,
-    scanDir: String,
-    isScanning: Boolean,
-    onSelectDirectory: () -> Unit,
-    onStartScan: () -> Unit,
-    onStartScrape: () -> Unit,
+    state: FileScanState,
+    actions: FileScanActions,
     modifier: Modifier = Modifier
 ) {
     val t = LocalTranslations.current
+    val scannedFiles = state.scannedFiles
+    val scanDir = state.scanDir
+    val isScanning = state.isScanning
+    val onSelectDirectory = actions.onSelectDirectory
+    val onStartScan = actions.onStartScan
+    val onStartScrape = actions.onStartScrape
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(t.scanTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
