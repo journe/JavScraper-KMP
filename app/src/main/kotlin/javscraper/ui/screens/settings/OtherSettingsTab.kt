@@ -7,14 +7,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
-import javscraper.i18n.TranslationEn
 
-/** Worker path, language and reset actions. */
+/** Worker path, language, logging and reset actions. */
 @Composable
 fun OtherSettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
@@ -35,6 +35,22 @@ fun OtherSettingsTab(state: SettingsState, actions: SettingsActions) {
         Text(t.settingsLanguage, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         LanguageSelector(state.language, state.showRestartHint, t, actions.onLanguageChange)
+        Spacer(Modifier.height(20.dp))
+        Text(t.settingsFileLogging, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(t.settingsFileLoggingDescription, style = MaterialTheme.typography.bodySmall)
+            }
+            Switch(
+                checked = state.fileLoggingEnabled,
+                onCheckedChange = actions.onFileLoggingChange
+            )
+        }
         Spacer(Modifier.height(24.dp))
         OutlinedButton(
             onClick = actions.onReset,
@@ -50,7 +66,7 @@ fun OtherSettingsTab(state: SettingsState, actions: SettingsActions) {
 private fun LanguageSelector(
     language: String,
     showRestartHint: Boolean,
-    t: TranslationEn,
+    t: javscraper.i18n.TranslationEn,
     onLanguageChange: (String) -> Unit
 ) {
     val languages = listOf("en" to t.settingsLanguageEn, "zh" to t.settingsLanguageZh)

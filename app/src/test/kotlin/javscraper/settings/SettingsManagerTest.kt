@@ -19,6 +19,7 @@ class SettingsManagerTest {
         assertEquals(true, settings.hardlinkInsteadOfCopy)
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.autoScrape)
+        assertEquals(false, settings.fileLoggingEnabled)
         assertEquals("en", settings.language)
         assertEquals(10, settings.enabledSites.size)
         assertTrue(settings.enabledSites.contains("mmtv"))
@@ -44,6 +45,7 @@ class SettingsManagerTest {
             hardlinkInsteadOfCopy = false,
             downloadImages = false,
             autoScrape = true,
+            fileLoggingEnabled = true,
             language = "zh",
             enabledSites = listOf("javbus", "javdb")
         )
@@ -57,6 +59,7 @@ class SettingsManagerTest {
         assertEquals(false, decoded.hardlinkInsteadOfCopy)
         assertEquals(false, decoded.downloadImages)
         assertEquals(true, decoded.autoScrape)
+        assertEquals(true, decoded.fileLoggingEnabled)
         assertEquals("zh", decoded.language)
         assertEquals(2, decoded.enabledSites.size)
     }

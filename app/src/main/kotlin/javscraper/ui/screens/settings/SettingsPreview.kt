@@ -26,6 +26,7 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     hardlinkInsteadOfCopy = false,
     downloadImages = true,
     autoScrape = false,
+    fileLoggingEnabled = true,
     sites = listOf(
         SiteInfo("javbus", "JavBus"),
         SiteInfo("javdb", "JavDB"),
@@ -55,6 +56,7 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onHardlinkChange = {},
     onDownloadImagesChange = {},
     onAutoScrapeChange = {},
+    onFileLoggingChange = {},
     onToggleSite = { _, _ -> },
     onReset = {},
     onFolderLayerChange = { _, _ -> },

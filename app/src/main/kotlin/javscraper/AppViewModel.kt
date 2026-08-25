@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javscraper.i18n.TranslationEn
+import javscraper.io.logging.AppLogController
+import javscraper.io.logging.LogEntry
 import javscraper.io.FileScanner
 import javscraper.models.ScannedFile
 import javscraper.models.SiteInfo
@@ -34,10 +36,13 @@ import java.nio.file.Paths
 class AppViewModel(private val scope: CoroutineScope) {
 
     private val settings = SettingsController(scope)
+    private val appLog = AppLogController()
     private val worker = WorkerController(scope, settings)
     private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir })
 
     init {
+        appLog.setFileLoggingEnabled(settings.fileLoggingEnabled)
+        settings.onFileLoggingChanged = { enabled -> appLog.setFileLoggingEnabled(enabled) }
         settings.onScrapeSettingsChanged = { worker.rebuildOrchestrator() }
         settings.onStatusChange = { status = it }
         worker.onStatusChange = { status = it }
@@ -85,6 +90,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     var currentLanguage by settings::currentLanguage
     var showRestartHint by settings::showRestartHint
     var enabledSites by settings::enabledSites
+    var fileLoggingEnabled by settings::fileLoggingEnabled
     var scanRecursive by settings::scanRecursive
     var createMovieFolders by settings::createMovieFolders
     var hardlinkInsteadOfCopy by settings::hardlinkInsteadOfCopy
@@ -122,8 +128,15 @@ class AppViewModel(private val scope: CoroutineScope) {
     }
 
     /** Clean up the sidecar process. */
+    val lifecycleLogEntries: List<LogEntry>
+        get() = appLog.entries
+
+    val lifecycleLogFilePath: String
+        get() = appLog.logFilePath.toString()
+
     fun dispose() {
         worker.dispose()
+        appLog.dispose()
     }
 
     // --- Navigation ---
@@ -143,6 +156,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun updateHardlink(v: Boolean) = settings.updateHardlink(v)
     fun updateDownloadImages(v: Boolean) = settings.updateDownloadImages(v)
     fun updateAutoScrape(v: Boolean) = settings.updateAutoScrape(v)
+    fun updateFileLogging(v: Boolean) = settings.updateFileLogging(v)
     fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
     fun resetSettings() = settings.resetSettings()
     fun updateFolderLayer(index: Int, value: String) = settings.updateFolderLayer(index, value)
@@ -290,7 +304,8 @@ class AppViewModel(private val scope: CoroutineScope) {
     val settingsState: SettingsState
         get() = SettingsState(
             workerPath, outputDir, scanDir, scanRecursive, createMovieFolders,
-            hardlinkInsteadOfCopy, downloadImages, autoScrape, sites, enabledSites,
+            hardlinkInsteadOfCopy, downloadImages, autoScrape,
+            fileLoggingEnabled, sites, enabledSites,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
             maxTitleLength, maxFilenameLength, suffixKeywords,
             siteCheckRunning, siteCheckResults
@@ -299,6 +314,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectWorkerPath,
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
         ::updateHardlink, ::updateDownloadImages, ::updateAutoScrape,
+        ::updateFileLogging,
         ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,
         ::updateMaxFilenameLength, ::updateSuffixKeywords, ::checkSites

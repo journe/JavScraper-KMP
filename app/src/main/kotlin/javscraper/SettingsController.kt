@@ -19,6 +19,8 @@ class SettingsController(private val scope: CoroutineScope) {
     var onScrapeSettingsChanged: () -> Unit = {}
     /** Invoked to surface errors to the app status bar. */
     var onStatusChange: (String) -> Unit = {}
+    /** Invoked when file logging changes so the app log sink can be updated. */
+    var onFileLoggingChanged: (Boolean) -> Unit = {}
 
     var scanDir by mutableStateOf(SettingsManager.get().scanDir)
     var outputDir by mutableStateOf(SettingsManager.get().outputDir)
@@ -31,6 +33,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var hardlinkInsteadOfCopy by mutableStateOf(SettingsManager.get().hardlinkInsteadOfCopy)
     var downloadImages by mutableStateOf(SettingsManager.get().downloadImages)
     var autoScrape by mutableStateOf(SettingsManager.get().autoScrape)
+    var fileLoggingEnabled by mutableStateOf(SettingsManager.get().fileLoggingEnabled)
     var folderLayers by mutableStateOf(SettingsManager.get().folderLayers)
     var filenameFormat by mutableStateOf(SettingsManager.get().filenameFormat)
     var maxTitleLength by mutableStateOf(SettingsManager.get().maxTitleLength)
@@ -125,6 +128,12 @@ class SettingsController(private val scope: CoroutineScope) {
         SettingsManager.update { it.copy(autoScrape = v) }
     }
 
+    fun updateFileLogging(v: Boolean) {
+        fileLoggingEnabled = v
+        SettingsManager.update { it.copy(fileLoggingEnabled = v) }
+        onFileLoggingChanged(v)
+    }
+
     fun toggleSite(id: String, enabled: Boolean) {
         enabledSites = if (enabled) enabledSites + id else enabledSites - id
         SettingsManager.update { it.copy(enabledSites = enabledSites) }
@@ -182,6 +191,7 @@ class SettingsController(private val scope: CoroutineScope) {
         hardlinkInsteadOfCopy = fresh.hardlinkInsteadOfCopy
         downloadImages = fresh.downloadImages
         autoScrape = fresh.autoScrape
+        fileLoggingEnabled = fresh.fileLoggingEnabled
         enabledSites = fresh.enabledSites
         currentLanguage = fresh.language
         folderLayers = fresh.folderLayers
@@ -189,6 +199,7 @@ class SettingsController(private val scope: CoroutineScope) {
         maxTitleLength = fresh.maxTitleLength
         maxFilenameLength = fresh.maxFilenameLength
         suffixKeywords = fresh.suffixKeywords
+        onFileLoggingChanged(fileLoggingEnabled)
         onScrapeSettingsChanged()
     }
 }

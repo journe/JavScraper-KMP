@@ -12,6 +12,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.ui.components.CollapsibleNavRail
+import javscraper.ui.components.LogsDialog
 import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
 import javscraper.ui.screens.settings.*
@@ -39,6 +40,7 @@ fun App() {
     CompositionLocalProvider(LocalTranslations provides localeStrings) {
         JavScraperTheme {
             var navExpanded by remember { mutableStateOf(false) }
+            var logsVisible by remember { mutableStateOf(false) }
             Scaffold(
                 topBar = {
                     val t = LocalTranslations.current
@@ -62,6 +64,12 @@ fun App() {
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(end = 4.dp)
                             )
+                            IconButton(onClick = { logsVisible = true }) {
+                                Icon(
+                                    Icons.Default.Description,
+                                    contentDescription = t.navLogs
+                                )
+                            }
                             IconButton(onClick = { viewModel.navigate(Screen.SETTINGS) }) {
                                 Icon(
                                     Icons.Default.Settings,
@@ -109,6 +117,14 @@ fun App() {
                     }
                 }
             }
+            if (logsVisible) {
+                LogsDialog(
+                    entries = viewModel.lifecycleLogEntries,
+                    filePath = viewModel.lifecycleLogFilePath,
+                    onDismiss = { logsVisible = false }
+                )
+            }
+
             if (viewModel.workerSetupVisible) {
                 WorkerSetupDialog(
                     errorMessage = viewModel.workerSetupError,
