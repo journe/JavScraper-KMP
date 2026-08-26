@@ -12,7 +12,7 @@ class MockScraper(BaseScraper):
     def site_name(self):
         return "Mock"
 
-    def search(self, number):
+    def _search_one(self, number):
         return None
 
 
@@ -25,7 +25,7 @@ class AnotherScraper(BaseScraper):
     def site_name(self):
         return "Another Site"
 
-    def search(self, number):
+    def _search_one(self, number):
         return None
 
 

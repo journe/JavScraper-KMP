@@ -86,13 +86,37 @@ class SidecarManagerLoggingTest {
             .filter { it.loggerName == SidecarManager::class.qualifiedName }
             .joinToString("\n") { it.message }
 
+        val expectedRequestJson = """
+            {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "method": "scrape",
+                "params": {
+                    "number": "SONE-001",
+                    "sites": [
+                        "javbus"
+                    ]
+                }
+            }
+        """.trimIndent()
+        val expectedResponseJson = """
+            {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "result": {
+                    "success": true,
+                    "data": null
+                }
+            }
+        """.trimIndent()
+
         assertTrue(
-            "JSON-RPC request body: {\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"scrape\",\"params\":{\"number\":\"SONE-001\",\"sites\":[\"javbus\"]}}" in messages,
-            "Missing complete request JSON\n$messages"
+            "JSON-RPC request body: $expectedRequestJson" in messages,
+            "Missing formatted request JSON\n$messages"
         )
         assertTrue(
-            "JSON-RPC response body: id=1, json={\"jsonrpc\":\"2.0\",\"id\":\"1\",\"result\":{\"success\":true,\"data\":null}}" in messages,
-            "Missing complete response JSON\n$messages"
+            "JSON-RPC response body: id=1, json=$expectedResponseJson" in messages,
+            "Missing formatted response JSON\n$messages"
         )
     }
 }

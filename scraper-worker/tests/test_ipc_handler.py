@@ -2,6 +2,7 @@ import pytest
 from ipc_handler import handle_request
 from scrapers.registry import ScraperRegistry
 from scrapers.base import BaseScraper
+from scrapers.models import Video
 
 
 class MockScraper(BaseScraper):
@@ -13,9 +14,19 @@ class MockScraper(BaseScraper):
     def site_name(self):
         return "Mock Site"
 
-    def search(self, number):
+    def _search_one(self, number):
         return None
 
+    def search(self, number):
+        return []
+
+
+class SecondSearchScraper(MockScraper):
+    def search(self, number):
+        return [
+            Video(number=number, title="First", source="mock"),
+            Video(number=number, title="Second", source="mock"),
+        ]
 
 @pytest.fixture(autouse=True)
 def clean_registry():
@@ -81,6 +92,33 @@ def test_handler_error_propagates():
     assert "file_path" in result["error"]["message"]
 
 
+
+def test_search_returns_all_candidates():
+    ScraperRegistry.register(MockScraper)
+    ScraperRegistry.register(SecondSearchScraper)
+
+    result = handle_request({
+        "id": "search-1",
+        "method": "search",
+        "params": {"number": "ABC-123", "sites": ["mock"]},
+    })
+
+    assert result["result"] == [
+        {"number": "ABC-123", "title": "First", "actresses": [], "date": "", "maker": "", "label": "", "series": "", "director": "", "duration": None, "rating": None, "tags": [], "cover_url": "", "poster_url": "", "sample_images": [], "summary": "", "source": "mock", "detail_url": ""},
+        {"number": "ABC-123", "title": "Second", "actresses": [], "date": "", "maker": "", "label": "", "series": "", "director": "", "duration": None, "rating": None, "tags": [], "cover_url": "", "poster_url": "", "sample_images": [], "summary": "", "source": "mock", "detail_url": ""},
+    ]
+
+
+def test_search_with_explicit_site():
+    ScraperRegistry.register(SecondSearchScraper)
+
+    result = handle_request({
+        "id": "search-site",
+        "method": "search",
+        "params": {"number": "ABC-123", "site": "mock"},
+    })
+
+    assert [video["title"] for video in result["result"]] == ["First", "Second"]
 def test_jsonrpc_protocol():
     result = handle_request({"id": "99", "method": "list_sites", "params": {}})
     assert result["jsonrpc"] == "2.0"

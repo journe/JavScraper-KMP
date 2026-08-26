@@ -52,6 +52,7 @@ data class ScrapeProgressActions(
     val onCloseSingleScrape: () -> Unit,
     val onCancelSingleScrape: () -> Unit,
     val onConfirmPreviewWrite: () -> Unit,
+    val onSelectPreviewCandidate: (Int) -> Unit,
     val onCancelPreviewWrite: () -> Unit,
     val onDismissMissingOutputDir: () -> Unit,
     val onConfirmScrapeResult: () -> Unit

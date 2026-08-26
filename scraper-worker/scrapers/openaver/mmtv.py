@@ -29,24 +29,32 @@ class MmtvScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def search(self, number: str) -> list[Video]:
         number = self.normalize_number(number)
+        results: list[Video] = []
         try:
-            real_url = self._find_detail_url(number)
-            if not real_url:
-                return None
-            resp = self._session.get(real_url, timeout=15)
-            if resp.status_code != 200:
-                return None
-            return self._parse(resp.text, resp.url or real_url)
+            for real_url in self._find_detail_urls(number):
+                try:
+                    resp = self._session.get(real_url, timeout=15)
+                except (requests.Timeout, requests.ConnectionError):
+                    continue
+                if resp.status_code != 200:
+                    continue
+                video = self._parse(resp.text, resp.url or real_url)
+                if video is not None:
+                    results.append(video)
+            return results
         except (requests.Timeout, requests.ConnectionError):
-            return None
+            return []
+
+    def _search_one(self, number: str) -> Optional[Video]:
+        return next(iter(self.search(number)), None)
 
     # ------------------------------------------------------------------
     # Search
     # ------------------------------------------------------------------
 
-    def _find_detail_url(self, number: str) -> str:
+    def _find_detail_urls(self, number: str) -> list[str]:
         keyword = number
         if number.upper().startswith("FC2"):
             digits = re.findall(r"\d{3,}", number)
@@ -57,12 +65,13 @@ class MmtvScraper(BaseScraper):
         )
         resp = self._session.get(search_url, timeout=15)
         if resp.status_code != 200:
-            return ""
+            return []
         html = etree.fromstring(resp.text, etree.HTMLParser())
-        return self._match_detail_url(html, number)
+        return self._match_detail_urls(html, number)
 
-    def _match_detail_url(self, html, number: str) -> str:
+    def _match_detail_urls(self, html, number: str) -> list[str]:
         cap_number = number.upper()
+        matched_urls: list[str] = []
         for link in html.xpath('//figure[@class="video-preview"]/a'):
             temp_url = link.get("href")
             alts = link.xpath("img/@alt")
@@ -72,16 +81,16 @@ class MmtvScraper(BaseScraper):
             temp_number = temp_title.split(" ")[0]
             if cap_number.startswith("FC2"):
                 head = cap_number.replace("FC2-", "FC2-PPV ")
-                if temp_title.upper().startswith(head):
-                    return temp_url
-            elif (
-                temp_number.upper().startswith(cap_number)
-                or temp_number.upper().endswith(cap_number)
-                and temp_number.upper().replace(cap_number, "").isdigit()
-            ):
-                return temp_url
-        return ""
-
+                matched = temp_title.upper().startswith(head)
+            else:
+                matched = (
+                    temp_number.upper().startswith(cap_number)
+                    or temp_number.upper().endswith(cap_number)
+                    and temp_number.upper().replace(cap_number, "").isdigit()
+                )
+            if matched and temp_url not in matched_urls:
+                matched_urls.append(temp_url)
+        return matched_urls
     # ------------------------------------------------------------------
     # Detail page parsing
     # ------------------------------------------------------------------

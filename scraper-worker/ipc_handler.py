@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 from scrapers.registry import ScraperRegistry
 from core.file_prober import extract_number
-from core.smart_search import smart_search, search_multi
+from core.smart_search import search_candidates, search_multi, smart_search
 from scrapers.models import scrape_success, scrape_error
 
 _handlers: dict[str, Callable] = {}
@@ -94,15 +94,25 @@ def _scrape(
     return scrape_success(result)
 
 
-@register_handler("search")
 @register_handler("check_sites")
 def _check_sites(sites: list[str] = None) -> list[dict]:
     from scrapers.site_check import check_sites
 
     return check_sites(site_ids=sites)
-def _search(number: str, sites: list[str] = None) -> list:
-    return [r.to_dict() for r in search_multi(number, sites=sites) if r]
 
+@register_handler("search")
+def _search(
+    number: str,
+    sites: list[str] = None,
+    site: str = None,
+) -> list[dict]:
+    if site is not None:
+        candidates = search_candidates(number, site=site, enabled_sites=sites)
+    elif sites is not None:
+        candidates = search_multi(number, sites=sites)
+    else:
+        candidates = search_candidates(number)
+    return [video.to_dict() for video in candidates]
 
 # ---------------------------------------------------------------------------
 # Scraper discovery - import all scraper modules to trigger auto-registration

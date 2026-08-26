@@ -80,7 +80,8 @@ def test_search_success(mock_session_cls):
     scraper = JavBusScraper()
     result = scraper.search("sone205")
 
-    assert result is not None
+    assert len(result) == 1
+    result = result[0]
     assert isinstance(result, Video)
     assert result.number == "SONE-205"
     assert result.title == "SONE-205 Sample Title"
@@ -111,7 +112,7 @@ def test_search_not_found(mock_session_cls):
 
     scraper = JavBusScraper()
     result = scraper.search("ABCD-999")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.javbus.requests.Session")
@@ -124,7 +125,7 @@ def test_search_connection_error(mock_session_cls):
 
     scraper = JavBusScraper()
     result = scraper.search("SONE-205")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.javbus.requests.Session")
@@ -137,7 +138,7 @@ def test_search_timeout(mock_session_cls):
 
     scraper = JavBusScraper()
     result = scraper.search("SONE-205")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.javbus.requests.Session")
@@ -152,7 +153,7 @@ def test_search_no_info_block(mock_session_cls):
 
     scraper = JavBusScraper()
     result = scraper.search("SONE-205")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.javbus.requests.Session")
@@ -170,7 +171,8 @@ def test_search_normalizes_number(mock_session_cls):
     result = scraper.search("SONE205")
 
     mock_session.get.assert_called_once_with("https://www.javbus.com/SONE-205", timeout=15)
-    assert result is not None
+    assert len(result) == 1
+    result = result[0]
     assert result.number == "SONE-205"
 
 

@@ -3,7 +3,9 @@ package javscraper.sidecar
 import javscraper.models.ScrapeResult
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
+import javscraper.models.Video
 import kotlinx.coroutines.*
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
@@ -12,6 +14,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+@OptIn(ExperimentalSerializationApi::class)
 class SidecarManager(private val workerPath: String) : AutoCloseable {
     private val log = mu.KotlinLogging.logger {}
 
@@ -24,7 +27,12 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
     private var responseReader: Job? = null
     private var scope: CoroutineScope? = null
 
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        namingStrategy = JsonNamingStrategy.SnakeCase
+    }
+    private val prettyJson = Json { prettyPrint = true }
 
     suspend fun start(): Boolean = mutex.withLock {
         val startedAt = System.currentTimeMillis()
@@ -202,6 +210,33 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         }
     }
 
+    suspend fun searchCandidates(
+        number: String,
+        site: String? = null,
+        enabledSites: List<String>? = null
+    ): List<Video> {
+        val startedAt = System.currentTimeMillis()
+        log.info {
+            "search request: number=$number, site=${site ?: "auto"}, enabledSites=${enabledSites?.size ?: "all"}"
+        }
+        val params = buildJsonObject {
+            put("number", number)
+            site?.let { put("site", it) }
+            enabledSites?.let { put("sites", JsonArray(it.map(::JsonPrimitive))) }
+        }
+        return try {
+            val candidates = json.decodeFromJsonElement<List<Video>>(sendRequest("search", params))
+            log.info {
+                "search success: number=$number, count=${candidates.size}, elapsedMs=${System.currentTimeMillis() - startedAt}"
+            }
+            candidates
+        } catch (e: Exception) {
+            log.error(e) {
+                "search failed: number=$number, elapsedMs=${System.currentTimeMillis() - startedAt}"
+            }
+            throw e
+        }
+    }
     private suspend fun sendRequest(method: String, params: JsonObject): JsonElement {
         val startedAt = System.currentTimeMillis()
         val id = requestId.incrementAndGet().toString()
@@ -210,16 +245,16 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         val deferred = CompletableDeferred<JsonElement>()
         pendingRequests[id] = deferred
         try {
-            val requestBody = json.encodeToString(
-                JsonObject.serializer(),
-                buildJsonObject {
-                    put("jsonrpc", "2.0")
-                    put("id", id)
-                    put("method", method)
-                    put("params", params)
-                }
-            )
-            log.info { "JSON-RPC request body: $requestBody" }
+            val request = buildJsonObject {
+                put("jsonrpc", "2.0")
+                put("id", id)
+                put("method", method)
+                put("params", params)
+            }
+            val requestBody = json.encodeToString(JsonObject.serializer(), request)
+            log.info {
+                "JSON-RPC request body: ${prettyJson.encodeToString(JsonObject.serializer(), request)}"
+            }
             mutex.withLock {
                 stdin?.write(requestBody)
                 stdin?.newLine()
@@ -248,11 +283,14 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             while (stdoutReader?.readLine().also { line = it } != null) {
                 if (line.isNullOrBlank()) continue
                 try {
-                    val responseText = line.orEmpty()
-                    val response = json.parseToJsonElement(responseText).jsonObject
+                    val response = json.parseToJsonElement(line.orEmpty()).jsonObject
                     val id = response["id"]?.jsonPrimitive?.contentOrNull
                     if (id != null) {
-                        log.info { "JSON-RPC response body: id=$id, json=$responseText" }
+                        log.info {
+                            "JSON-RPC response body: id=$id, json=${
+                                prettyJson.encodeToString(JsonObject.serializer(), response)
+                            }"
+                        }
                         val deferred = pendingRequests.remove(id)
                         if (deferred != null) {
                             val error = response["error"]

@@ -79,7 +79,8 @@ def test_search_success(mock_session_cls):
 
     result = MmtvScraper().search("ABC-123")
 
-    assert result is not None
+    assert len(result) == 1
+    result = result[0]
     assert isinstance(result, Video)
     assert result.number == "ABC-123"
     assert result.title == "素人サンプルタイトル"
@@ -104,7 +105,7 @@ def test_search_not_found(mock_session_cls):
     mock_session.get.return_value = _mock_resp(200, "<html><body></body></html>")
 
     result = MmtvScraper().search("ZZZ-999")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.mmtv.requests.Session")
@@ -115,7 +116,7 @@ def test_search_connection_error(mock_session_cls):
     mock_session.get.side_effect = ConnectionError()
 
     result = MmtvScraper().search("ABC-123")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.mmtv.requests.Session")
@@ -126,7 +127,7 @@ def test_search_timeout(mock_session_cls):
     mock_session.get.side_effect = Timeout()
 
     result = MmtvScraper().search("ABC-123")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.mmtv.requests.Session")
@@ -139,7 +140,7 @@ def test_search_empty_title_returns_none(mock_session_cls):
     ]
 
     result = MmtvScraper().search("ABC-123")
-    assert result is None
+    assert result == []
 
 
 @patch("scrapers.openaver.mmtv.requests.Session")
@@ -170,10 +171,67 @@ def test_fc2_match_uses_ppv_title(mock_session_cls):
 
     result = MmtvScraper().search("FC2-424646")
 
-    assert result is not None
+    assert len(result) == 1
+    result = result[0]
     assert result.number == "FC2-424646"
     assert result.tags == ["无码"]
 
+
+
+@patch("scrapers.openaver.mmtv.requests.Session")
+def test_search_returns_all_matched_candidates(mock_session_cls):
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+    search_html = """
+<html><body>
+<figure class="video-preview">
+  <a href="/zh/amateur_content/123/content.html"><img alt="ABC-123 第一结果"></a>
+</figure>
+<figure class="video-preview">
+  <a href="/zh/amateur_content/456/content.html"><img alt="ABC-123 第二结果"></a>
+</figure>
+</body></html>
+"""
+    second_html = DETAIL_HTML.replace("素人サンプルタイトル", "第二结果")
+    second_url = "https://www.7mmtv.sx/zh/amateur_content/456/content.html"
+    mock_session.get.side_effect = [
+        _mock_resp(200, search_html, "https://www.7mmtv.sx/zh/searchform_search/all/index.html"),
+        _mock_resp(200, DETAIL_HTML, DETAIL_URL),
+        _mock_resp(200, second_html, second_url),
+    ]
+
+    results = MmtvScraper().search("ABC-123")
+
+    assert [result.detail_url for result in results] == [DETAIL_URL, second_url]
+    assert results[0].title == "素人サンプルタイトル"
+    assert results[1].title == "第二结果"
+
+
+@patch("scrapers.openaver.mmtv.requests.Session")
+def test_search_skips_failed_detail_candidates(mock_session_cls):
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+    search_html = """
+<html><body>
+<figure class="video-preview">
+  <a href="/zh/amateur_content/123/content.html"><img alt="ABC-123 第一结果"></a>
+</figure>
+<figure class="video-preview">
+  <a href="/zh/amateur_content/456/content.html"><img alt="ABC-123 第二结果"></a>
+</figure>
+</body></html>
+"""
+    empty_title_html = "<html><body><div class=\"d-flex mb-4\"><span>ABC-123</span></div></body></html>"
+    second_url = "https://www.7mmtv.sx/zh/amateur_content/456/content.html"
+    mock_session.get.side_effect = [
+        _mock_resp(200, search_html, "https://www.7mmtv.sx/zh/searchform_search/all/index.html"),
+        _mock_resp(200, empty_title_html, DETAIL_URL),
+        _mock_resp(200, DETAIL_HTML.replace("素人サンプルタイトル", "第二结果"), second_url),
+    ]
+
+    results = MmtvScraper().search("ABC-123")
+
+    assert [result.detail_url for result in results] == [second_url]
 
 def test_normalize_number():
     scraper = MmtvScraper()

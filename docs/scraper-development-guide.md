@@ -8,7 +8,7 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `scrapers/base.py` | `BaseScraper` 抽象基类：`site_id` / `site_name` / `search(number)` |
+| `scrapers/base.py` | `BaseScraper` 抽象基类：`site_id` / `site_name` / `_search_one(number)`；公开 `search(number)` 包装为 `list[Video]` |
 | `scrapers/models.py` | `Video` / `Actress` 数据模型与 `scrape_success` / `scrape_error` |
 | `scrapers/registry.py` | 站点注册表：`register` / `get` / `list_sites` |
 | `scrapers/openaver/` | 各站点刮削器实现 |
@@ -50,10 +50,10 @@ class XxxScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
-            # ... 搜索并解析详情页，返回 Video 或 None
+            # ... 搜索并解析详情页；_search_one 返回 Video 或 None
             return None
         except (requests.Timeout, requests.ConnectionError):
             return None
@@ -63,7 +63,7 @@ ScraperRegistry.register(XxxScraper)
 ```
 
 要求：
-- 文件不超过 300 行；网络请求统一用 `requests.Session`（超时 15s），失败返回 `None`；
+- 文件不超过 300 行；网络请求统一用 `requests.Session`（超时 15s），`_search_one` 失败返回 `None`；基类 `search()` 会把结果包装为空列表或单元素列表；
 - 字段通过 `Video(...)` 填充，`source` 填 `site_id`，`detail_url` 填详情页地址；
 - 文件末尾必须 `ScraperRegistry.register(XxxScraper)`。
 
@@ -97,7 +97,7 @@ from scrapers.openaver import javbus, ... , xxx  # noqa: F401
 
 - `test_auto_register`：注册表包含该类；
 - `test_site_properties`：`site_id` / `site_name` 正确；
-- `test_search_success`：mock `requests.Session`，验证解析出的 `Video` 各字段；
+- `test_search_success`：mock `requests.Session`，先验证 `search()` 返回单元素列表，再验证首个 `Video` 各字段；
 - `test_search_not_found` / `test_search_connection_error` / `test_search_timeout`；
 - 特殊逻辑（如 FC2 匹配、多演员清洗、有码无码识别）单独用例。
 
@@ -113,7 +113,7 @@ cd scraper-worker; .venv\Scripts\python -m pytest tests/
 cd scraper-worker; .venv\Scripts\python -c "from scrapers.openaver.xxx import XxxScraper; print(XxxScraper().search('ABC-123'))"
 ```
 
-确认能返回真实数据；若失败检查站点结构变化或反爬（UA / 地区限制）。
+确认能返回真实候选列表；若失败检查站点结构变化或反爬（UA / 地区限制）。站点如需返回多个候选，应覆盖 `search()` 并确保失败详情页不阻断后续候选。
 
 ### 8. 重新打包 worker
 
@@ -174,6 +174,7 @@ git check-ignore -v <新文件>
 完整示例见 `scraper-worker/scrapers/openaver/mmtv.py`（230 行）与 `tests/test_scraper_mmtv.py`。特殊点：
 
 - 搜索时 FC2 番号需提取数字部分做关键词；匹配详情链接时用 `FC2-PPV ` 前缀比对标题；
+- 覆盖 `search()` 返回全部匹配候选，单个详情页解析失败时跳过并继续；
 - 有码/无码优先从面包屑判断，其次按 FC2 前缀兜底；
 - 演员清洗：`re.sub(r"（.+）", "", each).split(" ")[0]`。
 

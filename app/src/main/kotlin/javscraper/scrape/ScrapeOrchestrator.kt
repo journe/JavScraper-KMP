@@ -36,6 +36,11 @@ class ScrapeOrchestrator(
         return sidecar.scrape(sf.number, site, enabledSites?.toList())
     }
 
+    /** Fetch all metadata candidates without any file IO. */
+    suspend fun fetchCandidates(sf: ScannedFile, site: String? = null): List<Video> {
+        if (sf.number.isBlank()) return emptyList()
+        return sidecar.searchCandidates(sf.number, site, enabledSites?.toList())
+    }
     /** Write scraped metadata (NFO/images) and organize files to the output directory. */
     suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {
         if (files.isEmpty())

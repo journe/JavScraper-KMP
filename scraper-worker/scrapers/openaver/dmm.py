@@ -28,7 +28,7 @@ class DMMScraper(BaseScraper):
             "Accept-Language": "ja,en;q=0.9",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             search_url = f"{self.BASE_URL}/mono/dvd/-/search/?searchstr={quote(number)}&sort=date"

@@ -36,7 +36,7 @@ class SingleScrapeController(
     var onConfirmResult: (ScrapeTask, Video?) -> Unit = { _, _ -> }
 
     private var singleScrapeJob: Job? = null
-    private var previewConfirm: CompletableDeferred<Boolean>? = null
+    private var previewConfirm: CompletableDeferred<Int?>? = null
 
     fun updateSingleScrapeNumber(value: String) {
         singleScrapeNumber = value
@@ -83,29 +83,28 @@ class SingleScrapeController(
         singleScrapeJob = scope.launch {
             val sf = file.copy(number = number)
             try {
-                val fetchResult = orch()?.fetch(sf, site)
-                if (fetchResult == null) {
+                val candidates = orch()?.fetchCandidates(sf, site)
+                if (candidates == null) {
                     failSingleScrape("Worker not running")
                     return@launch
                 }
-                val video = fetchResult.data
-                if (!fetchResult.success || video == null) {
-                    failSingleScrape(fetchResult.error?.message ?: "Unknown error")
+                if (candidates.isEmpty()) {
+                    failSingleScrape("No data")
                     return@launch
                 }
 
-                // 抓取成功 → 先预览结果，用户确认后再执行 IO
-                val deferred = CompletableDeferred<Boolean>()
+                val deferred = CompletableDeferred<Int?>()
                 previewConfirm = deferred
-                singleScrapeDialogState = SingleScrapeDialogState.Preview(video)
-                val proceed = deferred.await()
+                singleScrapeDialogState = SingleScrapeDialogState.Preview(candidates)
+                val selectedIndex = deferred.await()
                 previewConfirm = null
-                if (!proceed) {
+                if (selectedIndex == null) {
                     singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.PENDING)
                     closeSingleScrape()
                     return@launch
                 }
-
+                val video = (singleScrapeDialogState as? SingleScrapeDialogState.Preview)?.video
+                    ?: candidates[selectedIndex]
                 // 确认写入 → 建目录/写 NFO/下载图片/复制文件
                 singleScrapeDialogState = SingleScrapeDialogState.Scraping
                 val writeResult = withContext(Dispatchers.IO) { orch()?.writeToDisk(listOf(sf), video) }
@@ -138,12 +137,18 @@ class SingleScrapeController(
 
     /** User confirmed the preview: proceed with file IO. */
     fun confirmPreviewWrite() {
-        previewConfirm?.complete(true)
+        val selectedIndex = (singleScrapeDialogState as? SingleScrapeDialogState.Preview)?.selectedIndex ?: 0
+        previewConfirm?.complete(selectedIndex)
     }
 
+    /** Select one candidate while the preview dialog is waiting for confirmation. */
+    fun selectPreviewCandidate(index: Int) {
+        val preview = singleScrapeDialogState as? SingleScrapeDialogState.Preview ?: return
+        singleScrapeDialogState = preview.select(index)
+    }
     /** User cancelled the preview: abort without writing files. */
     fun cancelPreviewWrite() {
-        previewConfirm?.complete(false)
+        previewConfirm?.complete(null)
     }
 
     fun dismissMissingOutputDir() {

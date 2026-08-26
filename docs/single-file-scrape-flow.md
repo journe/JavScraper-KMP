@@ -115,21 +115,19 @@ stateDiagram-v2
 
 ### Kotlin 侧
 
-1. `SingleScrapeController` 调用 `ScrapeOrchestrator.fetch(sf, site)`。
-2. `fetch` 校验番号非空。
-3. `ScrapeOrchestrator` 调用 `SidecarManager.scrape(number, site)`。
-4. `SidecarManager` 会确保 worker 进程存活，发送 JSON-RPC `scrape` 方法，并等待响应。
+1. `SingleScrapeController` 调用 `ScrapeOrchestrator.fetchCandidates(sf, site)`。
+2. `fetchCandidates` 校验番号非空。
+3. `ScrapeOrchestrator` 调用 `SidecarManager.searchCandidates(number, site, enabledSites)`。
+4. `SidecarManager` 会确保 worker 进程存活，发送 JSON-RPC `search` 方法，并等待响应。
 5. 单个请求最多等待 60 秒；超时或异常会向上抛给单刮削控制器。
 
 ### Worker 与站点搜索
 
 1. `scraper-worker/main.py` 以 UTF-8 读写 stdin、stdout、stderr，逐行读取 JSON-RPC 请求。
-2. `ipc_handler.py` 将 `scrape` 路由到内部处理函数。
-3. 处理函数调用 smart_search(number, site, enabled_sites)：
-   - 指定站点时，要求该站点存在于注册表且位于启用列表中；
-   - 未指定站点时，先按内置优先级链排序，再仅尝试启用列表中的站点。
-4. 爬虫返回 `Video` 后，worker 转成 `{"success": true, "data": ...}`。
-5. Kotlin 反序列化为 `ScrapeResult`。
+2. `ipc_handler.py` 将 `search` 路由到内部处理函数。
+3. 处理函数调用候选搜索：指定站点时仅搜索该启用站点；未指定站点时先按内置优先级链排序，再仅尝试启用列表中的站点。
+4. 爬虫返回 `list[Video]` 后，worker 将全部候选转为 JSON 数组。
+5. Kotlin 反序列化为 `List<Video>`。
 
 ### 当前注意点
 
@@ -138,15 +136,15 @@ stateDiagram-v2
 
 ## 5. 抓取成功后的预览
 
-抓取成功且返回 `Video` 后：
+抓取成功且返回至少一个候选后：
 
-1. 控制器创建 `CompletableDeferred<Boolean>`；
-2. 状态切换为 `Preview(video)`；
-3. 协程等待用户选择；
-4. 对话框展示番号、标题、演员、来源、日期等关键字段；
+1. 控制器创建 `CompletableDeferred<Int?>`；
+2. 状态切换为 `Preview(candidates)`，默认选中第一个候选；
+3. 协程等待用户确认；
+4. 对话框先展示候选列表，用户可切换选中项，并查看该候选的完整信息卡；
 5. 此阶段不创建目录、不写 NFO、不下载图片、不复制或链接视频文件。
 
-用户点击“确认写入”会 complete `true`，协程继续进入写盘阶段。用户点击“取消”会 complete `false`，任务恢复 `PENDING`，对话框关闭，且不会执行任何 IO。
+用户点击“确认写入”会 complete 当前选中索引，协程继续使用该候选进入写盘阶段。用户点击“取消”会 complete `null`，任务恢复 `PENDING`，对话框关闭，且不会执行任何 IO。
 
 ## 6. 确认后的磁盘写入
 

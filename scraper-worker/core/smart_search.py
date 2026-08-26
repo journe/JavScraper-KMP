@@ -30,37 +30,55 @@ def _enabled_chain(number: str, enabled_sites: Iterable[str] | None) -> list[str
     return [site_id for site_id in chain if site_id in enabled]
 
 
+def _is_site_enabled(site: str, enabled_sites: Iterable[str] | None) -> bool:
+    return enabled_sites is None or site in set(enabled_sites)
+
+
+def search_candidates(
+    number: str,
+    site: str | None = None,
+    enabled_sites: Iterable[str] | None = None,
+    first_only: bool = False,
+) -> list[Video]:
+    """Search *number* on one enabled site or through the priority chain."""
+    site_ids = [site] if site is not None else _enabled_chain(number, enabled_sites)
+    results: list[Video] = []
+    for site_id in site_ids:
+        if not _is_site_enabled(site_id, enabled_sites):
+            continue
+        cls = ScraperRegistry.get(site_id)
+        if cls is not None:
+            site_results = cls().search(number)
+            results.extend(site_results)
+            if first_only and results:
+                return results
+    return results
+
+
 def smart_search(
     number: str,
     site: str | None = None,
     enabled_sites: Iterable[str] | None = None,
 ) -> Optional[Video]:
-    """Search *number* on a specific enabled site or through the priority chain."""
-    if site is not None:
-        cls = ScraperRegistry.get(site)
-        if cls is None or (enabled_sites is not None and site not in set(enabled_sites)):
-            return None
-        return cls().search(number)
-
-    for sid in _enabled_chain(number, enabled_sites):
-        cls = ScraperRegistry.get(sid)
-        if cls is None:
-            continue
-        result = cls().search(number)
-        if result is not None:
-            return result
-    return None
+    """Search *number* and return only the first available video."""
+    return next(
+        iter(search_candidates(number, site=site, enabled_sites=enabled_sites, first_only=True)),
+        None,
+    )
 
 
 def search_multi(
-    number: str, sites: list[str] | None = None
-) -> list[Optional[Video]]:
-    """Search *number* across all specified sites (or all registered sites)."""
-    if sites is None:
-        sites = [s["id"] for s in ScraperRegistry.list_sites()]
+    number: str,
+    sites: list[str] | None = None,
+) -> list[Video]:
+    """Search *number* across the explicitly specified sites and flatten candidates."""
+    site_ids = sites
+    if site_ids is None:
+        site_ids = [item["id"] for item in ScraperRegistry.list_sites()]
 
-    results: list[Optional[Video]] = []
-    for sid in sites:
-        cls = ScraperRegistry.get(sid)
-        results.append(cls().search(number) if cls is not None else None)
+    results: list[Video] = []
+    for site_id in site_ids:
+        cls = ScraperRegistry.get(site_id)
+        if cls is not None:
+            results.extend(cls().search(number))
     return results

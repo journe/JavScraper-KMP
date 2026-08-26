@@ -194,7 +194,13 @@ private fun PreviewDialog(
     AlertDialog(
         onDismissRequest = actions.onCancelPreviewWrite,
         title = { Text(t.singleScrapePreviewTitle) },
-        text = { VideoInfoCard(dialogState.video) },
+        text = {
+            PreviewCandidatesSection(
+                candidates = dialogState.candidates,
+                selectedIndex = dialogState.selectedIndex,
+                onSelect = actions.onSelectPreviewCandidate
+            )
+        },
         confirmButton = {
             Button(onClick = actions.onConfirmPreviewWrite) { Text(t.singleScrapeWriteConfirm) }
         },

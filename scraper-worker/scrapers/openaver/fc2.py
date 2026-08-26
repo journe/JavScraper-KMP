@@ -33,7 +33,7 @@ class FC2Scraper(BaseScraper):
             return m.group(1)
         return None
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         fc2_id = self._extract_fc2_id(number)
         if not fc2_id:
             return None

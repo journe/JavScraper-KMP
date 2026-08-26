@@ -39,6 +39,17 @@ sealed interface SingleScrapeDialogState {
     data object Closed : SingleScrapeDialogState
     data object Input : SingleScrapeDialogState
     data object Scraping : SingleScrapeDialogState
-    data class Preview(val video: Video) : SingleScrapeDialogState
+    data class Preview(
+        val candidates: List<Video>,
+        val selectedIndex: Int = 0
+    ) : SingleScrapeDialogState {
+        val video: Video
+            get() = candidates[selectedIndex]
+
+        fun select(index: Int): Preview {
+            if (candidates.isEmpty()) return this
+            return copy(selectedIndex = index.coerceIn(0, candidates.lastIndex))
+        }
+    }
     data class Result(val video: Video?, val error: String?) : SingleScrapeDialogState
 }

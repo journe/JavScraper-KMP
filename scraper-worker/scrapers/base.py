@@ -4,7 +4,6 @@ from .models import Video
 
 
 class BaseScraper(ABC):
-
     @property
     @abstractmethod
     def site_id(self) -> str:
@@ -15,8 +14,12 @@ class BaseScraper(ABC):
     def site_name(self) -> str:
         ...
 
+    def search(self, number: str) -> list[Video]:
+        result = self._search_one(number)
+        return [result] if result is not None else []
+
     @abstractmethod
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         ...
 
     def normalize_number(self, number: str) -> str:

@@ -272,6 +272,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun startSingleScrape() = singleScrape.startSingleScrape()
     fun cancelSingleScrape() = singleScrape.cancelSingleScrape()
     fun confirmPreviewWrite() = singleScrape.confirmPreviewWrite()
+    fun selectPreviewCandidate(index: Int) = singleScrape.selectPreviewCandidate(index)
     fun cancelPreviewWrite() = singleScrape.cancelPreviewWrite()
     fun dismissMissingOutputDir() = singleScrape.dismissMissingOutputDir()
     fun confirmSingleScrape() = singleScrape.confirmSingleScrape()
@@ -293,7 +294,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         ::startAllScraping, ::cancelScraping, ::openSingleScrapeFromTask,
         ::updateSingleScrapeNumber, ::updateSingleScrapeSite,
         ::startSingleScrape, ::closeSingleScrape, ::cancelSingleScrape,
-        ::confirmPreviewWrite, ::cancelPreviewWrite, ::dismissMissingOutputDir,
+        ::confirmPreviewWrite, ::selectPreviewCandidate, ::cancelPreviewWrite, ::dismissMissingOutputDir,
         ::confirmSingleScrape
     )
 
