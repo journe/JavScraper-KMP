@@ -20,6 +20,7 @@ class TranslationZh : TranslationEn() {
     override val navScan: String = "扫描"
     override val navScrape: String = "刮削"
     override val navGallery: String = "图库"
+    override val navNetworkPreview: String = "网络"
     override val navSettings: String = "设置"
 
     override val scanTitle: String = "文件扫描"
@@ -45,6 +46,11 @@ class TranslationZh : TranslationEn() {
 
     override fun galleryCount(n: Int): String = "$n 部影片已刮削"
 
+    override val networkPreviewTitle: String = "网络结果"
+    override val networkPreviewClear: String = "清空"
+    override val networkPreviewEmptyHint: String = "暂无网络结果"
+
+    override fun networkPreviewCount(n: Int): String = "$n 条网络结果"
     override val settingsTitle: String = "设置"
     override val settingsTabDirectories: String = "目录"
     override val settingsTabScraping: String = "刮削"

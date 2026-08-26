@@ -23,6 +23,7 @@ open class TranslationEn {
     open val navScan: String = "Scan"
     open val navScrape: String = "Scrape"
     open val navGallery: String = "Gallery"
+    open val navNetworkPreview: String = "Network"
     open val navSettings: String = "Settings"
 
     // --- Scan screen ---
@@ -51,6 +52,12 @@ open class TranslationEn {
 
     open fun galleryCount(n: Int): String = "$n movies scraped"
 
+    // --- Network preview screen ---
+    open val networkPreviewTitle: String = "Network Results"
+    open val networkPreviewClear: String = "Clear"
+    open val networkPreviewEmptyHint: String = "No network results yet"
+
+    open fun networkPreviewCount(n: Int): String = "$n network results"
     // --- Settings screen ---
     open val settingsTitle: String = "Settings"
     open val settingsTabDirectories: String = "Directories"

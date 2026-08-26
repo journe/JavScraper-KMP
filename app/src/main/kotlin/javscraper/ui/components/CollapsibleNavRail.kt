@@ -1,4 +1,4 @@
-﻿package javscraper.ui.components
+package javscraper.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +76,13 @@ fun CollapsibleNavRail(
             expanded = expanded,
             enabled = scrapeEnabled,
             onClick = { onNavigate(Screen.PROGRESS) }
+        )
+        NavRailItem(
+            icon = Icons.Default.Public,
+            label = t.navNetworkPreview,
+            selected = currentScreen == Screen.NETWORK_PREVIEW,
+            expanded = expanded,
+            onClick = { onNavigate(Screen.NETWORK_PREVIEW) }
         )
         NavRailItem(
             icon = Icons.Default.PhotoLibrary,

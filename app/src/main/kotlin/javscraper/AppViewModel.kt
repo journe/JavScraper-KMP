@@ -3,6 +3,7 @@ package javscraper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import javscraper.controllers.NetworkPreviewController
 import javscraper.i18n.TranslationEn
 import javscraper.io.logging.AppLogController
 import javscraper.io.logging.LogEntry
@@ -13,6 +14,8 @@ import javscraper.models.Video
 import javscraper.ui.screens.FileScanActions
 import javscraper.ui.screens.FileScanState
 import javscraper.ui.screens.GalleryActions
+import javscraper.ui.screens.NetworkPreviewActions
+import javscraper.ui.screens.NetworkPreviewState
 import javscraper.ui.screens.GalleryState
 import javscraper.ui.screens.ScrapeProgressActions
 import javscraper.ui.screens.ScrapeProgressState
@@ -39,6 +42,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     private val appLog = AppLogController()
     private val worker = WorkerController(scope, settings)
     private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir })
+    private val networkPreview = NetworkPreviewController()
 
     init {
         appLog.setFileLoggingEnabled(settings.fileLoggingEnabled)
@@ -46,6 +50,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         settings.onScrapeSettingsChanged = { worker.rebuildOrchestrator() }
         settings.onStatusChange = { status = it }
         worker.onStatusChange = { status = it }
+        singleScrape.onPreviewCandidates = { candidates -> networkPreview.add(candidates) }
         singleScrape.onConfirmResult = { task, video ->
             if (task.number.isNotBlank()) tasks = upsertScrapeTask(tasks, task)
             if (video != null) results = upsertVideo(results, video)
@@ -302,6 +307,11 @@ class AppViewModel(private val scope: CoroutineScope) {
         get() = GalleryState(results, outputDir)
     val galleryActions: GalleryActions = GalleryActions(::clearResults, {})
 
+    val networkPreviewState: NetworkPreviewState
+        get() = NetworkPreviewState(networkPreview.candidates)
+    val networkPreviewActions: NetworkPreviewActions = NetworkPreviewActions(
+        networkPreview::clear
+    )
     val settingsState: SettingsState
         get() = SettingsState(
             workerPath, outputDir, scanDir, scanRecursive, createMovieFolders,

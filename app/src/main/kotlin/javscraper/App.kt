@@ -19,7 +19,7 @@ import javscraper.ui.screens.settings.*
 
 import javscraper.ui.theme.JavScraperTheme
 
-enum class Screen { SCAN, PROGRESS, GALLERY, SETTINGS }
+enum class Screen { SCAN, PROGRESS, GALLERY, NETWORK_PREVIEW, SETTINGS }
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,6 +109,10 @@ fun App() {
                                 actions = viewModel.galleryActions
                             )
 
+                            Screen.NETWORK_PREVIEW -> NetworkPreviewScreen(
+                                state = viewModel.networkPreviewState,
+                                actions = viewModel.networkPreviewActions
+                            )
                             Screen.SETTINGS -> SettingsScreen(
                                 state = viewModel.settingsState,
                                 actions = viewModel.settingsActions

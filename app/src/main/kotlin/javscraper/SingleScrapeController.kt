@@ -35,6 +35,9 @@ class SingleScrapeController(
     /** Invoked with the finished task and its video when the user confirms a result. */
     var onConfirmResult: (ScrapeTask, Video?) -> Unit = { _, _ -> }
 
+    /** Invoked when a network search returns candidates, before user confirmation. */
+    var onPreviewCandidates: (List<Video>) -> Unit = { }
+
     private var singleScrapeJob: Job? = null
     private var previewConfirm: CompletableDeferred<Int?>? = null
 
@@ -95,7 +98,7 @@ class SingleScrapeController(
 
                 val deferred = CompletableDeferred<Int?>()
                 previewConfirm = deferred
-                singleScrapeDialogState = SingleScrapeDialogState.Preview(candidates)
+                showPreview(candidates)
                 val selectedIndex = deferred.await()
                 previewConfirm = null
                 if (selectedIndex == null) {
@@ -124,6 +127,11 @@ class SingleScrapeController(
                 previewConfirm = null
             }
         }
+    }
+
+    internal fun showPreview(candidates: List<Video>) {
+        onPreviewCandidates(candidates)
+        singleScrapeDialogState = SingleScrapeDialogState.Preview(candidates)
     }
 
     /** Cancel the running single-scrape job and close the dialog. */
