@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -119,6 +121,62 @@ MAIN_HTML_WITH_IFRAME = SAMPLE_HTML.replace(
     '<div>透け透け体操服からスケル乳首。</div>',
     '<div><iframe data-iframe="description" src="/widget/article/1723984/description?ac=demo"></iframe></div>',
 )
+
+LD_PRODUCT = {
+    "@type": "Product",
+    "name": "Some English Title",
+    "image": {"url": "http://storage58000.contents.fc2.com/file/367/36632163/1615552591.1.jpg"},
+    "aggregateRating": {"ratingValue": 4.5, "bestRating": 5, "worstRating": 1, "reviewCount": 12},
+    "description": "Full description from JSON-LD.",
+}
+
+MULTILANG_HTML = f"""
+<html><head>
+<meta property="og:title" content="FC2-PPV-1723984 Some English Title"/>
+<script type="application/ld+json">{json.dumps(LD_PRODUCT)}</script>
+</head><body>
+<section class="items_article_wrapper">
+  <section class="items_article_header">
+    <section class="items_article_headerTitleInArea">
+      <div class="items_article_headerInfo">
+        <div class="items_article_softDevice"><p>Release Date : 2021/03/12</p></div>
+        <p>Product ID : FC2 PPV 1723984</p>
+      </div>
+      <div class="items_article_MainitemThumb">
+        <span><p class="items_article_info">01:01:02</p></span>
+      </div>
+      <section class="items_article_TagArea">
+        <h3>Tags</h3>
+        <a class="tag tagTag" data-tag="ブルマ" href="/search/?tag=x">ブルマ</a>
+      </section>
+    </section>
+  </section>
+</section>
+</body></html>
+"""
+
+
+@patch("scrapers.openaver.fc2.requests.Session")
+def test_search_parses_multilanguage_page_via_json_ld(mock_session_cls):
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = MULTILANG_HTML
+    mock_session.get.return_value = mock_resp
+
+    scraper = FC2Scraper()
+    result = scraper.search("FC2-PPV-1723984")
+
+    assert len(result) == 1
+    video = result[0]
+    assert video.title == "Some English Title"
+    assert video.date == "2021-03-12"
+    assert video.duration == 61
+    assert video.rating == 4.5
+    assert video.tags == ["ブルマ"]
+    assert video.cover_url == "https://storage58000.contents.fc2.com/file/367/36632163/1615552591.1.jpg"
+    assert video.summary == "Full description from JSON-LD."
 WIDGET_HTML = """
 <html><body>
 <div>

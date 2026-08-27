@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Optional
 
@@ -86,24 +87,47 @@ class FC2Scraper(BaseScraper):
         except (requests.Timeout, requests.ConnectionError):
             return ""
 
+    def _parse_ld_json(self, soup: BeautifulSoup) -> Optional[dict]:
+        node = soup.select_one("script[type='application/ld+json']")
+        if node is None or not node.string:
+            return None
+        try:
+            data = json.loads(node.string)
+        except (ValueError, TypeError):
+            return None
+        return data if isinstance(data, dict) else None
+
     def _parse(self, soup: BeautifulSoup, url: str, fc2_id: str) -> Optional[Video]:
-        og_title = soup.select_one('meta[property="og:title"]')
-        raw_title = og_title.get("content", "") if og_title else ""
-        if not raw_title:
+        ld = self._parse_ld_json(soup)
+
+        raw_title = (ld or {}).get("name") or ""
+        if not str(raw_title).strip():
+            og_title = soup.select_one('meta[property="og:title"]')
+            raw_title = (og_title.get("content", "") if og_title else "").strip()
+        if not str(raw_title).strip():
             return None
 
-        title = re.sub(r"^FC2[-\s]*PPV[-\s]*\d+\s*", "", raw_title, flags=re.IGNORECASE).strip()
+        title = re.sub(r"^FC2[-\s]*PPV[-\s]*\d+\s*", "", str(raw_title), flags=re.IGNORECASE).strip()
         number = f"FC2-PPV-{fc2_id}"
 
+        cover_url = ""
         cover_elem = soup.select_one('meta[property="og:image"]')
-        cover_url = (cover_elem.get("content", "") if cover_elem else "").strip()
+        if cover_elem:
+            cover_url = (cover_elem.get("content", "") or "").strip()
+        ld_image = (ld or {}).get("image")
+        if not cover_url and isinstance(ld_image, dict):
+            cover_url = str(ld_image.get("url", "")).strip()
+        if cover_url.startswith("//"):
+            cover_url = "https:" + cover_url
+        elif cover_url.startswith("http://"):
+            cover_url = "https://" + cover_url[len("http://"):]
 
         date = ""
         header_info = soup.select_one(".items_article_headerInfo")
         if header_info:
-            m = re.search(r"販売日\s*[:：]\s*(\d{4}/\d{2}/\d{2})", header_info.get_text())
+            m = re.search(r"\d{4}/\d{2}/\d{2}", header_info.get_text())
             if m:
-                date = m.group(1).replace("/", "-")
+                date = m.group(0).replace("/", "-")
 
         duration = None
         info_elem = soup.select_one("p.items_article_info")
@@ -113,11 +137,18 @@ class FC2Scraper(BaseScraper):
                 duration = int(m.group(1)) * 60 + int(m.group(2))
 
         rating = None
-        review = soup.select_one("section.items_article_reviewComp")
-        if review:
-            m = re.search(r"平均評価\s*([\d.]+)", review.get_text())
-            if m:
-                rating = float(m.group(1))
+        ld_rating = (ld or {}).get("aggregateRating")
+        if isinstance(ld_rating, dict):
+            try:
+                rating = float(ld_rating.get("ratingValue"))
+            except (TypeError, ValueError):
+                rating = None
+        if rating is None:
+            review = soup.select_one("section.items_article_reviewComp")
+            if review:
+                m = re.search(r"平均評価\s*([\d.]+)", review.get_text())
+                if m:
+                    rating = float(m.group(1))
 
         tags = []
         for a in soup.select("a.tag.tagTag"):
@@ -141,6 +172,8 @@ class FC2Scraper(BaseScraper):
             for heading in contents.select("h3"):
                 heading.decompose()
             summary = contents.get_text("\n", strip=True)
+        if not summary and (ld or {}).get("description"):
+            summary = re.sub(r"\s+", " ", str((ld or {}).get("description", ""))).strip()
         if not summary:
             og_desc = soup.select_one('meta[property="og:description"]')
             summary = (og_desc.get("content", "") if og_desc else "").strip()
@@ -158,6 +191,5 @@ class FC2Scraper(BaseScraper):
             source="fc2",
             detail_url=url,
         )
-
 
 ScraperRegistry.register(FC2Scraper)
