@@ -176,6 +176,23 @@ def test_search_normalizes_number(mock_session_cls):
     assert result.number == "SONE-205"
 
 
+@patch("scrapers.openaver.javbus.requests.Session")
+def test_search_duration_multilanguage(mock_session_cls):
+    for duration_text in ("120 分钟", "120 分鐘", "120 min"):
+        mock_session = MagicMock()
+        mock_session_cls.return_value = mock_session
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = SAMPLE_HTML.replace("120 分钟", duration_text)
+        mock_resp.url = "https://www.javbus.com/SONE-205"
+        mock_session.get.return_value = mock_resp
+
+        scraper = JavBusScraper()
+        result = scraper.search("SONE-205")
+
+        assert len(result) == 1
+        assert result[0].duration == 120, duration_text
+
 def test_normalize_number():
     scraper = JavBusScraper()
     assert scraper.normalize_number("SONE205") == "SONE-205"

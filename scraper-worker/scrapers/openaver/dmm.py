@@ -7,15 +7,12 @@ from bs4 import BeautifulSoup
 
 from scrapers.base import BaseScraper
 from scrapers.models import Video, Actress
+from scrapers.labels import (
+    DATE_LABELS, DIRECTOR_LABELS, DURATION_LABELS, LABEL_LABELS, MAKER_LABELS,
+    SERIES_LABELS, label_matches,
+)
 from scrapers.registry import ScraperRegistry
 
-
-_MAKER_LABELS = ("メーカー", "Maker", "片商", "制作商")
-_DATE_LABELS = ("配信開始日", "発売日", "Release Date", "發售日", "发行日期")
-_DURATION_LABELS = ("収録時間", "Length", "片長", "片长", "時間")
-_LABEL_LABELS = ("レーベル", "Label")
-_SERIES_LABELS = ("シリーズ", "Series", "系列")
-_DIRECTOR_LABELS = ("監督", "Director", "導演", "导演")
 
 
 class DMMScraper(BaseScraper):
@@ -102,21 +99,21 @@ class DMMScraper(BaseScraper):
                     if not th or not td:
                         continue
                     key = th.get_text(strip=True)
-                    if any(k in key for k in _DATE_LABELS):
+                    if label_matches(key, DATE_LABELS):
                         m = re.search(r"(\d{4}/\d{2}/\d{2})", td.get_text())
                         if m:
                             date = m.group(1).replace("/", "-")
-                    elif any(k in key for k in _DURATION_LABELS):
+                    elif label_matches(key, DURATION_LABELS):
                         m = re.search(r"(\d+)", td.get_text())
                         if m:
                             duration = int(m.group(1))
-                    elif any(k in key for k in _MAKER_LABELS):
+                    elif label_matches(key, MAKER_LABELS):
                         maker = td.get_text(strip=True)
-                    elif any(k in key for k in _LABEL_LABELS):
+                    elif label_matches(key, LABEL_LABELS):
                         label = td.get_text(strip=True)
-                    elif any(k in key for k in _SERIES_LABELS):
+                    elif label_matches(key, SERIES_LABELS):
                         series = td.get_text(strip=True)
-                    elif any(k in key for k in _DIRECTOR_LABELS):
+                    elif label_matches(key, DIRECTOR_LABELS):
                         director = td.get_text(strip=True)
 
                     for a in td.find_all("a"):
