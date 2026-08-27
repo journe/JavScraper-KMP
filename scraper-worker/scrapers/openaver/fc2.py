@@ -146,9 +146,11 @@ class FC2Scraper(BaseScraper):
         if rating is None:
             review = soup.select_one("section.items_article_reviewComp")
             if review:
-                m = re.search(r"平均評価\s*([\d.]+)", review.get_text())
-                if m:
-                    rating = float(m.group(1))
+                for section in review.find_all(recursive=False):
+                    m = re.search(r"(\d+(?:\.\d+)?)", section.get_text())
+                    if m:
+                        rating = float(m.group(1))
+                        break
 
         tags = []
         for a in soup.select("a.tag.tagTag"):

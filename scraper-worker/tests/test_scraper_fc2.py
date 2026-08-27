@@ -177,6 +177,50 @@ def test_search_parses_multilanguage_page_via_json_ld(mock_session_cls):
     assert video.tags == ["ブルマ"]
     assert video.cover_url == "https://storage58000.contents.fc2.com/file/367/36632163/1615552591.1.jpg"
     assert video.summary == "Full description from JSON-LD."
+
+NO_LD_MULTILANG_HTML = """
+<html><head>
+<meta property="og:title" content="FC2-PPV-1723984 Some English Title"/>
+</head><body>
+<section class="items_article_wrapper">
+  <section class="items_article_header">
+    <section class="items_article_headerTitleInArea">
+      <div class="items_article_headerInfo">
+        <div class="items_article_softDevice"><p>Release Date : 2021/03/12</p></div>
+        <p>Product ID : FC2 PPV 1723984</p>
+      </div>
+      <div class="items_article_MainitemThumb">
+        <span><p class="items_article_info">01:01:02</p></span>
+      </div>
+      <section class="items_article_Review">
+        <section class="items_article_reviewComp">
+          <section>Average Rating: 4.2</section>
+        </section>
+      </section>
+    </section>
+  </section>
+</section>
+</body></html>
+"""
+
+
+@patch("scrapers.openaver.fc2.requests.Session")
+def test_search_rating_fallback_without_json_ld(mock_session_cls):
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = NO_LD_MULTILANG_HTML
+    mock_session.get.return_value = mock_resp
+
+    scraper = FC2Scraper()
+    result = scraper.search("FC2-PPV-1723984")
+
+    assert len(result) == 1
+    video = result[0]
+    assert video.title == "Some English Title"
+    assert video.date == "2021-03-12"
+    assert video.rating == 4.2
 WIDGET_HTML = """
 <html><body>
 <div>
