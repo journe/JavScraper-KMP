@@ -139,6 +139,21 @@ class SettingsController(private val scope: CoroutineScope) {
         SettingsManager.update { it.copy(enabledSites = enabledSites) }
     }
 
+    /**
+     * 将启用站点与 worker 实际提供的站点同步：
+     * 新增站点默认启用，用户主动禁用的站点保持禁用，已下线站点被移除。
+     */
+    fun syncEnabledSites(availableSiteIds: List<String>) {
+        val result = mergeSiteLists(
+            currentEnabled = enabledSites,
+            currentKnown = SettingsManager.get().knownSites,
+            availableSiteIds = availableSiteIds
+        )
+        if (result.enabledSites == enabledSites && result.knownSites == SettingsManager.get().knownSites) return
+        enabledSites = result.enabledSites
+        SettingsManager.update { it.copy(enabledSites = result.enabledSites, knownSites = result.knownSites) }
+    }
+
     fun updateFolderLayer(index: Int, value: String) {
         folderLayers = folderLayers.toMutableList().also { it[index] = value }
         SettingsManager.update { it.copy(folderLayers = folderLayers) }
@@ -202,4 +217,32 @@ class SettingsController(private val scope: CoroutineScope) {
         onFileLoggingChanged(fileLoggingEnabled)
         onScrapeSettingsChanged()
     }
+}
+
+/** 站点同步结果：新的启用列表与已知站点列表。 */
+data class SiteSyncResult(
+    val enabledSites: List<String>,
+    val knownSites: List<String>
+)
+
+/**
+ * 纯函数：根据已知站点集合区分「新增站点」与「用户主动禁用的站点」。
+ * - 新增站点（available 中存在但 currentKnown 中没有）自动加入启用列表；
+ * - 用户禁用的站点（currentKnown 中有但 currentEnabled 中没有）保持禁用；
+ * - 已下线站点（currentKnown 中有但 available 中没有）从启用与已知列表移除。
+ */
+fun mergeSiteLists(
+    currentEnabled: List<String>,
+    currentKnown: List<String>,
+    availableSiteIds: List<String>
+): SiteSyncResult {
+    val available = availableSiteIds.distinct()
+    val availableSet = available.toSet()
+    val knownSet = currentKnown.toSet()
+    val retained = currentEnabled.distinct().filter { it in availableSet }
+    val added = available.filter { it !in knownSet }
+    return SiteSyncResult(
+        enabledSites = retained + added,
+        knownSites = available
+    )
 }

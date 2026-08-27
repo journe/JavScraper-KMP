@@ -52,6 +52,7 @@ class WorkerController(
                 mgr?.let { old -> if (old !== m) runCatching { old.stop() } }
                 mgr = m
                 sites = siteList
+                settings.syncEnabledSites(siteList.map { it.id })
                 orch = createScrapeOrchestrator(m)
                 onStatusChange(settings.strings.statusReady(siteList.size))
                 workerSetupVisible = false
