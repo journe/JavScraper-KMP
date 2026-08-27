@@ -10,6 +10,14 @@ from scrapers.models import Video, Actress
 from scrapers.registry import ScraperRegistry
 
 
+_MAKER_LABELS = ("メーカー", "Maker", "片商", "制作商")
+_DATE_LABELS = ("配信開始日", "発売日", "Release Date", "發售日", "发行日期")
+_DURATION_LABELS = ("収録時間", "Length", "片長", "片长", "時間")
+_LABEL_LABELS = ("レーベル", "Label")
+_SERIES_LABELS = ("シリーズ", "Series", "系列")
+_DIRECTOR_LABELS = ("監督", "Director", "導演", "导演")
+
+
 class DMMScraper(BaseScraper):
     BASE_URL = "https://www.dmm.co.jp"
 
@@ -94,21 +102,21 @@ class DMMScraper(BaseScraper):
                     if not th or not td:
                         continue
                     key = th.get_text(strip=True)
-                    if "配信開始日" in key or "発売日" in key:
+                    if any(k in key for k in _DATE_LABELS):
                         m = re.search(r"(\d{4}/\d{2}/\d{2})", td.get_text())
                         if m:
                             date = m.group(1).replace("/", "-")
-                    elif "収録時間" in key:
+                    elif any(k in key for k in _DURATION_LABELS):
                         m = re.search(r"(\d+)", td.get_text())
                         if m:
                             duration = int(m.group(1))
-                    elif "メーカー" in key:
+                    elif any(k in key for k in _MAKER_LABELS):
                         maker = td.get_text(strip=True)
-                    elif "レーベル" in key:
+                    elif any(k in key for k in _LABEL_LABELS):
                         label = td.get_text(strip=True)
-                    elif "シリーズ" in key:
+                    elif any(k in key for k in _SERIES_LABELS):
                         series = td.get_text(strip=True)
-                    elif "監督" in key:
+                    elif any(k in key for k in _DIRECTOR_LABELS):
                         director = td.get_text(strip=True)
 
                     for a in td.find_all("a"):

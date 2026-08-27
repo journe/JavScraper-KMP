@@ -64,7 +64,7 @@ class AVSOXScraper(BaseScraper):
                     m = re.search(r"(\d{4}-\d{2}-\d{2})", text)
                     if m:
                         date = m.group(1)
-                    m = re.search(r"(\d+)\s*分鐘", text)
+                    m = re.search(r"(\d+)\s*(?:分鐘|分钟|min)", text)
                     if m:
                         duration = int(m.group(1))
 

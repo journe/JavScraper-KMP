@@ -10,6 +10,13 @@ from scrapers.models import Video, Actress
 from scrapers.registry import ScraperRegistry
 
 
+_DATE_LABELS = ("日期", "Release Date", "發行日期", "发行日期")
+_MAKER_LABELS = ("片商", "製作", "Maker", "制作商")
+_DIRECTOR_LABELS = ("導演", "Director", "导演")
+_SERIES_LABELS = ("系列", "Series")
+_RATING_LABELS = ("評分", "Rating", "评分")
+
+
 class JavDBScraper(BaseScraper):
     BASE_URL = "https://javdb.com"
 
@@ -91,15 +98,15 @@ class JavDBScraper(BaseScraper):
             if not value_elem:
                 continue
 
-            if "日期" in label_text:
+            if any(k in label_text for k in _DATE_LABELS):
                 date = value_elem.get_text(strip=True)
-            elif "片商" in label_text or "製作" in label_text:
+            elif any(k in label_text for k in _MAKER_LABELS):
                 maker = value_elem.get_text(strip=True)
-            elif "導演" in label_text:
+            elif any(k in label_text for k in _DIRECTOR_LABELS):
                 director = value_elem.get_text(strip=True)
-            elif "系列" in label_text:
+            elif any(k in label_text for k in _SERIES_LABELS):
                 series = value_elem.get_text(strip=True)
-            elif "評分" in label_text:
+            elif any(k in label_text for k in _RATING_LABELS):
                 m = re.search(r"([0-9.]+)", value_elem.get_text(strip=True))
                 if m:
                     rating = float(m.group(1))

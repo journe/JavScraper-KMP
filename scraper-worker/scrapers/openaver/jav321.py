@@ -10,6 +10,14 @@ from scrapers.models import Video, Actress
 from scrapers.registry import ScraperRegistry
 
 
+_MAKER_LABELS = ("メーカー", "Maker", "片商", "制作商")
+_DATE_LABELS = ("発売日", "Release Date", "發售日", "发行日期")
+_DURATION_LABELS = ("出演時間", "Length", "片長", "片长", "時間")
+_SERIES_LABELS = ("シリーズ", "Series", "系列")
+_RATING_LABELS = ("平均評価", "Rating", "評分", "评分")
+_DIRECTOR_LABELS = ("監督", "Director", "導演", "导演")
+
+
 class Jav321Scraper(BaseScraper):
     BASE_URL = "https://www.jav321.com"
 
@@ -62,33 +70,33 @@ class Jav321Scraper(BaseScraper):
             if col9:
                 for b in col9.find_all("b"):
                     label = b.get_text(strip=True)
-                    if label == "メーカー":
+                    if any(k in label for k in _MAKER_LABELS):
                         a_tag = b.find_next("a")
                         if a_tag:
                             maker = a_tag.get_text(strip=True)
-                    elif label == "発売日":
+                    elif any(k in label for k in _DATE_LABELS):
                         sibling = b.next_sibling
                         if sibling:
                             m = re.search(r"(\d{4}-\d{2}-\d{2})", str(sibling))
                             if m:
                                 date = m.group(1)
-                    elif label == "出演時間":
+                    elif any(k in label for k in _DURATION_LABELS):
                         sibling = b.next_sibling
                         if sibling:
                             m = re.search(r"(\d+)", str(sibling))
                             if m:
                                 duration = int(m.group(1))
-                    elif label == "シリーズ":
+                    elif any(k in label for k in _SERIES_LABELS):
                         a_tag = b.find_next("a")
                         if a_tag:
                             series = a_tag.get_text(strip=True)
-                    elif label == "平均評価":
+                    elif any(k in label for k in _RATING_LABELS):
                         sibling = b.next_sibling
                         if sibling:
                             m = re.search(r"([0-9.]+)", str(sibling))
                             if m:
                                 rating = float(m.group(1))
-                    elif label == "監督":
+                    elif any(k in label for k in _DIRECTOR_LABELS):
                         a_tag = b.find_next("a")
                         if a_tag:
                             director = a_tag.get_text(strip=True)

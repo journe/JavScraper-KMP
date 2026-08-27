@@ -56,7 +56,7 @@ class JavBusScraper(BaseScraper):
             m = re.search(r"(\d{4}-\d{2}-\d{2})", t)
             if m:
                 date = m.group(1)
-            m = re.search(r"(\d+)\s*分钟", t)
+            m = re.search(r"(\d+)\s*(?:分钟|分鐘|min)", t)
             if m:
                 duration = int(m.group(1))
 
