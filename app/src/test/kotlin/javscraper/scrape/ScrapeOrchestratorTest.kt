@@ -37,6 +37,33 @@ class ScrapeOrchestratorTest {
         assertEquals("", sf.number)
     }
     @Test
+    fun `writeToDisk names shared NFO after formatted filename without part suffix`() {
+        val output = createTempDirectory("javscraper-nfo-name").toFile()
+        val source = output.resolve("ABC-001-cd1.mp4")
+        source.writeText("video")
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            outputDir = output.absolutePath,
+            createMovieFolders = true,
+            folderLayers = emptyList(),
+            downloadImages = false,
+            filenameFormat = "{num} {title}{suffix}",
+            suffixKeywords = listOf("-cd1")
+        )
+
+        runTest {
+            val result = orchestrator.writeToDisk(
+                listOf(ScannedFile(source.absolutePath, source.name, "ABC-001")),
+                Video(number = "ABC-001", title = "Test")
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            assertTrue(output.resolve("ABC-001 Test-cd1.mp4").isFile)
+            assertTrue(output.resolve("ABC-001 Test.nfo").isFile)
+            assertFalse(output.resolve(".nfo").isFile)
+        }
+    }
+    @Test
     fun `writeToDisk reports failure when source file is missing`() {
         val output = createTempDirectory("javscraper-io-failure").toFile()
         val source = output.resolve("missing-source.mp4")

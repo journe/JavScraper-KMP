@@ -57,7 +57,7 @@ class ScrapeOrchestrator(
             ioErrors += "Directory creation failed: ${e.message}"
         }
         try {
-            Files.writeString(firstPaths.folder.resolve(".nfo"), NfoWriter.generate(video))
+            Files.writeString(firstPaths.folder.resolve(firstPaths.nfoBase + ".nfo"), NfoWriter.generate(video))
         } catch (e: Exception) {
             log.error(e) { "NFO failed" }
             ioErrors += "NFO failed: ${e.message}"

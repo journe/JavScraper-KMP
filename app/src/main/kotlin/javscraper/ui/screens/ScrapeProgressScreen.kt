@@ -71,16 +71,7 @@ fun ScrapeProgressScreen(
     val onStartAll = actions.onStartAll
     val onCancel = actions.onCancel
     val onSingleScrapeClick = actions.onSingleScrapeClick
-    val singleScrapeDialogState = state.singleScrapeDialogState
-    val singleScrapeNumber = state.singleScrapeNumber
-    val singleScrapeSite = state.singleScrapeSite
-    val singleScrapeTask = state.singleScrapeTask
-    val sites = state.sites
-    val onSingleScrapeNumberChange = actions.onSingleScrapeNumberChange
-    val onSingleScrapeSiteChange = actions.onSingleScrapeSiteChange
-    val onStartSingleScrape = actions.onStartSingleScrape
-    val onCloseSingleScrape = actions.onCloseSingleScrape
-    val onConfirmScrapeResult = actions.onConfirmScrapeResult
+
     val done = tasks.count { it.status == ScrapeTaskStatus.SUCCESS || it.status == ScrapeTaskStatus.FAILED }
     val ok = tasks.count { it.status == ScrapeTaskStatus.SUCCESS }
     val progress = if (tasks.isNotEmpty()) done.toFloat() / tasks.size else 0f

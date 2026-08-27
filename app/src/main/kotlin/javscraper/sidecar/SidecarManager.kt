@@ -260,7 +260,7 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
                 stdin?.newLine()
                 stdin?.flush()
             }
-            val response = withTimeout(60_000) { deferred.await() }
+            val response = withTimeout(15_000) { deferred.await() }
             log.info {
                 "JSON-RPC response: id=$id, elapsedMs=${System.currentTimeMillis() - startedAt}"
             }
