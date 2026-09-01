@@ -62,7 +62,7 @@ private fun InputDialog(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        state.outputDir.ifBlank { t.singleScrapeOutputDirMissing },
+                        state.outputDir.ifBlank { t.commonNotSet },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (state.outputDir.isBlank()) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -82,7 +82,7 @@ private fun InputDialog(
                 OutlinedTextField(
                     value = number,
                     onValueChange = actions.onSingleScrapeNumberChange,
-                    label = { Text(t.singleScrapeNumberLabel) },
+                    label = { Text(t.commonNumber) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -93,10 +93,10 @@ private fun InputDialog(
             Button(
                 onClick = actions.onStartSingleScrape,
                 enabled = number.isNotBlank()
-            ) { Text(t.singleScrapeStart) }
+            ) { Text(t.commonStartScraping) }
         },
         dismissButton = {
-            TextButton(onClick = actions.onCloseSingleScrape) { Text(t.progressCancel) }
+            TextButton(onClick = actions.onCloseSingleScrape) { Text(t.commonCancel) }
         }
     )
 }
@@ -205,7 +205,7 @@ private fun PreviewDialog(
             Button(onClick = actions.onConfirmPreviewWrite) { Text(t.singleScrapeWriteConfirm) }
         },
         dismissButton = {
-            TextButton(onClick = actions.onCancelPreviewWrite) { Text(t.progressCancel) }
+            TextButton(onClick = actions.onCancelPreviewWrite) { Text(t.commonCancel) }
         }
     )
 }

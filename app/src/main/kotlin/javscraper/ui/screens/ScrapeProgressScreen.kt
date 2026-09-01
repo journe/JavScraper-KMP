@@ -81,7 +81,7 @@ fun ScrapeProgressScreen(
             if (isRunning) Button(
                 onClick = onCancel,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Icon(Icons.Default.Stop, null); Spacer(Modifier.width(8.dp)); Text(t.progressCancel) }
+            ) { Icon(Icons.Default.Stop, null); Spacer(Modifier.width(8.dp)); Text(t.commonCancel) }
             else if (tasks.isNotEmpty()) Button(onClick = onStartAll) {
                 Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(t.progressStartAll)
             }

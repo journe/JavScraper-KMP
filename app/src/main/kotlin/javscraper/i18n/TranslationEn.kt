@@ -24,22 +24,20 @@ open class TranslationEn {
     open val navScrape: String = "Scrape"
     open val navGallery: String = "Gallery"
     open val navNetworkPreview: String = "Network"
-    open val navSettings: String = "Settings"
 
     // --- Scan screen ---
     open val scanTitle: String = "File Scanner"
-    open val scanDirectoryLabel: String = "Scan Directory"
     open val scanButtonScanning: String = "Scanning..."
     open val scanButtonScan: String = "Scan for Videos"
-    open val scanButtonScrape: String = "Start Scraping"
     open val scanNoNumber: String = "No number"
+    open val scanScraped: String = "Scraped"
     open val scanEmptyHint: String = "Select a directory and scan"
 
     open fun scanFound(count: Int): String = "Found $count videos with JAV numbers"
+    open fun scanSkipped(count: Int): String = "$count videos already scraped and will be skipped"
 
     // --- Progress screen ---
     open val progressTitle: String = "Scraping Progress"
-    open val progressCancel: String = "Cancel"
     open val progressStartAll: String = "Start All"
 
     open fun progressCompleted(ok: Int, total: Int): String = "$ok / $total completed"
@@ -47,10 +45,13 @@ open class TranslationEn {
     // --- Gallery screen ---
     open val galleryTitle: String = "Scrape Results"
     open val galleryOpenOutput: String = "Open Output"
-    open val galleryClear: String = "Clear"
+    open val galleryClear: String = "Clear Results"
     open val galleryEmptyHint: String = "No results yet"
+    open val galleryScrapedFiles: String = "Already scraped files"
 
     open fun galleryCount(n: Int): String = "$n movies scraped"
+
+    open fun galleryScrapedCount(n: Int): String = "$n videos already scraped"
 
     // --- Network preview screen ---
     open val networkPreviewTitle: String = "Network Results"
@@ -59,18 +60,15 @@ open class TranslationEn {
 
     open fun networkPreviewCount(n: Int): String = "$n network results"
     // --- Settings screen ---
-    open val settingsTitle: String = "Settings"
     open val settingsTabDirectories: String = "Directories"
     open val settingsTabScraping: String = "Scraping"
     open val settingsTabOther: String = "Other"
     open val settingsWorkerPath: String = "Worker Path"
-    open val settingsScanDir: String = "Scan Directory"
     open val settingsScanRecursive: String = "Scan subdirectories"
     open val settingsOutputDir: String = "Output Directory"
     open val settingsMovieFolders: String = "Movie folders"
     open val settingsHardlinks: String = "Hardlinks"
     open val settingsDownloadImages: String = "Download images"
-    open val settingsScraperSites: String = "Scraper Sites"
     open val settingsTestSites: String = "Test Sites"
     open val settingsTestSitesTitle: String = "Site Connectivity Test"
     open val settingsTestSitesRunning: String = "Testing site connections..."
@@ -98,26 +96,29 @@ open class TranslationEn {
     open val settingsSuffixKeywordsHint: String = "Comma-separated, e.g. -cd1,-cd2,-4k"
     open val settingsRenameVariables: String = "Available: {num} {title} {actor} {actors} {maker} {label} {series} {director} {date} {year} {month} {day} {suffix}"
     open val settingsAdvanced: String = "Advanced"
-    open val settingsFolderLayerPlaceholder: String = "e.g. {num} {title}"
-    open val settingsFilenamePlaceholder: String = "e.g. {num} {title}"
 
 
     // --- StatusBar ---
-    open val statusbarTitle: String = "Scraper Sites"
 
     // --- Common ---
     open val commonBrowse: String = "Browse"
+    open val commonApplicationLogs: String = "Application Logs"
+    open val commonCancel: String = "Cancel"
+    open val commonNamingExample: String = "e.g. {num} {title}"
+    open val commonNotSet: String = "Not set"
+    open val commonNumber: String = "Number"
+    open val commonScanDirectory: String = "Scan Directory"
+    open val commonScraperSites: String = "Scraper Sites"
+    open val commonSettings: String = "Settings"
+    open val commonStartScraping: String = "Start Scraping"
 
     // --- Single Scrape Dialog ---
     open val singleScrapeTitle: String = "Single Scrape"
-    open val singleScrapeNumberLabel: String = "Number"
     open val singleScrapeSiteLabel: String = "Scraper Site"
     open val singleScrapeSiteAuto: String = "Auto"
-    open val singleScrapeStart: String = "Start Scraping"
     open val singleScrapeInProgress: String = "Scraping in progress..."
     open val singleScrapeResultTitle: String = "Scrape Result"
     open val singleScrapeResultError: String = "Error"
-    open val singleScrapeOutputDirMissing: String = "Not set"
     open val singleScrapeMissingOutputTitle: String = "Output Directory Not Set"
     open val singleScrapeMissingOutputMessage: String = "Please set the output directory in Settings before scraping."
     open val singleScrapeCancelJob: String = "Cancel Scraping"
@@ -125,13 +126,10 @@ open class TranslationEn {
     open val singleScrapeWriteConfirm: String = "Confirm & Write"
     open val singleScrapeWriteProgress: String = "Writing files..."
     open val singleScrapeFailedTitle: String = "Scrape Failed"
-    open val logsTitle: String = "Application Logs"
     open val logsEmpty: String = "No logs in the current application lifecycle."
     open val logsFilePath: String = "Log file"
-    open val navLogs: String = "Application logs"
     open val settingsFileLogging: String = "File Logging"
     open val settingsFileLoggingDescription: String = "Append lifecycle logs to the local log file in real time."
-    open val videoFieldNumber: String = "Number"
     open val videoFieldTitle: String = "Title"
     open val videoFieldActresses: String = "Actresses"
     open val videoFieldDate: String = "Date"
@@ -148,13 +146,11 @@ open class TranslationEn {
     open val videoFieldSummary: String = "Summary"
     open val videoFieldSource: String = "Source"
     open val videoFieldDetailUrl: String = "Detail URL"
-    open val videoFieldNotSet: String = "Not set"
     // --- Worker setup dialog ---
     open val workerSetupTitle: String = "Worker Not Running"
     open val workerSetupMessage: String = "Unable to start scraper-worker.exe. Please select the correct path to the worker executable."
     open val workerSetupSelect: String = "Select File..."
     open val workerSetupSelectTitle: String = "Select scraper-worker.exe"
-    open val workerSetupCancel: String = "Cancel"
 
     open val commonConfirm: String = "Confirm"
 }

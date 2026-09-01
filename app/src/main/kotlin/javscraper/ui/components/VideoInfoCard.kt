@@ -73,7 +73,7 @@ fun VideoInfoCard(video: Video, modifier: Modifier = Modifier) {
 
 internal fun videoInfoRows(video: Video, t: TranslationEn): List<VideoInfoRow> {
     val fields: List<Pair<String, String?>> = listOf(
-        t.videoFieldNumber to video.number,
+        t.commonNumber to video.number,
         t.videoFieldTitle to video.title,
         t.videoFieldActresses to video.actresses.joinToString(", "),
         t.videoFieldDate to video.date,
@@ -96,7 +96,7 @@ internal fun videoInfoRows(video: Video, t: TranslationEn): List<VideoInfoRow> {
         val empty = normalizedValue.isBlank()
         VideoInfoRow(
             label = label,
-            value = if (empty) t.videoFieldNotSet else normalizedValue,
+            value = if (empty) t.commonNotSet else normalizedValue,
             isEmpty = empty
         )
     }

@@ -1,4 +1,4 @@
-﻿package javscraper.io
+package javscraper.io
 
 import javscraper.models.ScannedFile
 import mu.KotlinLogging
@@ -56,7 +56,8 @@ object FileScanner {
                     ScannedFile(
                         f.toAbsolutePath().toString(),
                         f.fileName.toString(),
-                        extractNumber(f.fileName.toString())
+                        extractNumber(f.fileName.toString()),
+                        hasMatchingNfo(f)
                     )
                 }.toList()
             }
@@ -65,6 +66,11 @@ object FileScanner {
         }
     }
 
+    private fun hasMatchingNfo(video: Path): Boolean {
+        val videoName = video.fileName.toString()
+        val nfoName = videoName.substringBeforeLast('.', videoName) + ".nfo"
+        return Files.isRegularFile(video.resolveSibling(nfoName))
+    }
     fun isVideo(p: Path): Boolean =
         p.fileName.toString().substringAfterLast(".", "").lowercase() in VIDEO_EXTS
 

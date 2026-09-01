@@ -1,4 +1,4 @@
-﻿package javscraper.ui.components
+package javscraper.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.*
@@ -25,7 +25,7 @@ data class ScraperState(
 fun ScraperStatusBar(scrapers: List<ScraperState>, modifier: Modifier = Modifier) {
     val t = LocalTranslations.current
     Column(modifier = modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(t.statusbarTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(t.commonScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         scrapers.forEach { scraper ->
             val c by animateColorAsState(
                 targetValue = when (scraper.status) {

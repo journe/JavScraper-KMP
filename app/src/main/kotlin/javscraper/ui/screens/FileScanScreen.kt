@@ -18,6 +18,7 @@ import javscraper.models.ScannedFile
 /** Bundled scan-screen state to reduce parameter count on [FileScanScreen]. */
 data class FileScanState(
     val scannedFiles: List<ScannedFile>,
+    val scrapedFiles: List<ScannedFile>,
     val scanDir: String,
     val isScanning: Boolean
 )
@@ -37,6 +38,7 @@ fun FileScanScreen(
 ) {
     val t = LocalTranslations.current
     val scannedFiles = state.scannedFiles
+    val scrapedFiles = state.scrapedFiles
     val scanDir = state.scanDir
     val isScanning = state.isScanning
     val onSelectDirectory = actions.onSelectDirectory
@@ -48,7 +50,7 @@ fun FileScanScreen(
         OutlinedTextField(
             value = scanDir,
             onValueChange = {},
-            label = { Text(t.scanDirectoryLabel) },
+            label = { Text(t.commonScanDirectory) },
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = onSelectDirectory) {
@@ -70,12 +72,12 @@ fun FileScanScreen(
             }
             Button(
                 onClick = onStartScrape,
-                enabled = scannedFiles.isNotEmpty() && !isScanning,
+                enabled = scannedFiles.any { !it.isScraped } && !isScanning,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
                 Icon(Icons.Default.CloudDownload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(t.scanButtonScrape)
+                Text(t.commonStartScraping)
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -84,6 +86,11 @@ fun FileScanScreen(
                 t.scanFound(scannedFiles.count { it.number.isNotBlank() }),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (scrapedFiles.isNotEmpty()) Text(
+                t.scanSkipped(scrapedFiles.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary
             )
             Spacer(Modifier.height(8.dp))
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
@@ -109,24 +116,39 @@ fun FileScanScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            if (file.number.isNotBlank()) {
-                                Surface(
-                                    shape = MaterialTheme.shapes.small,
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (file.isScraped) {
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Text(
+                                            t.scanScraped,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                if (file.number.isNotBlank()) {
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            file.number,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                } else {
                                     Text(
-                                        file.number,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        t.scanNoNumber,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error
                                     )
                                 }
-                            } else {
-                                Text(
-                                    t.scanNoNumber,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
                             }
                         }
                     }

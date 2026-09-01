@@ -50,7 +50,7 @@ fun WorkerSetupDialog(
             Button(onClick = onSelect) { Text(t.workerSetupSelect) }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text(t.workerSetupCancel) }
+            TextButton(onClick = onCancel) { Text(t.commonCancel) }
         }
     )
 }

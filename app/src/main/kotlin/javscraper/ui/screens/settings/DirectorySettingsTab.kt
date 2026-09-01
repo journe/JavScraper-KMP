@@ -21,7 +21,7 @@ import javscraper.i18n.LocalTranslations
 fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text(t.settingsScanDir, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(t.commonScanDirectory, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         OutlinedTextField(
             value = state.scanDir, onValueChange = {}, readOnly = true,
             modifier = Modifier.fillMaxWidth(), singleLine = true,
@@ -61,7 +61,7 @@ fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
                         onValueChange = { actions.onFolderLayerChange(index, it) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        placeholder = { Text(t.settingsFolderLayerPlaceholder) }
+                        placeholder = { Text(t.commonNamingExample) }
                     )
                     VariableInsertButton { v -> actions.onFolderLayerChange(index, layer + v) }
                     IconButton(onClick = { actions.onRemoveLayer(index) }) {
@@ -83,7 +83,7 @@ fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
                 onValueChange = actions.onFilenameFormatChange,
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                placeholder = { Text(t.settingsFilenamePlaceholder) }
+                placeholder = { Text(t.commonNamingExample) }
             )
             VariableInsertButton { v -> actions.onFilenameFormatChange(state.filenameFormat + v) }
         }

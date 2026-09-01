@@ -26,7 +26,7 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
     var checkDialogVisible by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text(t.settingsScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(t.commonScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         SiteSelector(
             sites = state.sites.map { SiteItem(it.id, it.name, it.id in state.enabledSiteIds) },

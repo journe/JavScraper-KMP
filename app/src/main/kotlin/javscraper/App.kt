@@ -67,13 +67,13 @@ fun App() {
                             IconButton(onClick = { logsVisible = true }) {
                                 Icon(
                                     Icons.Default.Description,
-                                    contentDescription = t.navLogs
+                                    contentDescription = t.commonApplicationLogs
                                 )
                             }
                             IconButton(onClick = { viewModel.navigate(Screen.SETTINGS) }) {
                                 Icon(
                                     Icons.Default.Settings,
-                                    contentDescription = t.navSettings,
+                                    contentDescription = t.commonSettings,
                                     tint = if (viewModel.currentScreen == Screen.SETTINGS)
                                         MaterialTheme.colorScheme.primary
                                     else
@@ -90,7 +90,7 @@ fun App() {
                         currentScreen = viewModel.currentScreen,
                         onNavigate = viewModel::navigate,
                         scrapeEnabled = viewModel.tasks.isNotEmpty(),
-                        galleryEnabled = viewModel.results.isNotEmpty()
+                        galleryEnabled = viewModel.results.isNotEmpty() || viewModel.scrapedFiles.isNotEmpty()
                     )
                     Box(Modifier.weight(1f)) {
                         when (viewModel.currentScreen) {

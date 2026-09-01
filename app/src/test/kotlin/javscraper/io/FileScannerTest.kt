@@ -1,4 +1,4 @@
-﻿package javscraper.io
+package javscraper.io
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -170,6 +170,27 @@ class FileScannerTest {
             val result = FileScanner.scanDirectory(tmpDir, recursive = false)
             assertEquals(1, result.size)
             assertEquals("SONE-205", result[0].number)
+        } finally {
+            Files.walk(tmpDir).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
+    fun `scanDirectory marks matching nfo as scraped and missing nfo as pending`() {
+        val tmpDir = Files.createTempDirectory("javscanner-test-")
+        try {
+            val scrapedVideo = tmpDir.resolve("SONE-205.mp4")
+            Files.createFile(scrapedVideo)
+            Files.createFile(tmpDir.resolve("SONE-205.nfo"))
+            val pendingVideo = tmpDir.resolve("ABP-123.mp4")
+            Files.createFile(pendingVideo)
+            Files.createFile(tmpDir.resolve("OTHER-001.nfo"))
+
+            val result = FileScanner.scanDirectory(tmpDir, recursive = false)
+
+            assertEquals(2, result.size)
+            assertEquals(true, result.first { it.fileName == "SONE-205.mp4" }.isScraped)
+            assertEquals(false, result.first { it.fileName == "ABP-123.mp4" }.isScraped)
         } finally {
             Files.walk(tmpDir).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
         }

@@ -43,7 +43,7 @@ fun LogsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(translations.logsTitle) },
+        title = { Text(translations.commonApplicationLogs) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(

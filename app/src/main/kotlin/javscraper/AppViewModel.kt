@@ -68,6 +68,8 @@ class AppViewModel(private val scope: CoroutineScope) {
     // --- Scan state ---
     var scannedFiles by mutableStateOf<List<ScannedFile>>(emptyList())
         private set
+    var scrapedFiles by mutableStateOf<List<ScannedFile>>(emptyList())
+        private set
     var scanning by mutableStateOf(false)
         private set
 
@@ -183,12 +185,14 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun startScan() {
         scope.launch {
             scanning = true
-            scannedFiles = FileScanner.scanDirectory(
+            val allFiles = FileScanner.scanDirectory(
                 Paths.get(scanDir), scanRecursive
             )
+            scrapedFiles = allFiles.filter { it.isScraped }
+            scannedFiles = allFiles
             scanning = false
             val groups = scannedFiles
-                .filter { it.number.isNotBlank() }
+                .filter { !it.isScraped && it.number.isNotBlank() }
                 .groupBy { it.number }
             tasks = groups.map { (number, groupedFiles) ->
                 ScrapeTask(
@@ -214,7 +218,7 @@ class AppViewModel(private val scope: CoroutineScope) {
                     updated[i] = t.copy(status = ScrapeTaskStatus.SCRAPING)
                     tasks = updated
 
-                    val taskFiles = scannedFiles.filter { it.number == t.number }
+                        val taskFiles = scannedFiles.filter { it.number == t.number && !it.isScraped }
                     if (taskFiles.isNotEmpty()) {
                         try {
                             val r = withContext(Dispatchers.IO) { o.processParts(taskFiles) }
@@ -284,7 +288,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     // --- UI state mappings (consumed by App.kt; screens stay stateless) ---
 
     val scanState: FileScanState
-        get() = FileScanState(scannedFiles, scanDir, scanning)
+        get() = FileScanState(scannedFiles, scrapedFiles, scanDir, scanning)
     val scanActions: FileScanActions = FileScanActions(
         ::selectScanDir, ::startScan, { navigate(Screen.PROGRESS) }
     )
@@ -304,7 +308,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     )
 
     val galleryState: GalleryState
-        get() = GalleryState(results, outputDir)
+        get() = GalleryState(results, scrapedFiles, outputDir)
     val galleryActions: GalleryActions = GalleryActions(::clearResults, {})
 
     val networkPreviewState: NetworkPreviewState

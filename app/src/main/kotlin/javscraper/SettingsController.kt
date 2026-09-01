@@ -55,7 +55,7 @@ class SettingsController(private val scope: CoroutineScope) {
     fun selectScanDir() {
         scope.launch(Dispatchers.IO) {
             try {
-                val dir = pickDirectory(strings.scanDirectoryLabel, scanDir.ifBlank { null })
+                val dir = pickDirectory(strings.commonScanDirectory, scanDir.ifBlank { null })
                 if (dir != null) {
                     withContext(Dispatchers.Main) {
                         scanDir = dir

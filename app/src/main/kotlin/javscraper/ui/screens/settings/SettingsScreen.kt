@@ -86,7 +86,7 @@ fun SettingsScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     Column(modifier.fillMaxSize().padding(16.dp)) {
-        Text(t.settingsTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(t.commonSettings, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
         FloatingSettingsTabs(selectedTab, t, onSelect = { selectedTab = it })
         Spacer(Modifier.height(16.dp))
