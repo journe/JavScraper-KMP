@@ -16,7 +16,11 @@ data class Video(
 )
 
 @Serializable
-data class ScrapeResult(val success: Boolean, val data: Video? = null, val error: ScrapeError? = null)
+data class ScrapeResult(
+    val success: Boolean,
+    val data: Video? = null,
+    val error: ScrapeError? = null
+)
 
 @Serializable
 data class ScrapeError(val code: Int = -1, val message: String = "")
@@ -24,7 +28,8 @@ data class ScannedFile(
     val path: String,
     val fileName: String,
     val number: String = "",
-    val isScraped: Boolean = false
+    val isScraped: Boolean = false,
+    val metadata: Video? = null
 )
 
 @Serializable
@@ -56,5 +61,6 @@ sealed interface SingleScrapeDialogState {
             return copy(selectedIndex = index.coerceIn(0, candidates.lastIndex))
         }
     }
+
     data class Result(val video: Video?, val error: String?) : SingleScrapeDialogState
 }

@@ -15,10 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
+import javscraper.i18n.TranslationZh
 import javscraper.models.ScannedFile
 import javscraper.models.Video
 import javscraper.ui.components.PosterCard
+import javscraper.ui.theme.JavScraperTheme
 
 /** Bundled gallery state to reduce parameter count on [ResultGalleryScreen]. */
 data class GalleryState(
@@ -126,20 +129,16 @@ private fun EmptyGallery() {
 
 @Composable
 private fun ScrapedFileCard(file: ScannedFile) {
+    val metadata = file.metadata
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
             Column(Modifier.weight(1f)) {
                 Text(
-                    file.fileName,
+                    metadata?.title?.takeIf { it.isNotBlank() } ?: file.fileName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
@@ -152,19 +151,63 @@ private fun ScrapedFileCard(file: ScannedFile) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (metadata != null) {
+                    val details = listOfNotNull(
+                        metadata.actresses.takeIf { it.isNotEmpty() }?.joinToString(", "),
+                        metadata.maker.takeIf { it.isNotBlank() },
+                        metadata.date.takeIf { it.isNotBlank() },
+                        metadata.duration?.takeIf { it > 0 }?.let { "$it min" }
+                    ).joinToString(" · ")
+                    if (details.isNotBlank()) Text(
+                        details,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-            if (file.number.isNotBlank()) {
+            val number = metadata?.number?.takeIf { it.isNotBlank() } ?: file.number
+            if (number.isNotBlank()) {
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        file.number,
+                        number,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ScrapedFileCardPreview() {
+    CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
+        JavScraperTheme {
+            Column(
+                modifier = Modifier.padding(16.dp).width(420.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ScrapedFileCard(
+                    ScannedFile(
+                        path = "F:/Videos/SONE-001.mp4",
+                        fileName = "SONE-001.mp4",
+                        number = "SONE-001",
+                        isScraped = true
+                    )
+                )
+                ScrapedFileCard(
+                    ScannedFile(
+                        path = "F:/Movies/这是一个用于预览的超长视频文件名称并且没有识别出番号.mp4",
+                        fileName = "这是一个用于预览的超长视频文件名称并且没有识别出番号.mp4"
+                    )
+                )
             }
         }
     }

@@ -53,11 +53,13 @@ object FileScanner {
         return try {
             s.use {
                 it.filter { Files.isRegularFile(it) }.filter { isVideo(it) }.map { f ->
+                    val nfoFile = findMatchingNfo(f)
                     ScannedFile(
                         f.toAbsolutePath().toString(),
                         f.fileName.toString(),
                         extractNumber(f.fileName.toString()),
-                        hasMatchingNfo(f)
+                        nfoFile != null,
+                        nfoFile?.let(NfoReader::read)
                     )
                 }.toList()
             }
@@ -66,11 +68,13 @@ object FileScanner {
         }
     }
 
-    private fun hasMatchingNfo(video: Path): Boolean {
+    private fun findMatchingNfo(video: Path): Path? {
         val videoName = video.fileName.toString()
         val nfoName = videoName.substringBeforeLast('.', videoName) + ".nfo"
-        return Files.isRegularFile(video.resolveSibling(nfoName))
+        val nfo = video.resolveSibling(nfoName)
+        return nfo.takeIf { Files.isRegularFile(it) }
     }
+
     fun isVideo(p: Path): Boolean =
         p.fileName.toString().substringAfterLast(".", "").lowercase() in VIDEO_EXTS
 
