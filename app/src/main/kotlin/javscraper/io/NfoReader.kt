@@ -14,12 +14,14 @@ import javax.xml.parsers.DocumentBuilderFactory
 object NfoReader {
     private val log = KotlinLogging.logger {}
     private val bareAmpersand = Regex("&(?!amp;|lt;|gt;|quot;|apos;|#)")
+    private val xmlDeclaration = Regex("<\\?xml[^>]*\\?+>")
 
     fun read(path: Path): Video? {
         if (!Files.isRegularFile(path)) return null
         return try {
-            val content = bareAmpersand.replace(Files.readString(path), "&amp;")
-            val document = newDocumentBuilder().parse(InputSource(StringReader(content)))
+            val content = keepFirstXmlDeclaration(Files.readString(path))
+            val safeContent = bareAmpersand.replace(content, "&amp;")
+            val document = newDocumentBuilder().parse(InputSource(StringReader(safeContent)))
             Video(
                 number = readNumber(document),
                 title = readText(document, "title").ifBlank { readNumber(document) },
@@ -101,6 +103,17 @@ object NfoReader {
         return null
     }
 
+    private fun keepFirstXmlDeclaration(content: String): String {
+        var seen = false
+        return xmlDeclaration.replace(content) { match ->
+            if (seen) {
+                ""
+            } else {
+                seen = true
+                match.value
+            }
+        }
+    }
     private fun normalizeDate(value: String): String {
         val match = Regex("(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})").find(value) ?: return value.trim()
         val (year, month, day) = match.destructured
