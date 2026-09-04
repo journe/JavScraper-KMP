@@ -21,7 +21,6 @@ import javscraper.i18n.TranslationZh
 import javscraper.models.ScannedFile
 import javscraper.models.Video
 import javscraper.ui.components.PosterCard
-import javscraper.ui.components.localPosterPath
 import javscraper.ui.theme.JavScraperTheme
 
 /** Bundled gallery state to reduce parameter count on [ResultGalleryScreen]. */
@@ -29,24 +28,17 @@ data class GalleryState(
     val scrapedFiles: List<ScannedFile>,
     val outputDir: String
 ) {
-    val entries: List<GalleryEntry>
-        get() = scrapedFiles.map(::toGalleryEntry)
+    val videos: List<Video>
+        get() = scrapedFiles.map(::toGalleryVideo)
 }
-
-data class GalleryEntry(
-    val video: Video,
-    val posterPath: String
-)
-
-private fun toGalleryEntry(file: ScannedFile): GalleryEntry =
-    GalleryEntry(toGalleryVideo(file), localPosterPath(file.path))
 
 private fun toGalleryVideo(file: ScannedFile): Video {
     val metadata = file.metadata
     return metadata?.copy(
         number = metadata.number.ifBlank { file.number },
-        title = metadata.title.ifBlank { file.fileName }
-    ) ?: Video(number = file.number, title = file.fileName)
+        title = metadata.title.ifBlank { file.fileName },
+        path = file.path
+    ) ?: Video(number = file.number, title = file.fileName, path = file.path)
 }
 
 data class GalleryActions(
@@ -61,7 +53,7 @@ fun ResultGalleryScreen(
     modifier: Modifier = Modifier
 ) {
     val translations = LocalTranslations.current
-    val entries = state.entries
+    val videos = state.videos
     val onClear = actions.onClear
     val onOpenOutputDir = actions.onOpenOutputDir
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -72,13 +64,13 @@ fun ResultGalleryScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
-                if (entries.isNotEmpty()) Text(
-                    translations.galleryCount(entries.size),
+                if (videos.isNotEmpty()) Text(
+                    translations.galleryCount(videos.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (entries.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (videos.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onOpenOutputDir) {
                     Icon(Icons.Default.Folder, null)
                     Spacer(Modifier.width(8.dp))
@@ -95,7 +87,7 @@ fun ResultGalleryScreen(
             }
         }
         Spacer(Modifier.height(16.dp))
-        if (entries.isEmpty()) {
+        if (videos.isEmpty()) {
             EmptyGallery()
         } else {
             LazyVerticalGrid(
@@ -104,12 +96,7 @@ fun ResultGalleryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                items(entries) { entry ->
-                    PosterCard(
-                        video = entry.video,
-                        posterPath = entry.posterPath
-                    )
-                }
+                items(videos) { video -> PosterCard(video) }
             }
         }
     }

@@ -23,7 +23,6 @@ import java.io.File
 @Composable
 fun PosterCard(
     video: Video,
-    posterPath: String = "",
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -38,14 +37,10 @@ fun PosterCard(
                 Modifier.fillMaxWidth().height(250.dp).background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                val posterFile = remember(posterPath) {
-                    posterPath.takeIf { it.isNotBlank() }
-                        ?.let(::File)
-                        ?.takeIf(File::isFile)
-                }
+                val posterFile = remember(video.path) { localPosterModel(video) }
                 if (posterFile != null) {
                     AsyncImage(
-                        model = posterFile.toURI(),
+                        model = posterFile,
                         contentDescription = video.title.ifBlank { video.number },
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -91,8 +86,18 @@ fun PosterCard(
     }
 }
 
-internal fun localPosterPath(videoPath: String): String =
-    File(videoPath).parentFile?.resolve("poster.jpg")?.path.orEmpty()
+private val posterFileNames = listOf("poster.jpg", "poster.png")
+
+internal fun localPosterPath(video: Video): String {
+    val directory = File(video.path).parentFile ?: return ""
+    val candidates = posterFileNames.map(directory::resolve)
+    return (candidates.firstOrNull(File::isFile) ?: candidates.first()).path
+}
+
+internal fun localPosterModel(video: Video): File? =
+    localPosterPath(video).takeIf { it.isNotBlank() }
+        ?.let(::File)
+        ?.takeIf(File::isFile)
 
 @Preview
 @Composable
@@ -105,7 +110,8 @@ private fun PosterCardPreview() {
                         number = "SONE-001",
                         title = "包含标题、演员与片商的完整卡片",
                         actresses = listOf("演员 A", "演员 B"),
-                        maker = "片商"
+                        maker = "片商",
+                        path = "F:/codeprojects/JavScraper/samples/aaa/aaa.mp4"
                     )
                 )
                 PosterCard(

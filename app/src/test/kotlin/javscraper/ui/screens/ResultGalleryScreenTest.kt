@@ -7,8 +7,8 @@ import kotlin.test.assertEquals
 
 class ResultGalleryScreenTest {
     @Test
-    fun `gallery videos use nfo metadata when available`() {
-        val metadata = Video(number = "ABP-123", title = "Metadata title", coverUrl = "cover.jpg")
+    fun `gallery videos use nfo metadata and source path`() {
+        val metadata = Video(number = "ABP-123", title = "Metadata title")
         val state = GalleryState(
             scrapedFiles = listOf(
                 ScannedFile(
@@ -22,8 +22,10 @@ class ResultGalleryScreenTest {
             outputDir = "D:/output"
         )
 
-        assertEquals(listOf(metadata), state.entries.map { it.video })
-        assertEquals("D:/videos/poster.jpg", state.entries.single().posterPath.replace('\\', '/'))
+        assertEquals(
+            listOf(metadata.copy(path = "D:/videos/ABP-123.mp4")),
+            state.videos
+        )
     }
 
     @Test
@@ -41,8 +43,8 @@ class ResultGalleryScreenTest {
         )
 
         assertEquals(
-            listOf(Video(number = "ABC-001", title = "movie.mp4")),
-            state.entries.map { it.video }
+            listOf(Video(number = "ABC-001", title = "movie.mp4", path = "D:/videos/movie.mp4")),
+            state.videos
         )
     }
 }
