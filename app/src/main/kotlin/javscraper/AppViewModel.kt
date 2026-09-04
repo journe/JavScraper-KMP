@@ -310,7 +310,7 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     val galleryState: GalleryState
         get() = GalleryState(scrapedFiles, outputDir)
-    val galleryActions: GalleryActions = GalleryActions(::clearResults, {})
+    val galleryActions: GalleryActions = GalleryActions(::clearResults, {}, {})
 
     val networkPreviewState: NetworkPreviewState
         get() = NetworkPreviewState(networkPreview.candidates)

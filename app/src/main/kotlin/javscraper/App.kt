@@ -1,5 +1,13 @@
 package javscraper
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,7 +30,7 @@ import javscraper.ui.theme.JavScraperTheme
 enum class Screen { SCAN, PROGRESS, GALLERY, NETWORK_PREVIEW, SETTINGS }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
@@ -41,6 +49,10 @@ fun App() {
         JavScraperTheme {
             var navExpanded by remember { mutableStateOf(false) }
             var logsVisible by remember { mutableStateOf(false) }
+            var selectedVideoPath by remember { mutableStateOf<String?>(null) }
+            LaunchedEffect(viewModel.currentScreen) {
+                if (viewModel.currentScreen != Screen.GALLERY) selectedVideoPath = null
+            }
             Scaffold(
                 topBar = {
                     val t = LocalTranslations.current
@@ -93,30 +105,65 @@ fun App() {
                         galleryEnabled = viewModel.scrapedFiles.isNotEmpty()
                     )
                     Box(Modifier.weight(1f)) {
-                        when (viewModel.currentScreen) {
-                            Screen.SCAN -> FileScanScreen(
-                                state = viewModel.scanState,
-                                actions = viewModel.scanActions
-                            )
+                        val galleryState = viewModel.galleryState
+                        val detailVideo = if (viewModel.currentScreen == Screen.GALLERY) {
+                            selectedVideoPath?.let { path -> galleryState.videoByPath(path) }
+                        } else {
+                            null
+                        }
+                        SharedTransitionLayout {
+                            AnimatedContent(
+                                targetState = detailVideo,
+                                transitionSpec = {
+                                    fadeIn(tween(220)) togetherWith fadeOut(tween(120))
+                                },
+                                label = "gallery-detail-transition"
+                            ) { video ->
+                                if (video == null) {
+                                    when (viewModel.currentScreen) {
+                                        Screen.SCAN -> FileScanScreen(
+                                            state = viewModel.scanState,
+                                            actions = viewModel.scanActions
+                                        )
 
-                            Screen.PROGRESS -> ScrapeProgressScreen(
-                                state = viewModel.scrapeProgressState,
-                                actions = viewModel.scrapeProgressActions
-                            )
+                                        Screen.PROGRESS -> ScrapeProgressScreen(
+                                            state = viewModel.scrapeProgressState,
+                                            actions = viewModel.scrapeProgressActions
+                                        )
 
-                            Screen.GALLERY -> ResultGalleryScreen(
-                                state = viewModel.galleryState,
-                                actions = viewModel.galleryActions
-                            )
+                                        Screen.GALLERY -> ResultGalleryScreen(
+                                            state = galleryState,
+                                            actions = viewModel.galleryActions.copy(
+                                                onClear = {
+                                                    selectedVideoPath = null
+                                                    viewModel.clearResults()
+                                                },
+                                                onVideoClick = { video ->
+                                                    selectedVideoPath = video.path
+                                                }
+                                            ),
+                                            sharedTransitionScope = this@SharedTransitionLayout,
+                                            animatedVisibilityScope = this@AnimatedContent
+                                        )
 
-                            Screen.NETWORK_PREVIEW -> NetworkPreviewScreen(
-                                state = viewModel.networkPreviewState,
-                                actions = viewModel.networkPreviewActions
-                            )
-                            Screen.SETTINGS -> SettingsScreen(
-                                state = viewModel.settingsState,
-                                actions = viewModel.settingsActions
-                            )
+                                        Screen.NETWORK_PREVIEW -> NetworkPreviewScreen(
+                                            state = viewModel.networkPreviewState,
+                                            actions = viewModel.networkPreviewActions
+                                        )
+                                        Screen.SETTINGS -> SettingsScreen(
+                                            state = viewModel.settingsState,
+                                            actions = viewModel.settingsActions
+                                        )
+                                    }
+                                } else {
+                                    VideoDetailScreen(
+                                        video = video,
+                                        onBack = { selectedVideoPath = null },
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = this@AnimatedContent
+                                    )
+                                }
+                            }
                         }
                     }
                 }

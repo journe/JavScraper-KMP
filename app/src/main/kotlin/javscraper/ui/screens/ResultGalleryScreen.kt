@@ -1,5 +1,12 @@
 package javscraper.ui.screens
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.SharedTransitionScope.ResizeMode
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -30,6 +37,8 @@ data class GalleryState(
 ) {
     val videos: List<Video>
         get() = scrapedFiles.map(::toGalleryVideo)
+
+    fun videoByPath(path: String): Video? = videos.firstOrNull { it.path == path }
 }
 
 private fun toGalleryVideo(file: ScannedFile): Video {
@@ -43,14 +52,17 @@ private fun toGalleryVideo(file: ScannedFile): Video {
 
 data class GalleryActions(
     val onClear: () -> Unit,
-    val onOpenOutputDir: () -> Unit
+    val onOpenOutputDir: () -> Unit,
+    val onVideoClick: (Video) -> Unit
 )
 
 @Composable
 fun ResultGalleryScreen(
     state: GalleryState,
     actions: GalleryActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val translations = LocalTranslations.current
     val videos = state.videos
@@ -96,11 +108,44 @@ fun ResultGalleryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                items(videos) { video -> PosterCard(video) }
+                items(videos) { video ->
+                    PosterCard(
+                        video = video,
+                        onClick = { actions.onVideoClick(video) },
+                        modifier = galleryPosterModifier(
+                            video = video,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    )
+                }
             }
         }
     }
 }
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+internal fun galleryPosterModifier(
+    video: Video,
+    sharedTransitionScope: SharedTransitionScope?,
+    animatedVisibilityScope: AnimatedVisibilityScope?
+): Modifier {
+    if (sharedTransitionScope == null || animatedVisibilityScope == null) return Modifier
+
+    return with(sharedTransitionScope) {
+        Modifier.sharedBounds(
+            rememberSharedContentState(key = galleryPosterKey(video)),
+            animatedVisibilityScope = animatedVisibilityScope,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            resizeMode = ResizeMode.scaleToBounds()
+        )
+    }
+}
+
+internal fun galleryPosterKey(video: Video): String =
+    "gallery-poster-${video.path.ifBlank { video.number }}"
 
 @Composable
 private fun EmptyGallery() {
@@ -143,7 +188,7 @@ private fun ResultGalleryScreenPreview() {
                     ),
                     outputDir = "F:/Output"
                 ),
-                actions = GalleryActions(onClear = {}, onOpenOutputDir = {})
+                actions = GalleryActions(onClear = {}, onOpenOutputDir = {}, onVideoClick = {})
             )
         }
     }

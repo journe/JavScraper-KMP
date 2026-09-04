@@ -3,6 +3,7 @@ package javscraper.ui.components
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.request.ImageRequest
+import androidx.compose.ui.unit.dp
 import javscraper.models.Video
 import java.awt.image.BufferedImage
 import java.nio.file.Files
@@ -16,6 +17,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 
 class PosterCardTest {
+    @Test
+    fun `poster height is four thirds of card width`() {
+        assertEquals(240.dp, posterHeight(180.dp))
+        assertEquals(320.dp, posterHeight(240.dp))
+    }
     @Test
     fun `local poster path is resolved beside the video`() {
         val path = localPosterPath(Video(number = "ABP-123", path = "D:/videos/ABP-123.mp4"))

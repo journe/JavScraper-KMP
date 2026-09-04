@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import javscraper.models.Video
@@ -24,17 +25,19 @@ import java.io.File
 fun PosterCard(
     video: Video,
     onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cardWidth: Dp = 180.dp
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.width(180.dp),
+        modifier = modifier.width(cardWidth),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
             Box(
-                Modifier.fillMaxWidth().height(250.dp).background(MaterialTheme.colorScheme.surfaceVariant),
+                Modifier.fillMaxWidth().height(posterHeight(cardWidth))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 val posterFile = remember(video.path) { localPosterModel(video) }
@@ -85,6 +88,8 @@ fun PosterCard(
         }
     }
 }
+
+internal fun posterHeight(cardWidth: Dp): Dp = cardWidth * 4 / 3
 
 private val posterFileNames = listOf("poster.jpg", "poster.png")
 

@@ -4,6 +4,7 @@ import javscraper.models.ScannedFile
 import javscraper.models.Video
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class ResultGalleryScreenTest {
     @Test
@@ -28,6 +29,28 @@ class ResultGalleryScreenTest {
         )
     }
 
+    @Test
+    fun `gallery detail resolves video by source path`() {
+        val video = Video(number = "ABP-123", title = "Metadata title")
+        val state = GalleryState(
+            scrapedFiles = listOf(
+                ScannedFile(
+                    path = "D:/videos/ABP-123.mp4",
+                    fileName = "ABP-123.mp4",
+                    number = "ABP-123",
+                    isScraped = true,
+                    metadata = video
+                )
+            ),
+            outputDir = "D:/output"
+        )
+
+        assertEquals(
+            video.copy(path = "D:/videos/ABP-123.mp4"),
+            state.videoByPath("D:/videos/ABP-123.mp4")
+        )
+        assertNull(state.videoByPath("D:/videos/missing.mp4"))
+    }
     @Test
     fun `gallery videos fall back to file info without metadata`() {
         val state = GalleryState(
