@@ -266,6 +266,7 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     fun clearResults() {
         results = emptyList()
+        scrapedFiles = emptyList()
         tasks = emptyList()
     }
 
@@ -308,7 +309,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     )
 
     val galleryState: GalleryState
-        get() = GalleryState(results, scrapedFiles, outputDir)
+        get() = GalleryState(scrapedFiles, outputDir)
     val galleryActions: GalleryActions = GalleryActions(::clearResults, {})
 
     val networkPreviewState: NetworkPreviewState

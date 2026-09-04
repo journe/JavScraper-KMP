@@ -18,9 +18,15 @@ import javscraper.models.Video
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.ui.theme.JavScraperTheme
+import java.io.File
 
 @Composable
-fun PosterCard(video: Video, onClick: () -> Unit = {}, modifier: Modifier = Modifier) {
+fun PosterCard(
+    video: Video,
+    posterPath: String = "",
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Card(
         onClick = onClick,
         modifier = modifier.width(180.dp),
@@ -32,9 +38,14 @@ fun PosterCard(video: Video, onClick: () -> Unit = {}, modifier: Modifier = Modi
                 Modifier.fillMaxWidth().height(250.dp).background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (video.coverUrl.isNotBlank()) {
+                val posterFile = remember(posterPath) {
+                    posterPath.takeIf { it.isNotBlank() }
+                        ?.let(::File)
+                        ?.takeIf(File::isFile)
+                }
+                if (posterFile != null) {
                     AsyncImage(
-                        model = video.coverUrl,
+                        model = posterFile.toURI(),
                         contentDescription = video.title.ifBlank { video.number },
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -80,6 +91,9 @@ fun PosterCard(video: Video, onClick: () -> Unit = {}, modifier: Modifier = Modi
     }
 }
 
+internal fun localPosterPath(videoPath: String): String =
+    File(videoPath).parentFile?.resolve("poster.jpg")?.path.orEmpty()
+
 @Preview
 @Composable
 private fun PosterCardPreview() {
@@ -91,8 +105,7 @@ private fun PosterCardPreview() {
                         number = "SONE-001",
                         title = "包含标题、演员与片商的完整卡片",
                         actresses = listOf("演员 A", "演员 B"),
-                        maker = "片商",
-                        coverUrl = "https://i0.hdslb.com/bfs/archive/44a5f313c93dfdf46ced70b83fcba987ac38b236.jpg@672w_378h_1c_!web-home-common-cover.avif"
+                        maker = "片商"
                     )
                 )
                 PosterCard(

@@ -47,11 +47,9 @@ open class TranslationEn {
     open val galleryOpenOutput: String = "Open Output"
     open val galleryClear: String = "Clear Results"
     open val galleryEmptyHint: String = "No results yet"
-    open val galleryScrapedFiles: String = "Already scraped files"
 
     open fun galleryCount(n: Int): String = "$n movies scraped"
 
-    open fun galleryScrapedCount(n: Int): String = "$n videos already scraped"
 
     // --- Network preview screen ---
     open val networkPreviewTitle: String = "Network Results"

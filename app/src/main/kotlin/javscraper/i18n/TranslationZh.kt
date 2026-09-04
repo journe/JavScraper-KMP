@@ -41,11 +41,9 @@ class TranslationZh : TranslationEn() {
     override val galleryOpenOutput: String = "打开输出目录"
     override val galleryClear: String = "清空结果"
     override val galleryEmptyHint: String = "暂无结果"
-    override val galleryScrapedFiles: String = "已刮削文件"
 
     override fun galleryCount(n: Int): String = "$n 部影片已刮削"
 
-    override fun galleryScrapedCount(n: Int): String = "$n 个视频已刮削"
 
     override val networkPreviewTitle: String = "网络结果"
     override val networkPreviewClear: String = "清空"

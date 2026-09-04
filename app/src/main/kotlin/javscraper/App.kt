@@ -90,7 +90,7 @@ fun App() {
                         currentScreen = viewModel.currentScreen,
                         onNavigate = viewModel::navigate,
                         scrapeEnabled = viewModel.tasks.isNotEmpty(),
-                        galleryEnabled = viewModel.results.isNotEmpty() || viewModel.scrapedFiles.isNotEmpty()
+                        galleryEnabled = viewModel.scrapedFiles.isNotEmpty()
                     )
                     Box(Modifier.weight(1f)) {
                         when (viewModel.currentScreen) {
