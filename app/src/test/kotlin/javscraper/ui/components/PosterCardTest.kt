@@ -1,0 +1,113 @@
+package javscraper.ui.components
+
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.request.ImageRequest
+import androidx.compose.ui.unit.dp
+import javscraper.models.Video
+import java.awt.image.BufferedImage
+import java.nio.file.Files
+import java.nio.file.Path
+import javax.imageio.ImageIO
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlinx.coroutines.runBlocking
+
+class PosterCardTest {
+    @Test
+    fun `poster height is four thirds of card width`() {
+        assertEquals(240.dp, posterHeight(180.dp))
+        assertEquals(320.dp, posterHeight(240.dp))
+    }
+    @Test
+    fun `local poster path is resolved beside the video`() {
+        val path = localPosterPath(Video(number = "ABP-123", path = "D:/videos/ABP-123.mp4"))
+
+        assertEquals("D:/videos/poster.jpg", path.replace('\\', '/'))
+    }
+
+    @Test
+    fun `local poster model is returned when downloaded`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val poster = directory.resolve("poster.jpg")
+        try {
+            Files.createFile(poster)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(poster.toFile(), localPosterModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local poster model supports png files`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val poster = directory.resolve("poster.png")
+        try {
+            Files.createFile(poster)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(poster.toFile(), localPosterModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local poster model prefers jpg over png files`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val jpg = directory.resolve("poster.jpg")
+        val png = directory.resolve("poster.png")
+        try {
+            Files.createFile(jpg)
+            Files.createFile(png)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(jpg.toFile(), localPosterModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local poster model is loadable by coil`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val poster = directory.resolve("poster.jpg")
+        try {
+            assertTrue(ImageIO.write(BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB), "jpg", poster.toFile()))
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+            val imageLoader = ImageLoader.Builder(PlatformContext.INSTANCE).build()
+
+            val result = runBlocking {
+                imageLoader.execute(ImageRequest.Builder(PlatformContext.INSTANCE).data(localPosterModel(video)).build())
+            }
+
+            assertNotNull(result.image)
+            imageLoader.shutdown()
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local poster model is null when missing`() {
+        val video = Video(number = "ABP-123", path = "D:/videos/ABP-123.mp4")
+
+        assertNull(localPosterModel(video))
+    }
+
+    @Test
+    fun `local poster model is null without a parent directory`() {
+        assertNull(localPosterModel(Video(number = "ABP-123", path = "ABP-123.mp4")))
+    }
+}
+
+private fun deleteRecursively(path: Path) {
+    Files.walk(path).use { files ->
+        files.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
+    }
+}

@@ -1,4 +1,4 @@
-﻿package javscraper.io
+package javscraper.io
 
 import javscraper.models.Video
 import kotlin.test.Test
@@ -193,5 +193,21 @@ class NfoWriterTest {
         val video = Video(number = "SONE-205")
         val nfo = NfoWriter.generate(video)
         assertContains(nfo, "<sorttitle>SONE-205</sorttitle>")
+    }
+    @Test
+    fun `generate formats NFO with line breaks and indentation`() {
+        val video = Video(
+            number = "ABC-001",
+            title = "Formatted Title",
+            actresses = listOf("Actor A")
+        )
+
+        val nfo = NfoWriter.generate(video)
+
+        assertTrue(nfo.contains("\n<movie>"), "Root element should start on its own line")
+        assertTrue(nfo.contains("\n  <title>Formatted Title</title>"), "Child element should be indented")
+        assertTrue(nfo.contains("\n  <actor>"), "Actor element should be indented")
+        assertTrue(nfo.contains("\n    <name>Actor A</name>"), "Actor child element should be indented")
+        assertTrue(nfo.contains("\n</movie>"), "Root element should close on its own line")
     }
 }

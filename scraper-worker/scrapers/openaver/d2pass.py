@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 
 import requests
@@ -28,7 +28,7 @@ class D2PassScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             # Search

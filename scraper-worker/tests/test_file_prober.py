@@ -1,4 +1,4 @@
-﻿from core.file_prober import extract_number
+from core.file_prober import extract_number
 
 
 def test_standard_format():

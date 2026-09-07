@@ -26,10 +26,14 @@ class Video:
     summary: str = ""
     source: str = ""
     detail_url: str = ""
+    webpage: str = ""
 
     def to_dict(self) -> dict:
         result = asdict(self)
+        result.pop("webpage", None)
         result["actresses"] = [a.name for a in self.actresses]
+        if self.webpage:
+            result["webpage"] = self.webpage
         return result
 
 

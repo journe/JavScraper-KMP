@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 from urllib.parse import quote
 
@@ -7,7 +7,12 @@ from bs4 import BeautifulSoup
 
 from scrapers.base import BaseScraper
 from scrapers.models import Video, Actress
+from scrapers.labels import (
+    DATE_LABELS, DIRECTOR_LABELS, DURATION_LABELS, LABEL_LABELS, MAKER_LABELS,
+    SERIES_LABELS, label_matches,
+)
 from scrapers.registry import ScraperRegistry
+
 
 
 class DMMScraper(BaseScraper):
@@ -28,7 +33,7 @@ class DMMScraper(BaseScraper):
             "Accept-Language": "ja,en;q=0.9",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             search_url = f"{self.BASE_URL}/mono/dvd/-/search/?searchstr={quote(number)}&sort=date"
@@ -94,21 +99,21 @@ class DMMScraper(BaseScraper):
                     if not th or not td:
                         continue
                     key = th.get_text(strip=True)
-                    if "配信開始日" in key or "発売日" in key:
+                    if label_matches(key, DATE_LABELS):
                         m = re.search(r"(\d{4}/\d{2}/\d{2})", td.get_text())
                         if m:
                             date = m.group(1).replace("/", "-")
-                    elif "収録時間" in key:
+                    elif label_matches(key, DURATION_LABELS):
                         m = re.search(r"(\d+)", td.get_text())
                         if m:
                             duration = int(m.group(1))
-                    elif "メーカー" in key:
+                    elif label_matches(key, MAKER_LABELS):
                         maker = td.get_text(strip=True)
-                    elif "レーベル" in key:
+                    elif label_matches(key, LABEL_LABELS):
                         label = td.get_text(strip=True)
-                    elif "シリーズ" in key:
+                    elif label_matches(key, SERIES_LABELS):
                         series = td.get_text(strip=True)
-                    elif "監督" in key:
+                    elif label_matches(key, DIRECTOR_LABELS):
                         director = td.get_text(strip=True)
 
                     for a in td.find_all("a"):

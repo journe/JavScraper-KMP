@@ -1,10 +1,11 @@
-﻿import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.api.tasks.testing.Test
 
 plugins {
-    kotlin("jvm") version "2.1.0"
-    id("org.jetbrains.compose") version "1.7.3"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0"
-    kotlin("plugin.serialization") version "2.1.0"
+    kotlin("jvm") version "2.4.10"
+    id("org.jetbrains.compose") version "1.10.3"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.10"
+    kotlin("plugin.serialization") version "2.4.10"
 }
 
 group = "com.javscraper"
@@ -14,17 +15,23 @@ repositories { mavenCentral(); google() }
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
+    implementation("org.jetbrains.compose.material3:material3:1.9.0")
+    implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+    implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.10.3")
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
-    implementation("ch.qos.logback:logback-classic:1.5.15")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
+
+    // FileKit - cross-platform native file/directory pickers
+    implementation("io.github.vinceglb:filekit-core:0.15.0")
+    implementation("io.github.vinceglb:filekit-dialogs:0.15.0")
 
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 }
 
 compose.desktop {
@@ -41,7 +48,7 @@ compose.desktop {
             windows {
                 menuGroup = "JavScraper"
                 upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                // Include the worker executable in the package
+                iconFile.set(project.file("src/main/resources/icon/app_icon.ico"))
                 appResourcesRootDir.set(rootProject.file("src/main/resources"))
             }
 
@@ -51,7 +58,13 @@ compose.desktop {
 
             linux {
                 packageName = "javscraper"
+                iconFile.set(project.file("src/main/resources/icon/app_icon.png"))
             }
         }
     }
+}
+tasks.withType<Test>().configureEach {
+    // 限制测试 JVM 并行度，避免 Windows 页面文件不足导致 JVM 崩溃（Gradle 9 默认并行 fork）
+    maxParallelForks = 1
+    maxHeapSize = "768m"
 }

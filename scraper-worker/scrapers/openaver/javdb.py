@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 
 import requests
@@ -7,7 +7,11 @@ from urllib.parse import quote
 
 from scrapers.base import BaseScraper
 from scrapers.models import Video, Actress
+from scrapers.labels import (
+    DATE_LABELS, DIRECTOR_LABELS, MAKER_LABELS, RATING_LABELS, SERIES_LABELS, label_matches,
+)
 from scrapers.registry import ScraperRegistry
+
 
 
 class JavDBScraper(BaseScraper):
@@ -28,7 +32,7 @@ class JavDBScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             search_url = f"{self.BASE_URL}/search?q={quote(number)}&f=all"
@@ -91,15 +95,15 @@ class JavDBScraper(BaseScraper):
             if not value_elem:
                 continue
 
-            if "日期" in label_text:
+            if label_matches(label_text, DATE_LABELS):
                 date = value_elem.get_text(strip=True)
-            elif "片商" in label_text or "製作" in label_text:
+            elif label_matches(label_text, MAKER_LABELS):
                 maker = value_elem.get_text(strip=True)
-            elif "導演" in label_text:
+            elif label_matches(label_text, DIRECTOR_LABELS):
                 director = value_elem.get_text(strip=True)
-            elif "系列" in label_text:
+            elif label_matches(label_text, SERIES_LABELS):
                 series = value_elem.get_text(strip=True)
-            elif "評分" in label_text:
+            elif label_matches(label_text, RATING_LABELS):
                 m = re.search(r"([0-9.]+)", value_elem.get_text(strip=True))
                 if m:
                     rating = float(m.group(1))

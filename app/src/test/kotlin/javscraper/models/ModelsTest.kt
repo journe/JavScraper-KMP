@@ -1,4 +1,4 @@
-﻿package javscraper.models
+package javscraper.models
 
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -42,8 +42,15 @@ class ModelsTest {
         assertEquals(emptyList<String>(), video.actresses)
         assertEquals(null, video.duration)
         assertEquals(null, video.rating)
+        assertEquals("", video.webpage)
     }
 
+    @Test
+    fun `Video webpage content round-trip`() {
+        val video = Video(number = "FC2-PPV-1723984", webpage = "bWFodG1s")
+        val decoded = json.decodeFromString(Video.serializer(), json.encodeToString(Video.serializer(), video))
+        assertEquals("bWFodG1s", decoded.webpage)
+    }
     @Test
     fun `ScrapeResult success variant`() {
         val video = Video(number = "TEST-001")

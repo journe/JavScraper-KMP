@@ -1,4 +1,4 @@
-﻿from typing import Optional, Type
+from typing import Optional, Type
 from .base import BaseScraper
 
 

@@ -1,4 +1,4 @@
-﻿# -*- mode: python ; coding: utf-8 -*-
+# -*- mode: python ; coding: utf-8 -*-
 
 """
 JavScraper Python Worker - PyInstaller spec
@@ -24,8 +24,9 @@ a = Analysis(
         'scrapers.registry',
         'scrapers.base',
         'scrapers.models',
-        'core.file_prober',
         'core.smart_search',
+        'core.webpage_archive',
+        'scrapers.site_check',
         'scrapers.openaver.javbus',
         'scrapers.openaver.javdb',
         'scrapers.openaver.jav321',
@@ -35,6 +36,7 @@ a = Analysis(
         'scrapers.openaver.d2pass',
         'scrapers.openaver.dmm',
         'scrapers.openaver.javlibrary',
+        'scrapers.openaver.mmtv',
         'curl_cffi',
         'lxml',
         'lxml._elementpath',

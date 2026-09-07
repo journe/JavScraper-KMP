@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 
 import requests
@@ -34,7 +34,7 @@ class HEYZOScraper(BaseScraper):
             return m.group(1)
         return None
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         heyzo_num = self._extract_heyzo_num(number)
         if not heyzo_num:
             return None

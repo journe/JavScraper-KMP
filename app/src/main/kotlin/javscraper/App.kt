@@ -1,170 +1,190 @@
 package javscraper
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import javscraper.io.FileScanner
-import javscraper.models.ScannedFile
-import javscraper.models.SiteInfo
-import javscraper.models.Video
-import javscraper.scrape.ScrapeOrchestrator
-import javscraper.settings.AppSettings
-import javscraper.settings.SettingsManager
-import javscraper.sidecar.SidecarManager
+import javscraper.i18n.LocalTranslations
+import javscraper.i18n.TranslationEn
+import javscraper.i18n.TranslationZh
+import javscraper.ui.components.CollapsibleNavRail
+import javscraper.ui.components.LogsDialog
+import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
+import javscraper.ui.screens.settings.*
+
 import javscraper.ui.theme.JavScraperTheme
-import kotlinx.coroutines.launch
-import java.nio.file.Paths
-import javax.swing.JFileChooser
 
-enum class Screen { SCAN, PROGRESS, GALLERY, SETTINGS }
+enum class Screen { SCAN, PROGRESS, GALLERY, NETWORK_PREVIEW, SETTINGS }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
-    val settings = remember { SettingsManager.get() }
-    val screen = remember { mutableStateOf(Screen.SCAN) }
-    val status = remember { mutableStateOf("Initializing...") }
-    val scannedFiles = remember { mutableStateOf<List<ScannedFile>>(emptyList()) }
-    val results = remember { mutableStateOf<List<Video>>(emptyList()) }
-    val tasks = remember { mutableStateOf<List<ScrapeTask>>(emptyList()) }
-    val scanning = remember { mutableStateOf(false) }
-    val scraping = remember { mutableStateOf(false) }
-    val sites = remember { mutableStateOf<List<SiteInfo>>(emptyList()) }
-    val scanDir = remember { mutableStateOf(settings.scanDir) }
-    val outputDir = remember { mutableStateOf(settings.outputDir) }
+    val viewModel = remember { AppViewModel(scope) }
 
-    val mgr = remember { SidecarManager(Paths.get(System.getProperty("user.dir"), settings.workerPath).toString()) }
-    val orch = remember { mutableStateOf<ScrapeOrchestrator?>(null) }
-
-    fun saveBothDirs() {
-        SettingsManager.update { it.copy(scanDir = scanDir.value, outputDir = outputDir.value) }
+    LaunchedEffect(Unit) { viewModel.init() }
+    DisposableEffect(Unit) {
+        onDispose { viewModel.dispose() }
     }
 
-    LaunchedEffect(Unit) {
-        try {
-            status.value = "Starting..."
-            if (mgr.start()) {
-                sites.value = mgr.listSites()
-                status.value = "Ready (${sites.value.size} sites)"
-                orch.value = ScrapeOrchestrator(mgr, outputDir.value, true, true, true)
-            } else status.value = "Failed"
-        } catch (e: Exception) { status.value = "Error: ${e.message}" }
+    val localeStrings: TranslationEn = remember(viewModel.currentLanguage) {
+        if (viewModel.currentLanguage == "zh") TranslationZh() else TranslationEn()
     }
 
-    DisposableEffect(Unit) { onDispose { scope.launch { mgr.stop() } } }
-
-    val onSelectDir: () -> Unit = {
-        scope.launch {
-            val c = JFileChooser()
-            c.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-            if (c.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                val dir = c.selectedFile.absolutePath
-                scanDir.value = dir
-                saveBothDirs()
+    CompositionLocalProvider(LocalTranslations provides localeStrings) {
+        JavScraperTheme {
+            var navExpanded by remember { mutableStateOf(false) }
+            var logsVisible by remember { mutableStateOf(false) }
+            var selectedVideoPath by remember { mutableStateOf<String?>(null) }
+            LaunchedEffect(viewModel.currentScreen) {
+                if (viewModel.currentScreen != Screen.GALLERY) selectedVideoPath = null
             }
-        }
-    }
-
-    val onSelectOutDir: () -> Unit = {
-        scope.launch {
-            val c = JFileChooser()
-            c.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-            if (c.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                val dir = c.selectedFile.absolutePath
-                outputDir.value = dir
-                saveBothDirs()
-            }
-        }
-    }
-
-    JavScraperTheme {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("JavScraper") },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    actions = { Text(status.value, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 8.dp)) }
-                )
-            },
-            bottomBar = {
-                NavigationBar {
-                    NavigationBarItem(icon = { Icon(Icons.Default.Search, null) }, label = { Text("Scan") }, selected = screen.value == Screen.SCAN, onClick = { screen.value = Screen.SCAN })
-                    NavigationBarItem(icon = { Icon(Icons.Default.Download, null) }, label = { Text("Scrape") }, selected = screen.value == Screen.PROGRESS, onClick = { screen.value = Screen.PROGRESS })
-                    NavigationBarItem(icon = { Icon(Icons.Default.PhotoLibrary, null) }, label = { Text("Gallery") }, selected = screen.value == Screen.GALLERY, onClick = { screen.value = Screen.GALLERY })
-                    NavigationBarItem(icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") }, selected = screen.value == Screen.SETTINGS, onClick = { screen.value = Screen.SETTINGS })
+            Scaffold(
+                topBar = {
+                    val t = LocalTranslations.current
+                    TopAppBar(
+                        navigationIcon = {
+                            IconButton(onClick = { navExpanded = !navExpanded }) {
+                                Icon(
+                                    if (navExpanded) Icons.AutoMirrored.Filled.MenuOpen
+                                    else Icons.Default.Menu,
+                                    contentDescription = "Toggle navigation"
+                                )
+                            }
+                        },
+                        title = { Text("JavScraper") },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        actions = {
+                            Text(
+                                viewModel.status,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            IconButton(onClick = { logsVisible = true }) {
+                                Icon(
+                                    Icons.Default.Description,
+                                    contentDescription = t.commonApplicationLogs
+                                )
+                            }
+                            IconButton(onClick = { viewModel.navigate(Screen.SETTINGS) }) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = t.commonSettings,
+                                    tint = if (viewModel.currentScreen == Screen.SETTINGS)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    )
                 }
-            }
-        ) { pv -> Box(Modifier.padding(pv)) {
-            when (screen.value) {
-                Screen.SCAN -> FileScanScreen(
-                    scannedFiles = scannedFiles.value, scanDir = scanDir.value, isScanning = scanning.value,
-                    onSelectDirectory = onSelectDir,
-                    onStartScan = { scope.launch { scanning.value = true; scannedFiles.value = FileScanner.scanDirectory(Paths.get(scanDir.value), true); scanning.value = false } },
-                    onStartScrape = { tasks.value = scannedFiles.value.filter { it.number.isNotBlank() }.map { ScrapeTask(it.number, it.fileName) }; screen.value = Screen.PROGRESS }
-                )
-                Screen.PROGRESS -> ScrapeProgressScreen(
-                    tasks = tasks.value, isRunning = scraping.value,
-                    onStartAll = { scope.launch {
-                        scraping.value = true
-                        val o = orch.value ?: return@launch
-                        for (i in tasks.value.indices) {
-                            val t = tasks.value[i]
-                            val updated = tasks.value.toMutableList()
-                            updated[i] = t.copy(status = ScrapeTaskStatus.SCRAPING)
-                            tasks.value = updated
-                            val f = scannedFiles.value.find { it.number == t.number }
-                            if (f != null) {
-                                try {
-                                    val r = o.process(f)
-                                    val newTasks = tasks.value.toMutableList()
-                                    if (r.success && r.data != null) {
-                                        results.value = results.value + r.data
-                                        newTasks[i] = t.copy(status = ScrapeTaskStatus.SUCCESS, video = r.data)
-                                    } else newTasks[i] = t.copy(status = ScrapeTaskStatus.FAILED, error = r.error?.message ?: "Failed")
-                                    tasks.value = newTasks
-                                } catch (e: Exception) {
-                                    val newTasks = tasks.value.toMutableList()
-                                    newTasks[i] = t.copy(status = ScrapeTaskStatus.FAILED, error = e.message ?: "Error")
-                                    tasks.value = newTasks
+            ) { padding ->
+                Row(Modifier.padding(padding)) {
+                    CollapsibleNavRail(
+                        expanded = navExpanded,
+                        currentScreen = viewModel.currentScreen,
+                        onNavigate = viewModel::navigate,
+                        scrapeEnabled = viewModel.tasks.isNotEmpty(),
+                        galleryEnabled = viewModel.scrapedFiles.isNotEmpty()
+                    )
+                    Box(Modifier.weight(1f)) {
+                        val galleryState = viewModel.galleryState
+                        val detailVideo = if (viewModel.currentScreen == Screen.GALLERY) {
+                            selectedVideoPath?.let { path -> galleryState.videoByPath(path) }
+                        } else {
+                            null
+                        }
+                        SharedTransitionLayout {
+                            AnimatedContent(
+                                targetState = detailVideo,
+                                transitionSpec = {
+                                    fadeIn(tween(220)) togetherWith fadeOut(tween(120))
+                                },
+                                label = "gallery-detail-transition"
+                            ) { video ->
+                                if (video == null) {
+                                    when (viewModel.currentScreen) {
+                                        Screen.SCAN -> FileScanScreen(
+                                            state = viewModel.scanState,
+                                            actions = viewModel.scanActions
+                                        )
+
+                                        Screen.PROGRESS -> ScrapeProgressScreen(
+                                            state = viewModel.scrapeProgressState,
+                                            actions = viewModel.scrapeProgressActions
+                                        )
+
+                                        Screen.GALLERY -> ResultGalleryScreen(
+                                            state = galleryState,
+                                            actions = viewModel.galleryActions.copy(
+                                                onClear = {
+                                                    selectedVideoPath = null
+                                                    viewModel.clearResults()
+                                                },
+                                                onVideoClick = { video ->
+                                                    selectedVideoPath = video.path
+                                                }
+                                            ),
+                                            sharedTransitionScope = this@SharedTransitionLayout,
+                                            animatedVisibilityScope = this@AnimatedContent
+                                        )
+
+                                        Screen.NETWORK_PREVIEW -> NetworkPreviewScreen(
+                                            state = viewModel.networkPreviewState,
+                                            actions = viewModel.networkPreviewActions
+                                        )
+                                        Screen.SETTINGS -> SettingsScreen(
+                                            state = viewModel.settingsState,
+                                            actions = viewModel.settingsActions
+                                        )
+                                    }
+                                } else {
+                                    VideoDetailScreen(
+                                        video = video,
+                                        onBack = { selectedVideoPath = null },
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = this@AnimatedContent
+                                    )
                                 }
                             }
                         }
-                        scraping.value = false
-                    } },
-                    onCancel = { scraping.value = false }
-                )
-                Screen.GALLERY -> ResultGalleryScreen(results = results.value, onClear = { results.value = emptyList(); tasks.value = emptyList() }, onOpenOutputDir = {}, outputDir = outputDir.value)
-                Screen.SETTINGS -> SettingsScreen(
-                    workerPath = settings.workerPath,
-                    outputDir = outputDir.value,
-                    scanDir = scanDir.value,
-                    scanRecursive = true,
-                    createMovieFolders = true,
-                    hardlinkInsteadOfCopy = true,
-                    downloadImages = true,
-                    autoScrape = false,
-                    sites = sites.value,
-                    enabledSiteIds = settings.enabledSites,
-                    onWorkerPathChange = { _ -> },
-                    onOutputDirChange = { _ -> },
-                    onSelectOutputDir = onSelectOutDir,
-                    onSelectScanDir = onSelectDir,
-                    onSelectWorkerPath = { },
-                    onScanRecursiveChange = { _ -> },
-                    onCreateMovieFoldersChange = { _ -> },
-                    onHardlinkChange = { _ -> },
-                    onDownloadImagesChange = { _ -> },
-                    onAutoScrapeChange = { _ -> },
-                    onToggleSite = { _: String, _: Boolean -> },
-                    onReset = { SettingsManager.reset(); scanDir.value = ""; outputDir.value = "" }
+                    }
+                }
+            }
+            if (logsVisible) {
+                LogsDialog(
+                    entries = viewModel.lifecycleLogEntries,
+                    filePath = viewModel.lifecycleLogFilePath,
+                    onDismiss = { logsVisible = false }
                 )
             }
-        } }
+
+            if (viewModel.workerSetupVisible) {
+                WorkerSetupDialog(
+                    errorMessage = viewModel.workerSetupError,
+                    onSelect = viewModel::selectWorkerPath,
+                    onCancel = viewModel::dismissWorkerSetup
+                )
+            }
+        }
     }
 }
+
+

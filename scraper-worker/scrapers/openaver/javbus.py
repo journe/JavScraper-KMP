@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 
 import requests
@@ -27,7 +27,7 @@ class JavBusScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             resp = self._session.get(f"{self.BASE_URL}/{number}", timeout=15)
@@ -56,7 +56,7 @@ class JavBusScraper(BaseScraper):
             m = re.search(r"(\d{4}-\d{2}-\d{2})", t)
             if m:
                 date = m.group(1)
-            m = re.search(r"(\d+)\s*分钟", t)
+            m = re.search(r"(\d+)\s*(?:分钟|分鐘|min)", t)
             if m:
                 duration = int(m.group(1))
 

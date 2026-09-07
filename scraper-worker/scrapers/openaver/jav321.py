@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -7,7 +7,12 @@ from bs4 import BeautifulSoup
 
 from scrapers.base import BaseScraper
 from scrapers.models import Video, Actress
+from scrapers.labels import (
+    DATE_LABELS, DIRECTOR_LABELS, DURATION_LABELS, MAKER_LABELS, RATING_LABELS,
+    SERIES_LABELS, label_matches,
+)
 from scrapers.registry import ScraperRegistry
+
 
 
 class Jav321Scraper(BaseScraper):
@@ -28,7 +33,7 @@ class Jav321Scraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             detail_url = f"{self.BASE_URL}/dn/{number}"
@@ -62,33 +67,33 @@ class Jav321Scraper(BaseScraper):
             if col9:
                 for b in col9.find_all("b"):
                     label = b.get_text(strip=True)
-                    if label == "メーカー":
+                    if label_matches(label, MAKER_LABELS):
                         a_tag = b.find_next("a")
                         if a_tag:
                             maker = a_tag.get_text(strip=True)
-                    elif label == "発売日":
+                    elif label_matches(label, DATE_LABELS):
                         sibling = b.next_sibling
                         if sibling:
                             m = re.search(r"(\d{4}-\d{2}-\d{2})", str(sibling))
                             if m:
                                 date = m.group(1)
-                    elif label == "出演時間":
+                    elif label_matches(label, DURATION_LABELS):
                         sibling = b.next_sibling
                         if sibling:
                             m = re.search(r"(\d+)", str(sibling))
                             if m:
                                 duration = int(m.group(1))
-                    elif label == "シリーズ":
+                    elif label_matches(label, SERIES_LABELS):
                         a_tag = b.find_next("a")
                         if a_tag:
                             series = a_tag.get_text(strip=True)
-                    elif label == "平均評価":
+                    elif label_matches(label, RATING_LABELS):
                         sibling = b.next_sibling
                         if sibling:
                             m = re.search(r"([0-9.]+)", str(sibling))
                             if m:
                                 rating = float(m.group(1))
-                    elif label == "監督":
+                    elif label_matches(label, DIRECTOR_LABELS):
                         a_tag = b.find_next("a")
                         if a_tag:
                             director = a_tag.get_text(strip=True)

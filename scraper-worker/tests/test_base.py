@@ -11,8 +11,12 @@ class Concrete(BaseScraper):
     def site_name(self):
         return "Test"
 
-    def search(self, n):
+    def _search_one(self, n):
         return None
+
+
+def test_search_wraps_single_result():
+    assert Concrete().search("ABC-123") == []
 
 
 def test_concrete():

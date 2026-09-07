@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 
 import requests
@@ -27,7 +27,7 @@ class AVSOXScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         number = self.normalize_number(number)
         try:
             url = f"{self.BASE_URL}/{number}"
@@ -64,7 +64,7 @@ class AVSOXScraper(BaseScraper):
                     m = re.search(r"(\d{4}-\d{2}-\d{2})", text)
                     if m:
                         date = m.group(1)
-                    m = re.search(r"(\d+)\s*分鐘", text)
+                    m = re.search(r"(\d+)\s*(?:分鐘|分钟|min)", text)
                     if m:
                         duration = int(m.group(1))
 

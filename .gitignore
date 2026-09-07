@@ -1,4 +1,4 @@
-﻿# --- IDE ---
+# --- IDE ---
 .idea/
 *.iml
 *.iws
@@ -15,10 +15,11 @@ Desktop.ini
 # --- Kotlin / Gradle (app) ---
 app/.gradle/
 app/build/
+/build/
 app/out/
 *.class
 *.jar
-!app/gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
 local.properties
 
 # --- Python (scraper-worker) ---
@@ -42,3 +43,10 @@ app/*.log
 # --- Logs ---
 logs/
 *.log
+
+app/worker/
+mdcx
+/OpenAver
+mdcxOpenAver
+samples
+.gradle

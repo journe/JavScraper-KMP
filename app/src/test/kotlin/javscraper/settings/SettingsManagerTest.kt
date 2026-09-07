@@ -1,4 +1,4 @@
-﻿package javscraper.settings
+package javscraper.settings
 
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -18,8 +18,12 @@ class SettingsManagerTest {
         assertEquals(true, settings.createMovieFolders)
         assertEquals(true, settings.hardlinkInsteadOfCopy)
         assertEquals(true, settings.downloadImages)
+        assertEquals(false, settings.downloadWebPages)
         assertEquals(false, settings.autoScrape)
-        assertEquals(9, settings.enabledSites.size)
+        assertEquals(false, settings.fileLoggingEnabled)
+        assertEquals("en", settings.language)
+        assertEquals(10, settings.enabledSites.size)
+        assertTrue(settings.enabledSites.contains("mmtv"))
     }
 
     @Test
@@ -41,7 +45,10 @@ class SettingsManagerTest {
             createMovieFolders = false,
             hardlinkInsteadOfCopy = false,
             downloadImages = false,
+            downloadWebPages = true,
             autoScrape = true,
+            fileLoggingEnabled = true,
+            language = "zh",
             enabledSites = listOf("javbus", "javdb")
         )
         val jsonStr = json.encodeToString(AppSettings.serializer(), original)
@@ -53,7 +60,10 @@ class SettingsManagerTest {
         assertEquals(false, decoded.createMovieFolders)
         assertEquals(false, decoded.hardlinkInsteadOfCopy)
         assertEquals(false, decoded.downloadImages)
+        assertEquals(true, decoded.downloadWebPages)
         assertEquals(true, decoded.autoScrape)
+        assertEquals(true, decoded.fileLoggingEnabled)
+        assertEquals("zh", decoded.language)
         assertEquals(2, decoded.enabledSites.size)
     }
 

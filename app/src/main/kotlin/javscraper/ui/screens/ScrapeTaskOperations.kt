@@ -1,0 +1,30 @@
+package javscraper.ui.screens
+
+import javscraper.models.Video
+
+internal fun upsertScrapeTask(
+    tasks: List<ScrapeTask>,
+    updated: ScrapeTask
+): List<ScrapeTask> {
+    val index = tasks.indexOfFirst { task ->
+        (task.path.isNotBlank() && updated.path.isNotBlank() && task.path == updated.path) ||
+            task.fileName == updated.fileName
+    }
+    return if (index < 0) {
+        tasks + updated
+    } else {
+        tasks.toMutableList().apply { set(index, updated) }
+    }
+}
+
+internal fun upsertVideo(
+    videos: List<Video>,
+    updated: Video
+): List<Video> {
+    val index = videos.indexOfFirst { it.number == updated.number }
+    return if (index < 0) {
+        videos + updated
+    } else {
+        videos.toMutableList().apply { set(index, updated) }
+    }
+}

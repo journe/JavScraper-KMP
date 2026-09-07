@@ -1,4 +1,5 @@
-﻿import re
+import json
+import re
 from typing import Optional
 
 import requests
@@ -33,7 +34,7 @@ class FC2Scraper(BaseScraper):
             return m.group(1)
         return None
 
-    def search(self, number: str) -> Optional[Video]:
+    def _search_one(self, number: str) -> Optional[Video]:
         fc2_id = self._extract_fc2_id(number)
         if not fc2_id:
             return None
@@ -45,41 +46,152 @@ class FC2Scraper(BaseScraper):
                 return None
 
             soup = BeautifulSoup(resp.text, "html.parser")
-
-            title_elem = soup.select_one("h2")
-            title = title_elem.get_text(strip=True) if title_elem else ""
-
-            cover_elem = soup.select_one('meta[property="og:image"]')
-            cover_url = cover_elem.get("content", "") if cover_elem else ""
-
-            date = ""
-            tags = []
-
-            date_elem = soup.select_one('span[class*="date"]')
-            if date_elem:
-                m = re.search(r"(\d{4}/\d{2}/\d{2})", date_elem.get_text())
-                if m:
-                    date = m.group(1).replace("/", "-")
-
-            for a in soup.select('a[href*="/tag/"]'):
-                t = a.get_text(strip=True)
-                if t:
-                    tags.append(t)
-
-            number = f"FC2-PPV-{fc2_id}"
-
-            return Video(
-                number=number,
-                title=title,
-                date=date,
-                tags=tags,
-                cover_url=cover_url,
-                source="fc2",
-                detail_url=url,
-            )
+            video = self._parse(soup, url, fc2_id)
+            if video is not None:
+                full_summary = self._fetch_summary(soup)
+                if len(full_summary) > len(video.summary):
+                    video.summary = full_summary
+            return video
 
         except (requests.Timeout, requests.ConnectionError):
             return None
 
+    def _fetch_summary(self, soup: BeautifulSoup) -> str:
+        iframe = soup.select_one("section.items_article_Contents iframe[data-iframe=description]")
+        src = (iframe.get("src") or "").strip() if iframe else ""
+        if not src:
+            return ""
+        if src.startswith("//"):
+            src = "https:" + src
+        elif src.startswith("/"):
+            src = self.BASE_URL + src
+
+        try:
+            resp = self._session.get(src, timeout=15)
+            if resp.status_code != 200:
+                return ""
+            widget = BeautifulSoup(resp.text, "html.parser")
+            container = widget.body.find("div", recursive=False) if widget.body else None
+            if container is None:
+                return ""
+            for el in container.find_all(["script", "style", "div"]):
+                el.decompose()
+            lines = []
+            for text in container.find_all(string=True):
+                line = text.strip()
+                if not line or re.fullmatch(r"[A-Za-z0-9+/=]{16,}", line):
+                    continue
+                if line not in lines:
+                    lines.append(line)
+            return "\n".join(lines)
+        except (requests.Timeout, requests.ConnectionError):
+            return ""
+
+    def _parse_ld_json(self, soup: BeautifulSoup) -> Optional[dict]:
+        node = soup.select_one("script[type='application/ld+json']")
+        if node is None or not node.string:
+            return None
+        try:
+            data = json.loads(node.string)
+        except (ValueError, TypeError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def _parse(self, soup: BeautifulSoup, url: str, fc2_id: str) -> Optional[Video]:
+        ld = self._parse_ld_json(soup)
+
+        raw_title = (ld or {}).get("name") or ""
+        if not str(raw_title).strip():
+            og_title = soup.select_one('meta[property="og:title"]')
+            raw_title = (og_title.get("content", "") if og_title else "").strip()
+        if not str(raw_title).strip():
+            return None
+
+        title = re.sub(r"^FC2[-\s]*PPV[-\s]*\d+\s*", "", str(raw_title), flags=re.IGNORECASE).strip()
+        number = f"FC2-PPV-{fc2_id}"
+
+        cover_url = ""
+        cover_elem = soup.select_one('meta[property="og:image"]')
+        if cover_elem:
+            cover_url = (cover_elem.get("content", "") or "").strip()
+        ld_image = (ld or {}).get("image")
+        if not cover_url and isinstance(ld_image, dict):
+            cover_url = str(ld_image.get("url", "")).strip()
+        if cover_url.startswith("//"):
+            cover_url = "https:" + cover_url
+        elif cover_url.startswith("http://"):
+            cover_url = "https://" + cover_url[len("http://"):]
+
+        date = ""
+        header_info = soup.select_one(".items_article_headerInfo")
+        if header_info:
+            m = re.search(r"\d{4}/\d{2}/\d{2}", header_info.get_text())
+            if m:
+                date = m.group(0).replace("/", "-")
+
+        duration = None
+        info_elem = soup.select_one("p.items_article_info")
+        if info_elem:
+            m = re.search(r"(\d{1,3}):(\d{2}):(\d{2})", info_elem.get_text())
+            if m:
+                duration = int(m.group(1)) * 60 + int(m.group(2))
+
+        rating = None
+        ld_rating = (ld or {}).get("aggregateRating")
+        if isinstance(ld_rating, dict):
+            try:
+                rating = float(ld_rating.get("ratingValue"))
+            except (TypeError, ValueError):
+                rating = None
+        if rating is None:
+            review = soup.select_one("section.items_article_reviewComp")
+            if review:
+                for section in review.find_all(recursive=False):
+                    m = re.search(r"(\d+(?:\.\d+)?)", section.get_text())
+                    if m:
+                        rating = float(m.group(1))
+                        break
+
+        tags = []
+        for a in soup.select("a.tag.tagTag"):
+            t = a.get("data-tag") or a.get_text(strip=True)
+            if t and t not in tags:
+                tags.append(t)
+
+        sample_images = []
+        for img in soup.select("section.items_article_SampleImages img"):
+            src = (img.get("src") or img.get("data-src") or "").strip()
+            if not src:
+                continue
+            if src.startswith("//"):
+                src = "https:" + src
+            if src not in sample_images:
+                sample_images.append(src)
+
+        summary = ""
+        contents = soup.select_one("section.items_article_Contents")
+        if contents:
+            for heading in contents.select("h3"):
+                heading.decompose()
+            summary = contents.get_text("\n", strip=True)
+        if not summary and (ld or {}).get("description"):
+            summary = re.sub(r"\s+", " ", str((ld or {}).get("description", ""))).strip()
+        if not summary:
+            og_desc = soup.select_one('meta[property="og:description"]')
+            summary = (og_desc.get("content", "") if og_desc else "").strip()
+
+        return Video(
+            number=number,
+            title=title,
+            date=date,
+            duration=duration,
+            rating=rating,
+            tags=tags,
+            cover_url=cover_url,
+            sample_images=sample_images,
+            summary=summary,
+            source="fc2",
+            detail_url=url,
+        )
 
 ScraperRegistry.register(FC2Scraper)
