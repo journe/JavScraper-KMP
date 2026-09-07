@@ -18,6 +18,7 @@ class SettingsManagerTest {
         assertEquals(true, settings.createMovieFolders)
         assertEquals(true, settings.hardlinkInsteadOfCopy)
         assertEquals(true, settings.downloadImages)
+        assertEquals(false, settings.downloadWebPages)
         assertEquals(false, settings.autoScrape)
         assertEquals(false, settings.fileLoggingEnabled)
         assertEquals("en", settings.language)
@@ -44,6 +45,7 @@ class SettingsManagerTest {
             createMovieFolders = false,
             hardlinkInsteadOfCopy = false,
             downloadImages = false,
+            downloadWebPages = true,
             autoScrape = true,
             fileLoggingEnabled = true,
             language = "zh",
@@ -58,6 +60,7 @@ class SettingsManagerTest {
         assertEquals(false, decoded.createMovieFolders)
         assertEquals(false, decoded.hardlinkInsteadOfCopy)
         assertEquals(false, decoded.downloadImages)
+        assertEquals(true, decoded.downloadWebPages)
         assertEquals(true, decoded.autoScrape)
         assertEquals(true, decoded.fileLoggingEnabled)
         assertEquals("zh", decoded.language)

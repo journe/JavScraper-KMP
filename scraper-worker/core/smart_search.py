@@ -10,7 +10,6 @@ UNCENSORED = ["fc2", "heyzo", "avsox", "d2pass", "mmtv"]
 
 
 def _is_uncensored(number: str) -> bool:
-    """Check whether *number* belongs to an uncensored category."""
     upper = number.strip().upper()
     if upper.startswith("FC2") or upper.startswith("HEYZO"):
         return True
@@ -18,7 +17,6 @@ def _is_uncensored(number: str) -> bool:
 
 
 def _priority_chain(number: str) -> list[str]:
-    """Return the site priority chain for *number*."""
     return UNCENSORED if _is_uncensored(number) else CENSORED
 
 
@@ -34,24 +32,32 @@ def _is_site_enabled(site: str, enabled_sites: Iterable[str] | None) -> bool:
     return enabled_sites is None or site in set(enabled_sites)
 
 
+def _search_class(site_id: str, number: str, save_webpage: bool) -> list[Video]:
+    cls = ScraperRegistry.get(site_id)
+    if cls is None:
+        return []
+    searcher = cls()
+    if save_webpage:
+        return searcher.search(number, save_webpage=True)
+    return searcher.search(number)
+
+
 def search_candidates(
     number: str,
     site: str | None = None,
     enabled_sites: Iterable[str] | None = None,
     first_only: bool = False,
+    save_webpage: bool = False,
 ) -> list[Video]:
-    """Search *number* on one enabled site or through the priority chain."""
     site_ids = [site] if site is not None else _enabled_chain(number, enabled_sites)
     results: list[Video] = []
     for site_id in site_ids:
         if not _is_site_enabled(site_id, enabled_sites):
             continue
-        cls = ScraperRegistry.get(site_id)
-        if cls is not None:
-            site_results = cls().search(number)
-            results.extend(site_results)
-            if first_only and results:
-                return results
+        site_results = _search_class(site_id, number, save_webpage)
+        results.extend(site_results)
+        if first_only and results:
+            return results
     return results
 
 
@@ -59,10 +65,16 @@ def smart_search(
     number: str,
     site: str | None = None,
     enabled_sites: Iterable[str] | None = None,
+    save_webpage: bool = False,
 ) -> Optional[Video]:
-    """Search *number* and return only the first available video."""
     return next(
-        iter(search_candidates(number, site=site, enabled_sites=enabled_sites, first_only=True)),
+        iter(search_candidates(
+            number,
+            site=site,
+            enabled_sites=enabled_sites,
+            first_only=True,
+            save_webpage=save_webpage,
+        )),
         None,
     )
 
@@ -70,15 +82,12 @@ def smart_search(
 def search_multi(
     number: str,
     sites: list[str] | None = None,
+    save_webpage: bool = False,
 ) -> list[Video]:
-    """Search *number* across the explicitly specified sites and flatten candidates."""
     site_ids = sites
     if site_ids is None:
         site_ids = [item["id"] for item in ScraperRegistry.list_sites()]
-
     results: list[Video] = []
     for site_id in site_ids:
-        cls = ScraperRegistry.get(site_id)
-        if cls is not None:
-            results.extend(cls().search(number))
+        results.extend(_search_class(site_id, number, save_webpage))
     return results

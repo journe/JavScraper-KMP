@@ -102,6 +102,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     var createMovieFolders by settings::createMovieFolders
     var hardlinkInsteadOfCopy by settings::hardlinkInsteadOfCopy
     var downloadImages by settings::downloadImages
+    var downloadWebPages by settings::downloadWebPages
     var autoScrape by settings::autoScrape
     var folderLayers by settings::folderLayers
     var filenameFormat by settings::filenameFormat
@@ -162,6 +163,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun updateCreateMovieFolders(v: Boolean) = settings.updateCreateMovieFolders(v)
     fun updateHardlink(v: Boolean) = settings.updateHardlink(v)
     fun updateDownloadImages(v: Boolean) = settings.updateDownloadImages(v)
+    fun updateDownloadWebPages(v: Boolean) = settings.updateDownloadWebPages(v)
     fun updateAutoScrape(v: Boolean) = settings.updateAutoScrape(v)
     fun updateFileLogging(v: Boolean) = settings.updateFileLogging(v)
     fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
@@ -320,7 +322,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     val settingsState: SettingsState
         get() = SettingsState(
             workerPath, outputDir, scanDir, scanRecursive, createMovieFolders,
-            hardlinkInsteadOfCopy, downloadImages, autoScrape,
+            hardlinkInsteadOfCopy, downloadImages, downloadWebPages, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
             maxTitleLength, maxFilenameLength, suffixKeywords,
@@ -329,7 +331,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     val settingsActions: SettingsActions = SettingsActions(
         ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectWorkerPath,
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
-        ::updateHardlink, ::updateDownloadImages, ::updateAutoScrape,
+        ::updateHardlink, ::updateDownloadImages, ::updateDownloadWebPages, ::updateAutoScrape,
         ::updateFileLogging,
         ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,

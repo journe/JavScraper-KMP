@@ -12,7 +12,7 @@ data class Video(
     val director: String = "", val duration: Int? = null, val rating: Double? = null,
     val tags: List<String> = emptyList(), val coverUrl: String = "", val posterUrl: String = "",
     val sampleImages: List<String> = emptyList(), val summary: String = "",
-    val source: String = "", val detailUrl: String = "",
+    val source: String = "", val detailUrl: String = "", val webpage: String = "",
     val path: String = ""
 )
 

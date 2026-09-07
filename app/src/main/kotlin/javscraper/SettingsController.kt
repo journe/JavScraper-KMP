@@ -32,6 +32,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var createMovieFolders by mutableStateOf(SettingsManager.get().createMovieFolders)
     var hardlinkInsteadOfCopy by mutableStateOf(SettingsManager.get().hardlinkInsteadOfCopy)
     var downloadImages by mutableStateOf(SettingsManager.get().downloadImages)
+    var downloadWebPages by mutableStateOf(SettingsManager.get().downloadWebPages)
     var autoScrape by mutableStateOf(SettingsManager.get().autoScrape)
     var fileLoggingEnabled by mutableStateOf(SettingsManager.get().fileLoggingEnabled)
     var folderLayers by mutableStateOf(SettingsManager.get().folderLayers)
@@ -123,6 +124,11 @@ class SettingsController(private val scope: CoroutineScope) {
         onScrapeSettingsChanged()
     }
 
+    fun updateDownloadWebPages(v: Boolean) {
+        downloadWebPages = v
+        SettingsManager.update { it.copy(downloadWebPages = v) }
+        onScrapeSettingsChanged()
+    }
     fun updateAutoScrape(v: Boolean) {
         autoScrape = v
         SettingsManager.update { it.copy(autoScrape = v) }
@@ -191,6 +197,7 @@ class SettingsController(private val scope: CoroutineScope) {
         createMovieFolders = fresh.createMovieFolders
         hardlinkInsteadOfCopy = fresh.hardlinkInsteadOfCopy
         downloadImages = fresh.downloadImages
+        downloadWebPages = fresh.downloadWebPages
         autoScrape = fresh.autoScrape
         fileLoggingEnabled = fresh.fileLoggingEnabled
         enabledSites = fresh.enabledSites

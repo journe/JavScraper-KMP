@@ -61,6 +61,7 @@ class TranslationZh : TranslationEn() {
     override val settingsMovieFolders: String = "影片文件夹"
     override val settingsHardlinks: String = "硬链接"
     override val settingsDownloadImages: String = "下载图片"
+    override val settingsDownloadWebPages: String = "下载网页"
     override val settingsTestSites: String = "测试站点"
     override val settingsTestSitesTitle: String = "站点连通性测试"
     override val settingsTestSitesRunning: String = "正在测试站点连接..."

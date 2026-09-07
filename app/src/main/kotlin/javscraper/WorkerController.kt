@@ -142,6 +142,7 @@ class WorkerController(
             createMovieFolders = settings.createMovieFolders,
             hardlinkInsteadOfCopy = settings.hardlinkInsteadOfCopy,
             downloadImages = settings.downloadImages,
+            downloadWebPages = settings.downloadWebPages,
             folderLayers = settings.folderLayers,
             filenameFormat = settings.filenameFormat,
             maxTitleLength = settings.maxTitleLength,

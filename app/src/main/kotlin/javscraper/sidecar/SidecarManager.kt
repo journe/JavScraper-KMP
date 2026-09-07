@@ -4,6 +4,7 @@ import javscraper.models.ScrapeResult
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import javscraper.models.Video
+import javscraper.models.WebpageImageResult
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.coroutines.sync.Mutex
@@ -177,7 +178,8 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
     suspend fun scrape(
         number: String,
         site: String? = null,
-        enabledSites: List<String>? = null
+        enabledSites: List<String>? = null,
+        saveWebpage: Boolean = false
     ): ScrapeResult {
         val startedAt = System.currentTimeMillis()
         log.info {
@@ -187,6 +189,7 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             put("number", number)
             site?.let { put("site", it) }
             enabledSites?.let { put("sites", JsonArray(it.map(::JsonPrimitive))) }
+            if (saveWebpage) put("save_webpage", true)
         }
         return try {
             val result = json.decodeFromJsonElement<ScrapeResult>(sendRequest("scrape", params))
@@ -213,7 +216,8 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
     suspend fun searchCandidates(
         number: String,
         site: String? = null,
-        enabledSites: List<String>? = null
+        enabledSites: List<String>? = null,
+        saveWebpage: Boolean = false
     ): List<Video> {
         val startedAt = System.currentTimeMillis()
         log.info {
@@ -223,6 +227,7 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             put("number", number)
             site?.let { put("site", it) }
             enabledSites?.let { put("sites", JsonArray(it.map(::JsonPrimitive))) }
+            if (saveWebpage) put("save_webpage", true)
         }
         return try {
             val candidates = json.decodeFromJsonElement<List<Video>>(sendRequest("search", params))
@@ -236,6 +241,22 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             }
             throw e
         }
+    }
+    suspend fun extractWebpageImages(
+        mhtmlPath: String,
+        outputDir: String,
+        coverUrl: String = "",
+        posterUrl: String = "",
+        sampleImages: List<String> = emptyList()
+    ): WebpageImageResult {
+        val params = buildJsonObject {
+            put("mhtml_path", mhtmlPath)
+            put("output_dir", outputDir)
+            put("cover_url", coverUrl)
+            put("poster_url", posterUrl)
+            put("sample_images", JsonArray(sampleImages.map(::JsonPrimitive)))
+        }
+        return json.decodeFromJsonElement(sendRequest("extract_webpage_images", params))
     }
     private suspend fun sendRequest(method: String, params: JsonObject): JsonElement {
         val startedAt = System.currentTimeMillis()

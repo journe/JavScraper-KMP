@@ -42,7 +42,7 @@ sequenceDiagram
     U->>UI: 确认写入
     UI->>C: confirmPreviewWrite()
     C->>O: writeToDisk(file, video)
-    O->>O: 建目录 / 写 NFO / 下载图片 / 链接或复制文件
+    O->>O: 建目录 / 写 NFO / 保存 MHTML / 提取图片 / 链接或复制文件
     C->>UI: 显示 Result 成功态
     U->>UI: 确认结果
     UI->>C: confirmSingleScrape()
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 1. `SingleScrapeController` 调用 `ScrapeOrchestrator.fetchCandidates(sf, site)`。
 2. `fetchCandidates` 校验番号非空。
-3. `ScrapeOrchestrator` 调用 `SidecarManager.searchCandidates(number, site, enabledSites)`。
+3. `ScrapeOrchestrator` 调用 `SidecarManager.searchCandidates(number, site, enabledSites, downloadWebPages)`。
 4. `SidecarManager` 会确保 worker 进程存活，发送 JSON-RPC `search` 方法，并等待响应。
 5. 单个请求最多等待 60 秒；超时或异常会向上抛给单刮削控制器。
 
@@ -129,6 +129,11 @@ stateDiagram-v2
 4. 爬虫返回 `list[Video]` 后，worker 将全部候选转为 JSON 数组。
 5. Kotlin 反序列化为 `List<Video>`。
 
+### 下载网页设置
+
+设置页的“下载网页”开启后，`ScrapeOrchestrator` 会在 `search` JSON-RPC 中附带 `save_webpage: true`。Worker 在 `BaseScraper` 层临时包装当前站点会话的 `get` 方法，记录最终命中详情页和后续子页面响应，再按 `Video.detail_url` 定位根页面。
+
+归档过程只针对成功命中的详情页执行：Worker 解析根页面及 FC2 简介 iframe 等子 HTML 引用的图片、样式和脚本资源，使用同一会话抓取一次，生成标准 Multipart/Related MHTML，并把 Base64 内容放在 `Video.webpage` 字段返回。搜索页和未命中站点不会归档。MHTML 此时仅存在于内存和 RPC 响应中，不会在预览确认前写盘。
 ### 当前注意点
 
 - “自动选择”会把设置中的 `enabledSites` 传给 worker；自动优先级链只会在启用站点中尝试。若所有可用优先级站点均未启用，worker 返回无数据。
@@ -142,7 +147,7 @@ stateDiagram-v2
 2. 状态切换为 `Preview(candidates)`，默认选中第一个候选；
 3. 协程等待用户确认；
 4. 对话框先展示候选列表，用户可切换选中项，并查看该候选的完整信息卡；
-5. 此阶段不创建目录、不写 NFO、不下载图片、不复制或链接视频文件。
+5. 此阶段不创建目录、不写 NFO、不写 MHTML、不保存图片、不复制或链接视频文件。
 
 用户点击“确认写入”会 complete 当前选中索引，协程继续使用该候选进入写盘阶段。用户点击“取消”会 complete `null`，任务恢复 `PENDING`，对话框关闭，且不会执行任何 IO。
 
@@ -155,15 +160,16 @@ stateDiagram-v2
 1. 按设置的目录层级模板生成目标文件夹；
 2. `Files.createDirectories` 创建目标目录；
 3. 写入 `.nfo` 文件；
-4. 若开启图片下载，则下载封面、海报和剧照；
-5. 对源视频执行硬链接；硬链接失败时回退为复制；
-6. 若开启“复制而非硬链接”，则直接复制；
-7. 若目标文件已存在，则跳过该文件；
-8. 所有 IO 子操作均无错误时返回成功结果，单刮削进入 `Result`，任务状态置为 `SUCCESS`；任一子操作失败则聚合错误并返回失败。
+4. 若开启“下载网页”，则将 `Video.webpage` 解码写入目标目录，文件名为安全化后的 `番号-站点.mhtml`；
+5. 若同时开启图片下载，则通过 `extract_webpage_images` RPC 从刚写入的 MHTML 提取封面、海报和剧照，不再按图片 URL 重复请求；若“下载网页”关闭，则保留按 URL 下载图片的旧链路；
+6. 对源视频执行硬链接；硬链接失败时回退为复制；
+7. 若开启“复制而非硬链接”，则直接复制；
+8. 若目标文件已存在，则跳过该文件；
+9. 所有 IO 子操作均无错误时返回成功结果，单刮削进入 `Result`，任务状态置为 `SUCCESS`；任一子操作失败则聚合错误并返回失败。
 
 ### 当前注意点
 
-`writeToDisk` 会聚合目录创建、NFO 写入、图片下载和单个文件链接/复制异常。只要出现任一 IO 错误，结果会返回 `success=false` 与聚合错误信息，单刮削对话框回到 `Input` 并保留错误提示。注意：失败前已完成的子操作不会被自动回滚。
+`writeToDisk` 会聚合目录创建、NFO 写入、MHTML 写入、图片提取/下载和单个文件链接/复制异常。只要出现任一 IO 错误，结果会返回 `success=false` 与聚合错误信息，单刮削对话框回到 `Input` 并保留错误提示。注意：失败前已完成的子操作不会被自动回滚。
 
 ## 7. 结果确认与列表回填
 
@@ -222,6 +228,8 @@ stateDiagram-v2
 | 站点不可选或不符合设置 | 设置页启用状态、`enabledSites`、`AppViewModel.enabledSiteInfos` |
 | 自动模式漏掉启用站点 | 检查设置 `enabledSites`、`ScrapeOrchestrator.enabledSites` 与 RPC `sites` 参数 |
 | 预览取消后仍出现文件 | 检查是否还有旧版本代码；当前取消分支在 `writeToDisk` 前返回 |
+| 开启“下载网页”但没有 MHTML | 检查 worker 是否为新打包版本、`save_webpage` 请求参数和 `Video.webpage` 返回字段 |
+| MHTML 存在但图片缺失 | 查看图片提取 RPC 错误，确认站点返回的图片 URL 已作为资源写入 MHTML |
 | 对话框显示 IO 失败但目录中已有部分文件 | 当前失败不回滚已完成子操作；检查聚合错误信息和 worker/UI 日志 |
 | 请求长时间无响应 | Sidecar 单请求 60 秒超时；结合 worker stderr 与网络状况排查 |
 

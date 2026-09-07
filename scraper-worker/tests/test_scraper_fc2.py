@@ -302,3 +302,44 @@ def test_search_timeout(mock_session_cls):
 
     scraper = FC2Scraper()
     assert scraper.search("FC2-PPV-1723984") == []
+
+MINIMAL_ARCHIVE_HTML = """
+<html><head><meta property="og:title" content="FC2-PPV-1723984 Archive">
+<meta property="og:image" content="https://example.test/cover.jpg"></head>
+<body><section class="items_article_Contents">
+<iframe data-iframe="description" src="https://example.test/widget"></iframe>
+</section></body></html>
+"""
+
+
+@patch("scrapers.openaver.fc2.requests.Session")
+def test_search_save_webpage_includes_main_and_widget(mock_session_cls):
+    import base64
+    import email
+    from email.policy import default as email_policy
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+
+    def response(url, content, content_type):
+        item = MagicMock()
+        item.status_code = 200
+        item.url = url
+        item.text = content.decode("utf-8")
+        item.content = content
+        item.headers = {"Content-Type": content_type}
+        return item
+
+    main = response("https://adult.contents.fc2.com/article/1723984/", MINIMAL_ARCHIVE_HTML.encode(), "text/html")
+    widget = response("https://example.test/widget", b"<html><body>Description</body></html>", "text/html")
+    cover = response("https://example.test/cover.jpg", b"cover-bytes", "image/jpeg")
+    mock_session.get.side_effect = [main, widget, cover]
+
+    scraper = FC2Scraper()
+    result = scraper.search("FC2-PPV-1723984", save_webpage=True)
+
+    assert result[0].webpage
+    archive = email.message_from_bytes(base64.b64decode(result[0].webpage), policy=email_policy)
+    locations = {part["Content-Location"] for part in archive.walk() if part.get("Content-Location")}
+    assert "https://adult.contents.fc2.com/article/1723984/" in locations
+    assert "https://example.test/widget" in locations
+    assert "https://example.test/cover.jpg" in locations
