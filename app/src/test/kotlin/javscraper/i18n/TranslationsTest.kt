@@ -29,6 +29,13 @@ class TranslationsTest {
         assertEquals("Download webpage", TranslationEn().settingsDownloadWebPages)
         assertEquals("下载网页", TranslationZh().settingsDownloadWebPages)
     }
+
+    @Test
+    fun `preview image setting label is localized`() {
+        assertEquals("Download preview images", TranslationEn().settingsDownloadPreviewImages)
+        assertEquals("下载预览图", TranslationZh().settingsDownloadPreviewImages)
+    }
+
     private fun stringFields(translation: TranslationEn): Map<String, String> =
         translation.javaClass.declaredFields
             .filter { field: Field -> field.type == String::class.java }

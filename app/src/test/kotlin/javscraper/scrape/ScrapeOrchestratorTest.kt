@@ -1,5 +1,7 @@
 package javscraper.scrape
 
+import com.sun.net.httpserver.HttpServer
+import java.net.InetSocketAddress
 import javscraper.models.ScannedFile
 import javscraper.models.Video
 import javscraper.models.WebpageArchiver
@@ -194,5 +196,92 @@ fun `writeToDisk reports missing webpage and image extraction failures`() {
         )
         assertFalse(extractionFailed.success)
         assertTrue(extractionFailed.error?.message?.contains("missing image") == true)
-    }
 }}
+
+@Test
+fun `writeToDisk downloads preview images from network when enabled`() = runTest {
+    val output = createTempDirectory("javscraper-preview-on").toFile()
+    val source = output.resolve("ABC-003.mp4")
+    source.writeText("video")
+    val archiver = RecordingWebpageArchiver()
+    val (server, baseUrl) = startImageServer()
+    try {
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            outputDir = output.absolutePath,
+            createMovieFolders = false,
+            downloadImages = true,
+            downloadPreviewImages = true,
+            downloadWebPages = true,
+            webpageArchiver = archiver
+        )
+        val video = Video(
+            number = "ABC-003",
+            source = "fc2",
+            webpage = java.util.Base64.getEncoder().encodeToString("mhtml-content".toByteArray()),
+            title = "Test",
+            coverUrl = "$baseUrl/cover.jpg",
+            sampleImages = listOf("$baseUrl/sample.jpg")
+        )
+
+        val result = orchestrator.writeToDisk(
+            listOf(ScannedFile(source.absolutePath, source.name, video.number)),
+            video
+        )
+
+        assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+        assertEquals("sample-bytes", output.resolve("extrafanart").resolve("fanart1.jpg").readText())
+        assertEquals(emptyList(), archiver.video?.sampleImages)
+    } finally {
+        server.stop(0)
+    }
+}
+
+@Test
+fun `writeToDisk omits preview images when disabled`() = runTest {
+    val output = createTempDirectory("javscraper-preview-off").toFile()
+    val source = output.resolve("ABC-004.mp4")
+    source.writeText("video")
+    val archiver = RecordingWebpageArchiver()
+    val orchestrator = ScrapeOrchestrator(
+        sidecar = SidecarManager("unused-worker.exe"),
+        outputDir = output.absolutePath,
+        createMovieFolders = false,
+        downloadImages = true,
+        downloadPreviewImages = false,
+        downloadWebPages = true,
+        webpageArchiver = archiver
+    )
+    val video = Video(
+        number = "ABC-004",
+        title = "Test",
+        source = "javbus",
+        sampleImages = listOf("https://example.invalid/sample.jpg"),
+        webpage = java.util.Base64.getEncoder().encodeToString("mhtml-content".toByteArray())
+    )
+
+    val result = orchestrator.writeToDisk(
+        listOf(ScannedFile(source.absolutePath, source.name, video.number)),
+        video
+    )
+
+    assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+    assertEquals(emptyList(), archiver.video?.sampleImages)
+    assertFalse(output.resolve("extrafanart").exists())
+}
+
+private fun startImageServer(): Pair<HttpServer, String> {
+    val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+    server.createContext("/") { exchange ->
+        val content = when (exchange.requestURI.path) {
+            "/cover.jpg" -> "cover-bytes".toByteArray()
+            "/sample.jpg" -> "sample-bytes".toByteArray()
+            else -> byteArrayOf()
+        }
+        exchange.sendResponseHeaders(200, content.size.toLong())
+        exchange.responseBody.use { output -> output.write(content) }
+    }
+    server.start()
+    return server to "http://127.0.0.1:${server.address.port}"
+}
+}
