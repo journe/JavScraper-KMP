@@ -115,8 +115,9 @@ class SingleScrapeController(
                     failSingleScrape(writeResult?.error?.message ?: "Write failed")
                     return@launch
                 }
-                singleScrapeDialogState = SingleScrapeDialogState.Result(video, null)
-                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = video)
+                val written = writeResult.data ?: video
+                singleScrapeDialogState = SingleScrapeDialogState.Result(written, null)
+                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = written)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
