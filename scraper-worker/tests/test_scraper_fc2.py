@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from scrapers.models import Video
-from scrapers.openaver.fc2 import FC2Scraper
+from scrapers.openaver.uncensored.fc2 import FC2Scraper
 
 
 SAMPLE_HTML = """
@@ -65,7 +65,7 @@ def test_site_properties():
     assert scraper.site_name == "FC2"
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_success(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -97,7 +97,7 @@ def test_search_success(mock_session_cls):
     assert video.detail_url == "https://adult.contents.fc2.com/article/1723984/"
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_extracts_id_from_plain_digits(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -156,7 +156,7 @@ MULTILANG_HTML = f"""
 """
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_parses_multilanguage_page_via_json_ld(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -204,7 +204,7 @@ NO_LD_MULTILANG_HTML = """
 """
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_rating_fallback_without_json_ld(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -233,7 +233,7 @@ WIDGET_HTML = """
 """
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_fetches_full_summary_from_widget(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -257,7 +257,7 @@ def test_search_fetches_full_summary_from_widget(mock_session_cls):
     assert "カートに入れる" not in summary
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_not_found(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -269,7 +269,7 @@ def test_search_not_found(mock_session_cls):
     assert scraper.search("FC2-PPV-999999") == []
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_missing_title_returns_none(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -282,7 +282,7 @@ def test_search_missing_title_returns_none(mock_session_cls):
     assert scraper.search("FC2-PPV-1723984") == []
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_connection_error(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -293,7 +293,7 @@ def test_search_connection_error(mock_session_cls):
     assert scraper.search("FC2-PPV-1723984") == []
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_timeout(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -312,7 +312,7 @@ MINIMAL_ARCHIVE_HTML = """
 """
 
 
-@patch("scrapers.openaver.fc2.requests.Session")
+@patch("scrapers.openaver.uncensored.fc2.requests.Session")
 def test_search_save_webpage_includes_main_and_widget(mock_session_cls):
     import base64
     import email

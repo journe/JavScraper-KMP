@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from scrapers.models import Video
-from scrapers.openaver.mmtv import MmtvScraper
+from scrapers.openaver.mixed.mmtv import MmtvScraper
 
 
 SEARCH_HTML = """
@@ -68,7 +68,7 @@ def test_site_properties():
     assert scraper.site_name == "7mmtv"
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_success(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -98,7 +98,7 @@ def test_search_success(mock_session_cls):
     assert [a.name for a in result.actresses] == ["愛澄玲花", "日高ゆりあ"]
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_not_found(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -108,7 +108,7 @@ def test_search_not_found(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_connection_error(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -119,7 +119,7 @@ def test_search_connection_error(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_timeout(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -130,7 +130,7 @@ def test_search_timeout(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_empty_title_returns_none(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -143,7 +143,7 @@ def test_search_empty_title_returns_none(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_fc2_match_uses_ppv_title(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -178,7 +178,7 @@ def test_fc2_match_uses_ppv_title(mock_session_cls):
 
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_returns_all_matched_candidates(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -207,7 +207,7 @@ def test_search_returns_all_matched_candidates(mock_session_cls):
     assert results[1].title == "第二结果"
 
 
-@patch("scrapers.openaver.mmtv.requests.Session")
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_skips_failed_detail_candidates(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session

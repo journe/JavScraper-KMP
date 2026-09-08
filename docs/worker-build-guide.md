@@ -28,7 +28,7 @@ venv\Scripts\python -m PyInstaller scraper-worker.spec --noconfirm
 - `hiddenimports`：函数体内延迟导入（`from xxx import yyy` 写在函数内部）的模块，PyInstaller 静态分析无法发现，必须手动加入 `scraper-worker.spec` 的 `hiddenimports`。
   - 示例：`scrapers.site_check` 在 `ipc_handler.py` 的 `check_sites` handler 内延迟导入，已显式加入。
 - 新增刮削站点时，需要同步更新三处：
-  1. 在 `scrapers/openaver/` 新建文件并在 `scrapers/registry.py` 注册；
+  1. 在 `scrapers/openaver/<censored|uncensored|mixed>/` 新建文件并在模块末尾注册；
   2. 在 `ipc_handler.py` 末尾加入对应 import（触发注册）；
   3. 在 `scraper-worker.spec` 的 `hiddenimports` 中加入新模块。
 

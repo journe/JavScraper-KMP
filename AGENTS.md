@@ -13,7 +13,7 @@
   - `sidecar/` — Python worker 进程生命周期管理
   - `ui/` — Compose UI 屏幕与组件（`ui/screens/settings/` 为设置页子包）
   - 根包下另有 `SettingsController.kt`（设置状态与持久化）、`WorkerController.kt`（worker 生命周期与站点检查）、`AppViewModel.kt`（聚合门面）
-- **`scraper-worker/`** — Python JSON-RPC worker（Python 3.12+），刮削器位于 `scrapers/openaver/`，核心工具位于 `core/`，测试位于 `tests/`；站点连通性检查位于 `scrapers/site_check.py`
+- **`scraper-worker/`** — Python JSON-RPC worker（Python 3.12+），刮削器按有码/无码/混合位于 `scrapers/openaver/` 子包，核心工具位于 `core/`，测试位于 `tests/`；站点连通性检查位于 `scrapers/site_check.py`
 - **`installer/`** — WiX 工具集文件（bundle.wxs、build.bat），用于 Windows 打包
 - **`docs/`** — 设计规格与实施计划（`docs/superpowers/`）及操作文档（如 `docs/worker-build-guide.md` 打包指南）
 
@@ -93,7 +93,7 @@ cd scraper-worker; venv\Scripts\python -m PyInstaller scraper-worker.spec --noco
 
 - 绝不提交用户特定配置（已通过 .gitignore 忽略）。
 - Python worker 通过 stdin/stdout 与 Kotlin 应用进行 JSON-RPC 通信。
-- 新增或迁移刮削站点时，遵循完整流程（详见 docs/scraper-development-guide.md）：在 scrapers/openaver/ 新建文件、文件末尾注册 ScraperRegistry、在 ipc_handler.py 末尾导入、更新 smart_search.py 优先级链、更新 scraper-worker.spec 的 hiddenimports 与 AppSettings 默认站点列表，并编写测试。
+- 新增或迁移刮削站点时，遵循完整流程（详见 docs/scraper-development-guide.md）：在 scrapers/openaver/<censored|uncensored|mixed>/ 新建文件、文件末尾注册 ScraperRegistry、在 ipc_handler.py 末尾导入、更新 smart_search.py 优先级链、更新 scraper-worker.spec 的 hiddenimports 与 AppSettings 默认站点列表，并编写测试。
 - 修改 Python 源码后必须重新打包 worker exe（详见 docs/worker-build-guide.md）。
 
 ## 单文件刮削

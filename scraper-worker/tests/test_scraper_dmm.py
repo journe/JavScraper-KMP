@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from scrapers.models import Video
-from scrapers.openaver.dmm import DMMScraper
+from scrapers.openaver.censored.dmm import DMMScraper
 
 
 JP_HTML = """
@@ -70,7 +70,7 @@ def _assert_parsed(video):
     assert video.cover_url == "https://pics.dmm.co.jp/cover.jpg"
 
 
-@patch("scrapers.openaver.dmm.requests.Session")
+@patch("scrapers.openaver.censored.dmm.requests.Session")
 def test_search_jp_labels(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -89,7 +89,7 @@ def test_search_jp_labels(mock_session_cls):
     _assert_parsed(result[0])
 
 
-@patch("scrapers.openaver.dmm.requests.Session")
+@patch("scrapers.openaver.censored.dmm.requests.Session")
 def test_search_en_labels(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -116,7 +116,7 @@ def test_search_en_labels(mock_session_cls):
     assert video.tags == ["Genre A"]
 
 
-@patch("scrapers.openaver.dmm.requests.Session")
+@patch("scrapers.openaver.censored.dmm.requests.Session")
 def test_search_not_found(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -129,7 +129,7 @@ def test_search_not_found(mock_session_cls):
     assert scraper.search("ABCD-999") == []
 
 
-@patch("scrapers.openaver.dmm.requests.Session")
+@patch("scrapers.openaver.censored.dmm.requests.Session")
 def test_search_timeout(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session

@@ -4,14 +4,16 @@
 
 ## 一、架构概览
 
-每个刮削器是一个 `BaseScraper` 子类，放在 `scraper-worker/scrapers/openaver/` 下，通过模块末尾的 `ScraperRegistry.register(...)` 自动注册。相关文件职责：
+每个刮削器是一个 `BaseScraper` 子类，按内容类型放在 `scraper-worker/scrapers/openaver/censored/`、`uncensored/` 或 `mixed/` 下，通过模块末尾的 `ScraperRegistry.register(...)` 自动注册。相关文件职责：
 
 | 文件 | 职责 |
 | --- | --- |
 | `scrapers/base.py` | `BaseScraper` 抽象基类：`site_id` / `site_name` / `_search_one(number)`；公开 `search(number)` 包装为 `list[Video]` |
 | `scrapers/models.py` | `Video` / `Actress` 数据模型与 `scrape_success` / `scrape_error` |
 | `scrapers/registry.py` | 站点注册表：`register` / `get` / `list_sites` |
-| `scrapers/openaver/` | 各站点刮削器实现 |
+| `scrapers/openaver/censored/` | 有码站点刮削器实现 |
+| `scrapers/openaver/uncensored/` | 无码站点刮削器实现 |
+| `scrapers/openaver/mixed/` | 同时服务有码与无码搜索的综合性站点刮削器实现 |
 | `core/smart_search.py` | 自动搜索优先级链（`CENSORED` / `UNCENSORED`） |
 | `ipc_handler.py` | JSON-RPC 路由；**末尾 import 各刮削器以触发注册** |
 | `scraper-worker.spec` | PyInstaller 打包配置（`hiddenimports`） |
@@ -20,7 +22,7 @@
 
 ### 1. 创建刮削器文件
 
-新建 `scraper-worker/scrapers/openaver/<site>.py`，实现 `BaseScraper`：
+新建 `scraper-worker/scrapers/openaver/<censored|uncensored|mixed>/<site>.py`，实现 `BaseScraper`；综合站点放入 `mixed/`：
 
 ```python
 import requests
@@ -72,7 +74,7 @@ ScraperRegistry.register(XxxScraper)
 在 `ipc_handler.py` 末尾的 import 列表中加入新模块：
 
 ```python
-from scrapers.openaver import javbus, ... , xxx  # noqa: F401
+from scrapers.openaver.censored import xxx  # noqa: F401
 ```
 
 ### 3. 配置自动搜索优先级
@@ -83,7 +85,7 @@ from scrapers.openaver import javbus, ... , xxx  # noqa: F401
 
 ### 4. 更新 PyInstaller 配置
 
-在 `scraper-worker.spec` 的 `hiddenimports` 中加入 `'scrapers.openaver.xxx'`。
+在 `scraper-worker.spec` 的 `hiddenimports` 中加入 `'scrapers.openaver.<category>.xxx'`。
 
 > 注意：`hiddenimports` 里漏掉模块会导致**打包后**运行时 `Unknown: xxx` 或 ImportError，源码运行时却正常。
 
@@ -110,7 +112,7 @@ cd scraper-worker; .venv\Scripts\python -m pytest tests/
 ### 7. 真实站点验证
 
 ```powershell
-cd scraper-worker; .venv\Scripts\python -c "from scrapers.openaver.xxx import XxxScraper; print(XxxScraper().search('ABC-123'))"
+cd scraper-worker; .venv\Scripts\python -c "from scrapers.openaver.censored.xxx import XxxScraper; print(XxxScraper().search('ABC-123'))"
 ```
 
 确认能返回真实候选列表；若失败检查站点结构变化或反爬（UA / 地区限制）。站点如需返回多个候选，应覆盖 `search()` 并确保失败详情页不阻断后续候选。
@@ -171,7 +173,7 @@ git check-ignore -v <新文件>
 
 ### 7mmtv 迁移实例
 
-完整示例见 `scraper-worker/scrapers/openaver/mmtv.py`（230 行）与 `tests/test_scraper_mmtv.py`。特殊点：
+完整示例见 `scraper-worker/scrapers/openaver/mixed/mmtv.py`（230 行）与 `tests/test_scraper_mmtv.py`。特殊点：
 
 - 搜索时 FC2 番号需提取数字部分做关键词；匹配详情链接时用 `FC2-PPV ` 前缀比对标题；
 - 覆盖 `search()` 返回全部匹配候选，单个详情页解析失败时跳过并继续；

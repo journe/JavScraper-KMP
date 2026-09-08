@@ -143,5 +143,13 @@ def _extract_webpage_images(
     )
 
 
-from scrapers.openaver import javbus  # noqa: F401
-from scrapers.openaver import javdb, jav321, fc2, heyzo, avsox, d2pass, dmm, javlibrary, mmtv  # noqa: F401
+from scrapers.openaver.censored import javbus  # noqa: F401
+from scrapers.openaver.censored import javdb  # noqa: F401
+from scrapers.openaver.censored import jav321  # noqa: F401
+from scrapers.openaver.uncensored import fc2  # noqa: F401
+from scrapers.openaver.uncensored import heyzo  # noqa: F401
+from scrapers.openaver.uncensored import avsox  # noqa: F401
+from scrapers.openaver.uncensored import d2pass  # noqa: F401
+from scrapers.openaver.censored import dmm  # noqa: F401
+from scrapers.openaver.censored import javlibrary  # noqa: F401
+from scrapers.openaver.mixed import mmtv  # noqa: F401

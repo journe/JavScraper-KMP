@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from scrapers.models import Video
-from scrapers.openaver.javbus import JavBusScraper
+from scrapers.openaver.censored.javbus import JavBusScraper
 
 
 SAMPLE_HTML = """
@@ -12,30 +12,25 @@ SAMPLE_HTML = """
 <div class="col-md-3 info">
 <p>发行日期: 2025-01-15</p>
 <p>长度: 120 分钟</p>
+<p>导演: <a href="/director/jkl">JKL Director</a></p>
+<p>制作商: <a href="/studio/abc">ABC Studio</a></p>
+<p>发行商: <a href="/label/def">DEF Label</a></p>
+<p>系列: <a href="/series/ghi">GHI Series</a></p>
 <p>
 <a href="/genre/1">HD</a>
 <a href="/genre/2">独家</a>
 <a href="/other">Not Tag</a>
 </p>
+<p>演員 :</p>
+<p>
+<a href="/star/1">Hitomi Tanaka</a>
+<a href="/star/2">Yui Hatano</a>
+</p>
 </div>
 <div class="col-md-9">
-<div class="header">
-<a href="/studio/abc">ABC Studio</a>
-<a href="/label/def">DEF Label</a>
-<a href="/series/ghi">GHI Series</a>
-<a href="/director/jkl">JKL Director</a>
-</div>
 <a class="bigImage" href="https://pics.javbus.com/cover.jpg">
 <img src="https://pics.javbus.com/cover_s.jpg">
 </a>
-<div id="waterfall">
-<a class="avatar-box" title="Hitomi Tanaka" href="/star/1">
-<img src="https://pics.javbus.com/actress1.jpg">
-</a>
-<a class="avatar-box" title="Yui Hatano" href="/star/2">
-<img src="https://pics.javbus.com/actress2.jpg">
-</a>
-</div>
 </div>
 </div>
 </div>
@@ -74,7 +69,7 @@ def test_site_properties():
     assert scraper.site_name == "JavBus"
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_success(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -113,7 +108,7 @@ def test_search_success(mock_session_cls):
     assert result.actresses[1].name == "Yui Hatano"
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_not_found(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -127,7 +122,7 @@ def test_search_not_found(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_connection_error(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -140,7 +135,7 @@ def test_search_connection_error(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_timeout(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -153,7 +148,7 @@ def test_search_timeout(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_no_info_block(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -168,7 +163,7 @@ def test_search_no_info_block(mock_session_cls):
     assert result == []
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_normalizes_number(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
@@ -188,7 +183,7 @@ def test_search_normalizes_number(mock_session_cls):
     assert result.number == "SONE-205"
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_duration_multilanguage(mock_session_cls):
     for duration_text in ("120 分钟", "120 分鐘", "120 min"):
         mock_session = MagicMock()
@@ -213,7 +208,7 @@ def test_normalize_number():
     assert scraper.normalize_number("ABC-123") == "ABC-123"
 
 
-@patch("scrapers.openaver.javbus.requests.Session")
+@patch("scrapers.openaver.censored.javbus.requests.Session")
 def test_search_save_webpage_requests_images_with_referer(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session

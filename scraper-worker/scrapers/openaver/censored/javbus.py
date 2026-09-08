@@ -50,36 +50,35 @@ class JavBusScraper(BaseScraper):
 
         date = ""
         duration = None
+        actresses: list[Actress] = []
         tags: list[str] = []
         maker = label = series = director = ""
 
         for row in info.find_all("p"):
-            t = row.get_text(strip=True)
-            m = re.search(r"(\d{4}-\d{2}-\d{2})", t)
-            if m:
-                date = m.group(1)
-            m = re.search(r"(\d+)\s*(?:分钟|分鐘|min)", t)
-            if m:
-                duration = int(m.group(1))
+            text = row.get_text(strip=True)
+            date_match = re.search(r"(\d{4}-\d{2}-\d{2})", text)
+            if date_match:
+                date = date_match.group(1)
+            duration_match = re.search(r"(\d+)\s*(?:分钟|分鐘|min)", text)
+            if duration_match:
+                duration = int(duration_match.group(1))
 
-            for a in row.find_all("a"):
-                href = a.get("href", "")
+            for link in row.find_all("a"):
+                href = link.get("href", "")
+                value = link.get_text(strip=True)
                 if "/genre/" in href:
-                    tags.append(a.get_text(strip=True))
-
-        hdr = soup.find("div", class_="header")
-        if hdr:
-            for a in hdr.find_all("a"):
-                h = a.get("href", "")
-                t = a.get_text(strip=True)
-                if "/studio/" in h:
-                    maker = t
-                elif "/label/" in h:
-                    label = t
-                elif "/series/" in h:
-                    series = t
-                elif "/director/" in h:
-                    director = t
+                    tags.append(value)
+                elif "/star/" in href:
+                    actresses = [a for a in actresses if a.name != value]
+                    actresses.append(Actress(name=value))
+                elif "/studio/" in href:
+                    maker = value
+                elif "/label/" in href:
+                    label = value
+                elif "/series/" in href:
+                    series = value
+                elif "/director/" in href:
+                    director = value
 
         sample_images: list[str] = []
         sample_waterfall = soup.find(id="sample-waterfall")
@@ -92,13 +91,6 @@ class JavBusScraper(BaseScraper):
                     if sample_url not in sample_images:
                         sample_images.append(sample_url)
 
-        actresses: list[Actress] = []
-        waterfall = soup.find(id="waterfall")
-        if waterfall:
-            for s in waterfall.find_all("a", class_="avatar-box"):
-                n = s.get("title", "")
-                if n:
-                    actresses.append(Actress(name=n))
 
         return Video(
             number=number,

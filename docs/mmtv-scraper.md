@@ -2,7 +2,7 @@
 
 ## 文档范围
 
-本文梳理 `scraper-worker/scrapers/openaver/mmtv.py` 的职责、多候选搜索流程、字段解析规则、注册调用链、测试覆盖与维护注意事项。该实现是从 MDCx 项目迁移而来的同步版本，当前属于 `scraper-worker` 的 `openaver` 站点适配层。
+本文梳理 `scraper-worker/scrapers/openaver/mixed/mmtv.py` 的职责、多候选搜索流程、字段解析规则、注册调用链、测试覆盖与维护注意事项。该实现是从 MDCx 项目迁移而来的同步版本，当前属于 `scraper-worker` 的 `openaver` 站点适配层。
 
 ## 模块定位
 
