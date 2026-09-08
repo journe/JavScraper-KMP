@@ -78,13 +78,17 @@ class BaseScraper(ABC):
         ]
         extra_urls = [video.cover_url, video.poster_url, *video.sample_images]
         try:
-            archive = build_mhtml(root, related, self._fetch_resource, extra_urls)
+            def fetch_resource(url: str):
+                return self._fetch_resource(url, detail_url)
+
+            archive = build_mhtml(root, related, fetch_resource, extra_urls)
             video.webpage = base64.b64encode(archive).decode("ascii")
         except (requests.RequestException, OSError, ValueError):
             return
 
-    def _fetch_resource(self, url: str) -> CapturedResponse | None:
-        response = self._session.get(url, timeout=15)
+    def _fetch_resource(self, url: str, referer: str = "") -> CapturedResponse | None:
+        headers = {"Referer": referer} if referer else {}
+        response = self._session.get(url, timeout=15, headers=headers)
         if response.status_code != 200:
             return None
         return CapturedResponse(

@@ -199,3 +199,36 @@ def test_normalize_number():
     assert scraper.normalize_number("sone205") == "SONE-205"
     assert scraper.normalize_number("abc-123") == "ABC-123"
     assert scraper.normalize_number("ABC-123") == "ABC-123"
+
+
+@patch("scrapers.openaver.javbus.requests.Session")
+def test_search_save_webpage_requests_images_with_referer(mock_session_cls):
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+    detail_url = "https://www.javbus.com/SONE-205"
+    calls = []
+
+    def get(url, **kwargs):
+        calls.append((url, kwargs))
+        response = MagicMock()
+        response.status_code = 200
+        response.url = url
+        if url == detail_url:
+            response.text = SAMPLE_HTML
+            response.content = SAMPLE_HTML.encode("utf-8")
+            response.headers = {"Content-Type": "text/html"}
+        else:
+            response.content = b"image-bytes"
+            response.headers = {"Content-Type": "image/jpeg"}
+        return response
+
+    mock_session.get.side_effect = get
+
+    scraper = JavBusScraper()
+    result = scraper.search("SONE-205", save_webpage=True)
+
+    assert result[0].webpage
+    resource_calls = [item for item in calls if item[0] != detail_url]
+    assert resource_calls
+    for _, kwargs in resource_calls:
+        assert kwargs["headers"]["Referer"] == detail_url
