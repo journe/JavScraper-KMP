@@ -48,6 +48,7 @@ open class TranslationEn {
     open val galleryClear: String = "Clear Results"
     open val galleryDetailTitle: String = "Video Details"
     open val galleryDetailBack: String = "Back to results"
+    open val galleryDetailRefresh: String = "Refresh metadata"
     open val galleryEmptyHint: String = "No results yet"
 
     open fun galleryCount(n: Int): String = "$n movies scraped"

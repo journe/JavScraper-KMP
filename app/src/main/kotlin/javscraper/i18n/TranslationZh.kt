@@ -42,6 +42,7 @@ class TranslationZh : TranslationEn() {
     override val galleryClear: String = "清空结果"
     override val galleryDetailTitle: String = "视频详情"
     override val galleryDetailBack: String = "返回结果列表"
+    override val galleryDetailRefresh: String = "重新刮削"
     override val galleryEmptyHint: String = "暂无结果"
 
     override fun galleryCount(n: Int): String = "$n 部影片已刮削"

@@ -8,6 +8,48 @@ import kotlin.test.assertNull
 
 class ResultGalleryScreenTest {
     @Test
+    fun `gallery source file is resolved by video path`() {
+        val file = ScannedFile(
+            path = "D:/videos/ABP-123.mp4",
+            fileName = "ABP-123.mp4",
+            number = "ABP-123",
+            isScraped = true
+        )
+        val state = GalleryState(
+            scrapedFiles = listOf(file),
+            outputDir = "D:/output"
+        )
+
+        assertEquals(file, state.fileByPath("D:/videos/ABP-123.mp4"))
+        assertNull(state.fileByPath("D:/videos/missing.mp4"))
+    }
+
+    @Test
+    fun `gallery source file falls back to session result by path`() {
+        val video = Video(
+            number = "SONE-001",
+            title = "Session result",
+            path = "D:/videos/SONE-001.mp4"
+        )
+        val state = GalleryState(
+            scrapedFiles = emptyList(),
+            outputDir = "D:/output",
+            sessionResults = listOf(video)
+        )
+
+        assertEquals(
+            ScannedFile(
+                path = "D:/videos/SONE-001.mp4",
+                fileName = "SONE-001.mp4",
+                number = "SONE-001",
+                isScraped = true,
+                metadata = video
+            ),
+            state.fileByPath("D:/videos/SONE-001.mp4")
+        )
+    }
+
+    @Test
     fun `gallery merges session results and prefers rescraped video`() {
         val staleMetadata = Video(number = "ABP-123", title = "Old title")
         val rescraped = Video(number = "ABP-123", title = "New title", path = "D:/output/ABP-123.mp4")
@@ -74,6 +116,7 @@ class ResultGalleryScreenTest {
         )
         assertNull(state.videoByPath("D:/videos/missing.mp4"))
     }
+
     @Test
     fun `gallery videos fall back to file info without metadata`() {
         val state = GalleryState(

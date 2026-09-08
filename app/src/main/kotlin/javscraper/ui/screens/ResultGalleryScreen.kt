@@ -29,6 +29,7 @@ import javscraper.models.ScannedFile
 import javscraper.models.Video
 import javscraper.ui.components.PosterCard
 import javscraper.ui.theme.JavScraperTheme
+import java.io.File
 
 /** Bundled gallery state to reduce parameter count on [ResultGalleryScreen]. */
 data class GalleryState(
@@ -49,6 +50,18 @@ data class GalleryState(
         }
 
     fun videoByPath(path: String): Video? = videos.firstOrNull { it.path == path }
+
+    fun fileByPath(path: String): ScannedFile? {
+        scrapedFiles.firstOrNull { it.path == path }?.let { return it }
+        val video = videos.firstOrNull { it.path == path } ?: return null
+        return ScannedFile(
+            path = video.path,
+            fileName = File(video.path).name,
+            number = video.number,
+            isScraped = true,
+            metadata = video
+        )
+    }
 }
 
 private fun toGalleryVideo(file: ScannedFile): Video {

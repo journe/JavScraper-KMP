@@ -159,6 +159,10 @@ fun App() {
                                     VideoDetailScreen(
                                         video = video,
                                         onBack = { selectedVideoPath = null },
+                                        onRefresh = {
+                                            galleryState.fileByPath(video.path)
+                                                ?.let(viewModel::openSingleScrape)
+                                        },
                                         sharedTransitionScope = this@SharedTransitionLayout,
                                         animatedVisibilityScope = this@AnimatedContent
                                     )
@@ -168,6 +172,13 @@ fun App() {
                     }
                 }
             }
+            if (viewModel.currentScreen == Screen.GALLERY && selectedVideoPath != null) {
+                SingleScrapeDialog(
+                    state = viewModel.scrapeProgressState,
+                    actions = viewModel.scrapeProgressActions
+                )
+            }
+
             if (logsVisible) {
                 LogsDialog(
                     entries = viewModel.lifecycleLogEntries,
