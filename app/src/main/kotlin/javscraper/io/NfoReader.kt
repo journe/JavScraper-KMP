@@ -39,6 +39,7 @@ object NfoReader {
                 tags = readTags(document),
                 source = readText(document, "source"),
                 detailUrl = readText(document, "website", "detailurl"),
+                sampleImages = readFanartImages(document),
                 posterUrl = readText(document, "thumb", "cover", "poster"),
                 summary = readText(document, "plot", "outline")
             )
@@ -78,6 +79,19 @@ object NfoReader {
     private fun readAllText(document: Document, path: String): List<String> {
         val nodes = document.getElementsByTagName(path)
         return List(nodes.length) { index -> nodes.item(index).textContent }
+    }
+
+    private fun readFanartImages(document: Document): List<String> {
+        val fanarts = document.getElementsByTagName("fanart")
+        return (0 until fanarts.length).map { fanarts.item(it) }
+            .mapNotNull { it as? Element }
+            .flatMap { parent ->
+                val thumbs = parent.getElementsByTagName("thumb")
+                (0 until thumbs.length).map { thumbs.item(it).textContent }
+            }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
     }
 
     private fun readActorNames(document: Document): List<String> =

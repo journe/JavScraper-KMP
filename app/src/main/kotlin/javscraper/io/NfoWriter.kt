@@ -27,6 +27,9 @@ object NfoWriter {
         write(w, "mpaa", "JP-18+")
         if (video.source.isNotBlank()) write(w, "source", video.source)
         if (video.detailUrl.isNotBlank()) write(w, "website", video.detailUrl)
+        val poster = video.posterUrl.ifBlank { video.coverUrl }
+        if (poster.isNotBlank()) write(w, "thumb", poster)
+        if (video.sampleImages.isNotEmpty()) writeFanart(w, video.sampleImages)
         if (video.summary.isNotBlank()) {
             write(w, "plot", video.summary)
             write(w, "outline", video.summary)
@@ -54,6 +57,14 @@ object NfoWriter {
         w.writeCharacters("\n$indent")
         w.writeStartElement(name)
         w.writeCharacters(value)
+        w.writeEndElement()
+    }
+
+    private fun writeFanart(w: XMLStreamWriter, images: List<String>) {
+        w.writeCharacters("\n  ")
+        w.writeStartElement("fanart")
+        images.forEach { write(w, "thumb", it, "    ") }
+        w.writeCharacters("\n  ")
         w.writeEndElement()
     }
 

@@ -69,6 +69,8 @@ class NfoReaderTest {
             title = "Title",
             source = "fc2",
             detailUrl = "https://example.com/1723984",
+            posterUrl = "https://example.com/poster.jpg",
+            sampleImages = listOf("https://example.com/1.jpg", "https://example.com/2.jpg"),
             actresses = listOf("Actor"),
             date = "2024-02-03",
             maker = "Maker",

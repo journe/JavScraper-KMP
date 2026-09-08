@@ -108,6 +108,30 @@ class NfoWriterTest {
     }
 
     @Test
+    fun `generate includes fanart sample images`() {
+        val video = Video(
+            number = "SONE-001",
+            sampleImages = listOf("https://example.com/1.jpg", "https://example.com/2.jpg")
+        )
+
+        val nfo = NfoWriter.generate(video)
+
+        assertContains(nfo, "<fanart>")
+        assertContains(nfo, "<thumb>https://example.com/1.jpg</thumb>")
+        assertContains(nfo, "<thumb>https://example.com/2.jpg</thumb>")
+        assertContains(nfo, "</fanart>")
+    }
+
+    @Test
+    fun `generate thumb falls back to cover url`() {
+        val video = Video(number = "SONE-001", coverUrl = "https://example.com/cover.jpg")
+
+        val nfo = NfoWriter.generate(video)
+
+        assertContains(nfo, "<thumb>https://example.com/cover.jpg</thumb>")
+    }
+
+    @Test
     fun `generate includes source and website`() {
         val video = Video(
             number = "FC2-PPV-1723984",
