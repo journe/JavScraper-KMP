@@ -70,6 +70,7 @@ open class TranslationEn {
     open val settingsMovieFolders: String = "Movie folders"
     open val settingsHardlinks: String = "Hardlinks"
     open val settingsDownloadImages: String = "Download images"
+    open val settingsDownloadPreviewImages: String = "Download preview images"
     open val settingsDownloadWebPages: String = "Download webpage"
     open val settingsTestSites: String = "Test Sites"
     open val settingsTestSitesTitle: String = "Site Connectivity Test"

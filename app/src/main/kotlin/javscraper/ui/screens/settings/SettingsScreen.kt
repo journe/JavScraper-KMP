@@ -29,6 +29,7 @@ data class SettingsState(
     val createMovieFolders: Boolean,
     val hardlinkInsteadOfCopy: Boolean,
     val downloadImages: Boolean,
+    val downloadPreviewImages: Boolean,
     val downloadWebPages: Boolean,
     val autoScrape: Boolean,
     val fileLoggingEnabled: Boolean,
@@ -55,6 +56,7 @@ data class SettingsActions(
     val onCreateMovieFoldersChange: (Boolean) -> Unit,
     val onHardlinkChange: (Boolean) -> Unit,
     val onDownloadImagesChange: (Boolean) -> Unit,
+    val onDownloadPreviewImagesChange: (Boolean) -> Unit,
     val onDownloadWebPagesChange: (Boolean) -> Unit,
     val onAutoScrapeChange: (Boolean) -> Unit,
     val onFileLoggingChange: (Boolean) -> Unit,
@@ -139,8 +141,13 @@ private fun categoryLabel(category: SettingsCategory, t: TranslationEn): String 
 }
 
 @Composable
-internal fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+internal fun SettingsSwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
         Text(label)
         Switch(checked, onCheckedChange = onCheckedChange)
     }

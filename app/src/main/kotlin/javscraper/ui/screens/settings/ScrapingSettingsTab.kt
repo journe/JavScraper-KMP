@@ -43,6 +43,14 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
         }
         Spacer(Modifier.height(16.dp))
         SettingsSwitchRow(t.settingsDownloadImages, state.downloadImages, actions.onDownloadImagesChange)
+        if (state.downloadImages) {
+            SettingsSwitchRow(
+                label = t.settingsDownloadPreviewImages,
+                checked = state.downloadPreviewImages,
+                onCheckedChange = actions.onDownloadPreviewImagesChange,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
         SettingsSwitchRow(t.settingsDownloadWebPages, state.downloadWebPages, actions.onDownloadWebPagesChange)
         Spacer(Modifier.height(32.dp))
     }

@@ -17,6 +17,7 @@ class ScrapeOrchestrator(
     private val createMovieFolders: Boolean = true,
     private val hardlinkInsteadOfCopy: Boolean = true,
     private val downloadImages: Boolean = true,
+    private val downloadPreviewImages: Boolean = false,
     private val downloadWebPages: Boolean = false,
     private val folderLayers: List<String> = listOf("{num} {title}"),
     private val filenameFormat: String = "{num} {title}",
@@ -84,7 +85,7 @@ class ScrapeOrchestrator(
                         val imageResult = activeWebpageArchiver.extractImages(
                             path,
                             firstPaths.folder,
-                            video
+                            video.copy(sampleImages = emptyList())
                         )
                         if (!imageResult.success) ioErrors += "Images failed: ${imageResult.message}"
                     } catch (e: Exception) {
@@ -92,8 +93,17 @@ class ScrapeOrchestrator(
                         ioErrors += "Images failed: ${e.message}"
                     }
                 }
+                if (downloadPreviewImages) {
+                    try {
+                        ImageSaver.download(firstPaths.folder, sampleImages = video.sampleImages)
+                    } catch (e: Exception) {
+                        log.warn(e) { "Preview images failed" }
+                        ioErrors += "Preview images failed: ${e.message}"
+                    }
+                }
             } else try {
-                ImageSaver.download(firstPaths.folder, video.coverUrl, video.posterUrl, video.sampleImages)
+                val previewImages = if (downloadPreviewImages) video.sampleImages else emptyList()
+                ImageSaver.download(firstPaths.folder, video.coverUrl, video.posterUrl, previewImages)
             } catch (e: Exception) {
                 log.warn(e) { "Images failed" }
                 ioErrors += "Images failed: ${e.message}"

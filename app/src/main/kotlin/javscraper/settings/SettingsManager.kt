@@ -11,7 +11,8 @@ import java.nio.file.Paths
 data class AppSettings(
     val workerPath: String = "worker/scraper-worker.exe", val outputDir: String = "", val scanDir: String = "",
     val scanRecursive: Boolean = true, val createMovieFolders: Boolean = true, val hardlinkInsteadOfCopy: Boolean = true,
-    val downloadImages: Boolean = true, val downloadWebPages: Boolean = false, val autoScrape: Boolean = false, val fileLoggingEnabled: Boolean = false,
+    val downloadImages: Boolean = true, val downloadPreviewImages: Boolean = false,
+    val downloadWebPages: Boolean = false, val autoScrape: Boolean = false, val fileLoggingEnabled: Boolean = false,
     val language: String = "en",
     val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2","heyzo","mmtv"),
     val folderLayers: List<String> = listOf("{num} {title}"),
