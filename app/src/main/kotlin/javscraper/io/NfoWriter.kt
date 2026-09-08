@@ -25,6 +25,8 @@ object NfoWriter {
         }
         if (video.duration != null && video.duration > 0) write(w, "runtime", video.duration.toString())
         write(w, "mpaa", "JP-18+")
+        if (video.source.isNotBlank()) write(w, "source", video.source)
+        if (video.detailUrl.isNotBlank()) write(w, "website", video.detailUrl)
         if (video.summary.isNotBlank()) {
             write(w, "plot", video.summary)
             write(w, "outline", video.summary)

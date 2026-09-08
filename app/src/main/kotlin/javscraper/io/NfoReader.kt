@@ -37,6 +37,8 @@ object NfoReader {
                 duration = readText(document, "runtime").trim().toIntOrNull(),
                 rating = readText(document, "rating").trim().toDoubleOrNull(),
                 tags = readTags(document),
+                source = readText(document, "source"),
+                detailUrl = readText(document, "website", "detailurl"),
                 posterUrl = readText(document, "thumb", "cover", "poster"),
                 summary = readText(document, "plot", "outline")
             )

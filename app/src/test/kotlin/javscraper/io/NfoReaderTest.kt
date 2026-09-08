@@ -67,6 +67,8 @@ class NfoReaderTest {
         val original = Video(
             number = "SONE-001",
             title = "Title",
+            source = "fc2",
+            detailUrl = "https://example.com/1723984",
             actresses = listOf("Actor"),
             date = "2024-02-03",
             maker = "Maker",

@@ -108,6 +108,18 @@ class NfoWriterTest {
     }
 
     @Test
+    fun `generate includes source and website`() {
+        val video = Video(
+            number = "FC2-PPV-1723984",
+            source = "fc2",
+            detailUrl = "https://adult.contents.fc2.com/article/1723984/"
+        )
+        val nfo = NfoWriter.generate(video)
+        assertContains(nfo, "<source>fc2</source>")
+        assertContains(nfo, "<website>https://adult.contents.fc2.com/article/1723984/</website>")
+    }
+
+    @Test
     fun `generate series as set element`() {
         val video = Video(number = "TEST-001", series = "So甜美")
         val nfo = NfoWriter.generate(video)
