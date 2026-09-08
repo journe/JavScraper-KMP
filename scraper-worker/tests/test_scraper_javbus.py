@@ -39,6 +39,14 @@ SAMPLE_HTML = """
 </div>
 </div>
 </div>
+<div id="sample-waterfall">
+<a class="sample-box" href="/pics/sample/1.jpg">
+<div class="photo-frame"><img src="/pics/sample/1.jpg"></div>
+</a>
+<a class="sample-box" href="/pics/sample/2.jpg">
+<div class="photo-frame"><img src="/pics/sample/2.jpg"></div>
+</a>
+</div>
 </body></html>
 """
 
@@ -93,6 +101,10 @@ def test_search_success(mock_session_cls):
     assert result.director == "JKL Director"
     assert result.tags == ["HD", "独家"]
     assert result.cover_url == "https://pics.javbus.com/cover.jpg"
+    assert result.sample_images == [
+        "https://www.javbus.com/pics/sample/1.jpg",
+        "https://www.javbus.com/pics/sample/2.jpg",
+    ]
     assert result.source == "javbus"
     assert result.detail_url == "https://www.javbus.com/SONE-205"
     assert result.actresses is not None
