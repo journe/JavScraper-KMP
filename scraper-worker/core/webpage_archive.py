@@ -153,18 +153,25 @@ def build_mhtml(
     return buffer.getvalue()
 
 
-def _mhtml_resources(mhtml_path: str) -> dict[str, bytes]:
+def _mhtml_resources(mhtml_path: str) -> tuple[dict[str, bytes], str]:
     message = BytesParser(policy=default).parsebytes(Path(mhtml_path).read_bytes())
     resources: dict[str, bytes] = {}
+    root_url = normalize_url(str(message.get("Snapshot-Content-Location", "")))
     for part in message.walk():
         location = part.get("Content-Location")
         if not location:
             continue
         normalized = normalize_url(str(location))
-        if normalized:
-            resources[normalized] = part.get_payload(decode=True) or b""
-    return resources
-
+        if not normalized:
+            continue
+        resources[normalized] = part.get_payload(decode=True) or b""
+        if (
+            not root_url
+            and part.get_content_type() == "text/html"
+            and part.get("Content-Disposition") == "inline"
+        ):
+            root_url = normalized
+    return resources, root_url
 
 def _write_resource(content: bytes, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -182,7 +189,7 @@ def extract_images(
     errors: list[str] = []
     saved: dict[str, str | list[str]] = {}
     try:
-        resources = _mhtml_resources(mhtml_path)
+        resources, root_url = _mhtml_resources(mhtml_path)
         requests = [
             ("poster", cover_url, output / "poster.jpg"),
             ("fanart", poster_url, output / "fanart.jpg"),
@@ -191,7 +198,7 @@ def extract_images(
             requests.append((f"extrafanart{index}", sample_url, output / "extrafanart" / f"fanart{index}.jpg"))
 
         for key, url, target in requests:
-            normalized = normalize_url(url)
+            normalized = normalize_url(url, root_url)
             if not normalized:
                 continue
             content = resources.get(normalized)

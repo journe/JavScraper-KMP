@@ -1,5 +1,6 @@
 import re
 from typing import Optional
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -45,6 +46,7 @@ class JavBusScraper(BaseScraper):
         title = (soup.find("h3") or soup).get_text(strip=True)
         cover_tag = soup.find("a", class_="bigImage")
         cover = cover_tag.get("href", "") if cover_tag else ""
+        cover = urljoin(url, cover) if cover else ""
 
         date = ""
         duration = None
@@ -79,6 +81,17 @@ class JavBusScraper(BaseScraper):
                 elif "/director/" in h:
                     director = t
 
+        sample_images: list[str] = []
+        sample_waterfall = soup.find(id="sample-waterfall")
+        if sample_waterfall:
+            for box in sample_waterfall.find_all("a", class_="sample-box"):
+                image = box.find("img")
+                source = str(image.get("src", "")) if image else ""
+                if source:
+                    sample_url = urljoin(url, source)
+                    if sample_url not in sample_images:
+                        sample_images.append(sample_url)
+
         actresses: list[Actress] = []
         waterfall = soup.find(id="waterfall")
         if waterfall:
@@ -99,6 +112,7 @@ class JavBusScraper(BaseScraper):
             duration=duration,
             tags=tags,
             cover_url=cover,
+            sample_images=sample_images,
             source="javbus",
             detail_url=url,
         )

@@ -125,3 +125,26 @@ def test_extract_images_reports_missing_requested_images(tmp_path: Path):
 
     assert result["success"] is False
     assert re.search(r"fanart:.*not found", result["message"])
+
+
+def test_extract_images_resolves_relative_urls_from_mhtml_root(tmp_path: Path):
+    archive = build_mhtml(
+        root=response_for(ROOT_URL, b"<html><body><img src=/images/cover.jpg></body></html>"),
+        related=[],
+        fetch=lambda url: response_for(url, b"relative-image", "image/jpeg"),
+        extra_urls=["/images/sample.jpg"],
+    )
+    mhtml_path = tmp_path / "relative-page.mhtml"
+    mhtml_path.write_bytes(archive)
+    output_dir = tmp_path / "relative-output"
+
+    result = extract_images(
+        str(mhtml_path),
+        str(output_dir),
+        cover_url="/images/cover.jpg",
+        sample_images=["/images/sample.jpg"],
+    )
+
+    assert result["success"] is True, result
+    assert (output_dir / "poster.jpg").read_bytes() == b"relative-image"
+    assert (output_dir / "extrafanart" / "fanart1.jpg").read_bytes() == b"relative-image"
