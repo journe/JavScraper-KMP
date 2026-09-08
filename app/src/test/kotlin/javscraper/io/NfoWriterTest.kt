@@ -129,6 +129,7 @@ class NfoWriterTest {
         val nfo = NfoWriter.generate(video)
 
         assertContains(nfo, "<thumb>https://example.com/cover.jpg</thumb>")
+        assertContains(nfo, "<cover>https://example.com/cover.jpg</cover>")
     }
 
     @Test

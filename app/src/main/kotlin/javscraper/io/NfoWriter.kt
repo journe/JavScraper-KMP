@@ -29,6 +29,7 @@ object NfoWriter {
         if (video.detailUrl.isNotBlank()) write(w, "website", video.detailUrl)
         val poster = video.posterUrl.ifBlank { video.coverUrl }
         if (poster.isNotBlank()) write(w, "thumb", poster)
+        if (video.coverUrl.isNotBlank()) write(w, "cover", video.coverUrl)
         if (video.sampleImages.isNotEmpty()) writeFanart(w, video.sampleImages)
         if (video.summary.isNotBlank()) {
             write(w, "plot", video.summary)

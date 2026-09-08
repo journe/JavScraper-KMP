@@ -40,6 +40,7 @@ object NfoReader {
                 source = readText(document, "source"),
                 detailUrl = readText(document, "website", "detailurl"),
                 sampleImages = readFanartImages(document),
+                coverUrl = readText(document, "cover"),
                 posterUrl = readText(document, "thumb", "cover", "poster"),
                 summary = readText(document, "plot", "outline")
             )
