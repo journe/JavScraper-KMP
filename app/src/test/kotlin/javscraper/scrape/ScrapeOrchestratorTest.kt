@@ -62,6 +62,7 @@ class ScrapeOrchestratorTest {
             )
 
             assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            assertEquals(output.resolve("ABC-001 Test-cd1.mp4").absolutePath, result.data?.path)
             assertTrue(output.resolve("ABC-001 Test-cd1.mp4").isFile)
             assertTrue(output.resolve("ABC-001 Test.nfo").isFile)
             assertFalse(output.resolve(".nfo").isFile)

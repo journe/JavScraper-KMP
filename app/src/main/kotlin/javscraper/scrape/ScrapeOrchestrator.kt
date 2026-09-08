@@ -124,7 +124,7 @@ class ScrapeOrchestrator(
         }
 
         return if (ioErrors.isEmpty()) {
-            ScrapeResult(true, data = video)
+            ScrapeResult(true, data = video.copy(path = firstPaths.fullPath.toString()))
         } else {
             ScrapeResult(false, error = ScrapeError(-20, ioErrors.joinToString("; ")))
         }

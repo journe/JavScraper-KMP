@@ -33,10 +33,20 @@ import javscraper.ui.theme.JavScraperTheme
 /** Bundled gallery state to reduce parameter count on [ResultGalleryScreen]. */
 data class GalleryState(
     val scrapedFiles: List<ScannedFile>,
-    val outputDir: String
+    val outputDir: String,
+    val sessionResults: List<Video> = emptyList()
 ) {
     val videos: List<Video>
-        get() = scrapedFiles.map(::toGalleryVideo)
+        get() {
+            val byKey = LinkedHashMap<String, Video>()
+            scrapedFiles.map(::toGalleryVideo).forEach { video ->
+                byKey[video.number.ifBlank { video.path }] = video
+            }
+            sessionResults.forEach { video ->
+                byKey[video.number.ifBlank { video.path }] = video
+            }
+            return byKey.values.toList()
+        }
 
     fun videoByPath(path: String): Video? = videos.firstOrNull { it.path == path }
 }

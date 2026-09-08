@@ -102,7 +102,7 @@ fun App() {
                         currentScreen = viewModel.currentScreen,
                         onNavigate = viewModel::navigate,
                         scrapeEnabled = viewModel.tasks.isNotEmpty(),
-                        galleryEnabled = viewModel.scrapedFiles.isNotEmpty()
+                        galleryEnabled = viewModel.scrapedFiles.isNotEmpty() || viewModel.results.isNotEmpty()
                     )
                     Box(Modifier.weight(1f)) {
                         val galleryState = viewModel.galleryState
