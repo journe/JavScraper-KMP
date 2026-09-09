@@ -1,14 +1,16 @@
 package javscraper.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -25,9 +27,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -95,7 +99,11 @@ fun PosterCropDialog(
         onDismissRequest = onDismiss,
         title = { Text(translations.cropTitle(videoNumber)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 CropCanvas(
                     bitmap = bitmap,
                     rectState = cropRectState,
@@ -193,9 +201,14 @@ private fun CropCanvas(
 
     Canvas(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(bitmap.width.toFloat() / bitmap.height)
+            // 不用 fillMaxWidth:它会把宽度钉死为父宽,aspectRatio 只能靠高度满足比例,
+            // 竖图(如 380x530)时所需高度 = 父宽/0.717 会突破 420 上限,约束冲突导致布局错乱。
+            // 正确做法:aspectRatio 在「宽≤父宽、高≤420」双约束内自由取最大等比尺寸,
+            // 画布自身宽=图宽×scale;wrapContent 让画布在父宽内水平居中。
             .heightIn(max = 420.dp)
+            .aspectRatio(bitmap.width.toFloat() / bitmap.height)
+            .clip(RectangleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .pointerInput(bitmap) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
@@ -276,8 +289,8 @@ private fun PreviewThumbnail(
     aspect: Float
 ) {
     // 裁剪区域实时预览:按裁剪框原图坐标截取显示(在 draw 内读状态,仅重绘);
-    // 宽高比与当前 aspect 同步,比例调整时预览形状随之变化
-    Canvas(modifier = Modifier.width(72.dp).aspectRatio(1f / aspect)) {
+    // 高度固定,宽度随 aspect 变化(高/宽=aspect → 宽=高/aspect)
+    Canvas(modifier = Modifier.height(96.dp).aspectRatio(1f / aspect)) {
         val cropRect = rectState.value
         drawImage(
             image = bitmap,
