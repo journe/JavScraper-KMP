@@ -5,9 +5,6 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.SharedTransitionScope.ResizeMode
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,9 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
@@ -29,6 +24,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -38,8 +39,12 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.models.Video
 import javscraper.ui.components.PosterCard
+import javscraper.ui.components.PosterCropDialog
 import javscraper.ui.components.VideoInfoCard
+import javscraper.ui.components.cropSourceModel
+import javscraper.ui.components.localPosterPath
 import javscraper.ui.theme.JavScraperTheme
+import java.io.File
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -52,6 +57,9 @@ fun VideoDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val translations = LocalTranslations.current
+    var cropVisible by remember { mutableStateOf(false) }
+    // 裁剪成功后自增,驱动 PosterCard 的 poster 缓存重读(mtime 变化)
+    var posterVersion by remember { mutableLongStateOf(0L) }
     Surface(
         modifier = modifier.fillMaxSize().padding(16.dp),
         color = MaterialTheme.colorScheme.background
@@ -111,15 +119,32 @@ fun VideoDetailScreen(
                 )
                 PosterCard(
                     video = video,
-                    onClick = onBack,
+                    onClick = { cropVisible = true },
                     modifier = posterModifier,
-                    cardWidth = 320.dp
+                    cardWidth = 320.dp,
+                    posterRefreshKey = posterVersion
                 )
                 VideoInfoCard(
                     video = video,
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+
+    if (cropVisible) {
+        val source = remember(video.path) { cropSourceModel(video) }
+        if (source != null) {
+            PosterCropDialog(
+                videoNumber = video.number,
+                sourceFile = source,
+                posterFile = File(localPosterPath(video)),
+                onCropped = { posterVersion++ },
+                onDismiss = { cropVisible = false }
+            )
+        } else {
+            // 无本地封面可裁剪:自动关闭,不打断用户
+            LaunchedEffect(Unit) { cropVisible = false }
         }
     }
 }

@@ -156,5 +156,14 @@ open class TranslationEn {
     open val workerSetupSelectTitle: String = "Select scraper-worker.exe"
 
     open val commonConfirm: String = "Confirm"
+
+    // --- Poster crop dialog ---
+    open fun cropTitle(number: String): String = "Crop Poster - $number"
+    open val cropConfirm: String = "Crop & Save"
+    open val cropLoadFailed: String = "Failed to load the cover image."
+    open val cropWriteFailed: String = "Failed to write the cropped poster."
+    open fun cropSourceSize(w: Int, h: Int): String = "Source: $w x $h"
+    open fun cropOutputSize(w: Int, h: Int): String = "Output: $w x $h"
+    open fun cropAspectRatio(aspect: Float): String = "Aspect ratio (H/W): " + String.format("%.2f", aspect)
 }
 

@@ -145,4 +145,13 @@ class TranslationZh : TranslationEn() {
     override val workerSetupSelectTitle: String = "选择 scraper-worker.exe"
 
     override val commonConfirm: String = "确认"
+
+    // --- Poster crop dialog ---
+    override fun cropTitle(number: String): String = "封面裁剪 - $number"
+    override val cropConfirm: String = "裁剪并保存"
+    override val cropLoadFailed: String = "封面图片加载失败。"
+    override val cropWriteFailed: String = "裁剪后的海报写入失败。"
+    override fun cropSourceSize(w: Int, h: Int): String = "原图：$w × $h"
+    override fun cropOutputSize(w: Int, h: Int): String = "输出：$w × $h"
+    override fun cropAspectRatio(aspect: Float): String = "高宽比（高/宽）：" + String.format("%.2f", aspect)
 }

@@ -6,7 +6,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.layout.ContentScale
+import coil3.PlatformContext
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -26,7 +28,8 @@ fun PosterCard(
     video: Video,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    cardWidth: Dp = 180.dp
+    cardWidth: Dp = 180.dp,
+    posterRefreshKey: Any? = null
 ) {
     Card(
         onClick = onClick,
@@ -40,10 +43,16 @@ fun PosterCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                val posterFile = remember(video.path) { localPosterModel(video) }
+                val posterFile = remember(video.path, posterRefreshKey) { localPosterModel(video) }
                 if (posterFile != null) {
                     AsyncImage(
-                        model = posterFile,
+                        model = ImageRequest.Builder(PlatformContext.INSTANCE)
+                            .data(posterFile)
+                            // 裁剪后文件内容变化但路径不变:用 refreshKey 参与缓存 key,
+                            // 强制 Coil 重新解码,否则命中旧缓存不刷新
+                            .memoryCacheKey("${posterFile.absolutePath}#$posterRefreshKey")
+                            .diskCacheKey("${posterFile.absolutePath}#$posterRefreshKey")
+                            .build(),
                         contentDescription = video.title.ifBlank { video.number },
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -103,6 +112,16 @@ internal fun localPosterModel(video: Video): File? =
     localPosterPath(video).takeIf { it.isNotBlank() }
         ?.let(::File)
         ?.takeIf(File::isFile)
+
+private val cropSourceFileNames = listOf("fanart.jpg", "fanart.png", "poster.jpg", "poster.png")
+
+/** 裁剪输入源:优先横版封面 fanart,缺省回退 poster(与刮削落盘约定一致)。 */
+internal fun cropSourceModel(video: Video): File? {
+    val directory = File(video.path).parentFile ?: return null
+    return cropSourceFileNames
+        .map(directory::resolve)
+        .firstOrNull(File::isFile)
+}
 
 @Preview
 @Composable

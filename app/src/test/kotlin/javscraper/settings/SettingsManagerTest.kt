@@ -25,6 +25,7 @@ class SettingsManagerTest {
         assertEquals("en", settings.language)
         assertEquals(10, settings.enabledSites.size)
         assertTrue(settings.enabledSites.contains("mmtv"))
+        assertEquals(1.5f, settings.posterCropAspect)
     }
 
     @Test
@@ -51,7 +52,8 @@ class SettingsManagerTest {
             autoScrape = true,
             fileLoggingEnabled = true,
             language = "zh",
-            enabledSites = listOf("javbus", "javdb")
+            enabledSites = listOf("javbus", "javdb"),
+            posterCropAspect = 1.8f
         )
         val jsonStr = json.encodeToString(AppSettings.serializer(), original)
         val decoded = json.decodeFromString(AppSettings.serializer(), jsonStr)
@@ -68,6 +70,14 @@ class SettingsManagerTest {
         assertEquals(true, decoded.fileLoggingEnabled)
         assertEquals("zh", decoded.language)
         assertEquals(2, decoded.enabledSites.size)
+        assertEquals(1.8f, decoded.posterCropAspect)
+    }
+
+    @Test
+    fun `AppSettings posterCropAspect falls back to default on missing key`() {
+        val jsonStr = """{"workerPath": "custom.exe"}"""
+        val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
+        assertEquals(1.5f, settings.posterCropAspect)
     }
 
     @Test

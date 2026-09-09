@@ -36,6 +36,22 @@ class TranslationsTest {
         assertEquals("下载预览图", TranslationZh().settingsDownloadPreviewImages)
     }
 
+    @Test
+    fun `poster crop dialog texts are localized`() {
+        assertEquals("Crop Poster - SONE-001", TranslationEn().cropTitle("SONE-001"))
+        assertEquals("封面裁剪 - SONE-001", TranslationZh().cropTitle("SONE-001"))
+        assertEquals("裁剪并保存", TranslationZh().cropConfirm)
+        assertEquals("Source: 800 x 533", TranslationEn().cropSourceSize(800, 533))
+        assertEquals("原图：800 × 533", TranslationZh().cropSourceSize(800, 533))
+        assertEquals("Output: 355 x 533", TranslationEn().cropOutputSize(355, 533))
+        assertEquals("输出：355 × 533", TranslationZh().cropOutputSize(355, 533))
+        assertEquals(
+            "Aspect ratio (H/W): 1.50",
+            TranslationEn().cropAspectRatio(1.5f).replace(",", ".")
+        )
+        assertTrue(TranslationZh().cropAspectRatio(1.5f).endsWith("1.50"))
+    }
+
     private fun stringFields(translation: TranslationEn): Map<String, String> =
         translation.javaClass.declaredFields
             .filter { field: Field -> field.type == String::class.java }
