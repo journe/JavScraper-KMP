@@ -161,7 +161,7 @@ stateDiagram-v2
 2. `Files.createDirectories` 创建目标目录；
 3. 写入 `.nfo` 文件；
 4. 若开启“下载网页”，则将 `Video.webpage` 解码写入目标目录，文件名为安全化后的 `番号-站点.mhtml`；
-5. 若开启“下载图片”：开启“下载网页”时，通过 `extract_webpage_images` RPC 只从 MHTML 提取封面和海报，不提取预览图；关闭“下载网页”时，封面和海报按 URL 下载。子选项“下载预览图”默认关闭，仅在父开关开启且自身开启时按网络 URL 下载 `sample_images`，即使已保存 MHTML 也不从归档提取；
+5. 若开启“下载图片”：开启“下载网页”时，通过 `extract_webpage_images` RPC 只从 MHTML 提取封面和海报，不提取预览图；关闭“下载网页”时，封面和海报按 URL 下载。两条链路的图片落盘规则一致：封面（`Video.coverUrl`）保存为 `poster.jpg`，并复制同一份内容为 `fanart.jpg`（不单独下载 fanart）；独立海报地址（`Video.posterUrl`）当前所有刮削器均未填充，其覆盖下载分支实际不会触发。子选项“下载预览图”默认关闭，仅在父开关开启且自身开启时按网络 URL 下载 `sample_images`，即使已保存 MHTML 也不从归档提取；
 6. 对源视频执行硬链接；硬链接失败时回退为复制；
 7. 若开启“复制而非硬链接”，则直接复制；
 8. 若目标文件已存在，则跳过该文件；
@@ -170,6 +170,20 @@ stateDiagram-v2
 ### 当前注意点
 
 `writeToDisk` 会聚合目录创建、NFO 写入、MHTML 写入、图片提取/下载和单个文件链接/复制异常。只要出现任一 IO 错误，结果会返回 `success=false` 与聚合错误信息，单刮削对话框回到 `Input` 并保留错误提示。注意：失败前已完成的子操作不会被自动回滚。
+
+### 图片落盘规则
+
+封面图片下载后不会产生独立的“fanart 下载”请求，fanart 是封面的副本：
+
+| 输出文件 | 来源 | 说明 |
+| --- | --- | --- |
+| `poster.jpg` | `Video.coverUrl`（站点封面） | 唯一真实下载的封面图 |
+| `fanart.jpg` | `poster.jpg` 的字节副本 | 复制自 poster，不做二次下载 |
+| `extrafanart/fanartN.jpg` | `Video.sampleImages` | 仅在开启“下载预览图”时下载 |
+
+- 网络直连链路（Kotlin `ImageSaver.download`）与 MHTML 提取链路（Python `core/webpage_archive.py` 的 `extract_images`）遵循相同规则，两条链路行为保持一致。
+- `Video.posterUrl`（独立海报）目前所有刮削器均未填充，恒为空字符串；`ImageSaver.download` 中对应的覆盖下载分支为死代码，仅为未来某站点提供独立海报时保留。
+- 因此每个刮削完成的影片目录实际得到内容相同的 `poster.jpg` + `fanart.jpg` 两份封面，这是有意为之的对齐 mdcx 惯例行为。
 
 ## 7. 结果确认与列表回填
 

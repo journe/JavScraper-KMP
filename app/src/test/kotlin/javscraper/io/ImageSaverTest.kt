@@ -1,5 +1,7 @@
 ﻿package javscraper.io
 
+import com.sun.net.httpserver.HttpServer
+import java.net.InetSocketAddress
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -78,6 +80,39 @@ class ImageSaverTest {
             assertEquals(0, result.size, "Failed downloads return empty map")
         } finally {
             Files.walk(tmpDir).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
+    fun `download copies cover as fanart after saving poster`() = runTest {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/cover.jpg") { exchange ->
+            val content = "cover-bytes".toByteArray()
+            exchange.sendResponseHeaders(200, content.size.toLong())
+            exchange.responseBody.use { it.write(content) }
+        }
+        server.start()
+        val tmpDir = Files.createTempDirectory("javscraper-img-fanart-")
+        try {
+            val result = ImageSaver.download(
+                tmpDir,
+                coverUrl = "http://127.0.0.1:${server.address.port}/cover.jpg"
+            )
+
+            assertEquals(2, result.size, "poster and fanart should be recorded")
+            assertEquals(tmpDir.resolve("poster.jpg").toString(), result["poster"])
+            assertEquals(tmpDir.resolve("fanart.jpg").toString(), result["fanart"])
+            assertTrue(Files.exists(tmpDir.resolve("poster.jpg")), "poster.jpg should be downloaded")
+            assertTrue(Files.exists(tmpDir.resolve("fanart.jpg")), "fanart.jpg should be copied from poster")
+            assertTrue(
+                Files.readAllBytes(tmpDir.resolve("poster.jpg")).contentEquals(
+                    Files.readAllBytes(tmpDir.resolve("fanart.jpg"))
+                ),
+                "fanart.jpg should be identical to poster.jpg"
+            )
+        } finally {
+            Files.walk(tmpDir).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+            server.stop(0)
         }
     }
 }

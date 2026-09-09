@@ -111,6 +111,30 @@ def test_extract_images_writes_expected_files(tmp_path: Path):
     assert (output_dir / "extrafanart" / "fanart1.jpg").read_bytes() == SAMPLE_BYTES
 
 
+def test_extract_images_copies_cover_as_fanart(tmp_path: Path):
+    archive = build_mhtml(
+        root=response_for(ROOT_URL, ROOT_HTML),
+        related=[],
+        fetch=lambda url: response_for(url, IMAGE_BYTES, "image/jpeg"),
+        extra_urls=[IMAGE_URL],
+    )
+    mhtml_path = tmp_path / "cover-only.mhtml"
+    mhtml_path.write_bytes(archive)
+    output_dir = tmp_path / "cover-only-output"
+
+    result = extract_images(
+        str(mhtml_path),
+        str(output_dir),
+        cover_url=IMAGE_URL,
+    )
+
+    assert result["success"] is True, result
+    assert result["saved"]["poster"] == str(output_dir / "poster.jpg")
+    assert result["saved"]["fanart"] == str(output_dir / "fanart.jpg")
+    assert (output_dir / "poster.jpg").read_bytes() == IMAGE_BYTES
+    assert (output_dir / "fanart.jpg").read_bytes() == IMAGE_BYTES
+
+
 def test_extract_images_reports_missing_requested_images(tmp_path: Path):
     archive = build_mhtml(
         root=response_for(ROOT_URL, b"<html></html>"),
@@ -148,3 +172,4 @@ def test_extract_images_resolves_relative_urls_from_mhtml_root(tmp_path: Path):
     assert result["success"] is True, result
     assert (output_dir / "poster.jpg").read_bytes() == b"relative-image"
     assert (output_dir / "extrafanart" / "fanart1.jpg").read_bytes() == b"relative-image"
+    assert (output_dir / "fanart.jpg").read_bytes() == b"relative-image"

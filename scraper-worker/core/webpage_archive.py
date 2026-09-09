@@ -206,6 +206,13 @@ def extract_images(
                 errors.append(f"{key}: {url} not found in MHTML")
                 continue
             _write_resource(content, target)
+            if key == "poster":
+                # 封面下载为 poster 后，复制同一份内容为 fanart（不做二次下载）。
+                # 与 Kotlin 侧 ImageSaver.download 的落盘规则保持一致；
+                # 正常刮削结果为每个影片目录得到内容相同的 poster.jpg + fanart.jpg。
+                fanart_target = output / "fanart.jpg"
+                _write_resource(content, fanart_target)
+                saved["fanart"] = str(fanart_target)
             if key.startswith("extrafanart"):
                 values = saved.setdefault("extrafanart", [])
                 if isinstance(values, list):
