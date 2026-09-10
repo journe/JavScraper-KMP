@@ -173,3 +173,38 @@ def test_extract_images_resolves_relative_urls_from_mhtml_root(tmp_path: Path):
     assert (output_dir / "poster.jpg").read_bytes() == b"relative-image"
     assert (output_dir / "extrafanart" / "fanart1.jpg").read_bytes() == b"relative-image"
     assert (output_dir / "fanart.jpg").read_bytes() == b"relative-image"
+
+
+ALTERNATE_URL = "https://example.test/en/movie/FC2-PPV-1723984"
+CANONICAL_URL = "https://example.test/canonical/movie"
+NEXT_URL = "https://example.test/movie/FC2-PPV-1723984/page/2"
+ICON_URL = "https://example.test/favicon.ico"
+PRELOAD_URL = "https://example.test/fonts/site.woff2"
+
+LINK_REL_HTML = f'''<!doctype html><html><head>
+<link rel="alternate" hreflang="en" href="{ALTERNATE_URL}">
+<link rel="canonical" href="{CANONICAL_URL}">
+<link rel="next" href="{NEXT_URL}">
+<link rel="stylesheet" href="{CSS_URL}">
+<link rel="shortcut icon" href="{ICON_URL}">
+<link rel="preload" as="font" href="{PRELOAD_URL}">
+<link href="{CANONICAL_URL}/no-rel">
+</head><body></body></html>'''.encode()
+
+
+def test_build_mhtml_only_follows_resource_link_relations():
+    fetched = []
+
+    def fetch(url):
+        fetched.append(url)
+        return response_for(url, b"resource-bytes", "text/css")
+
+    build_mhtml(root=response_for(ROOT_URL, LINK_REL_HTML), related=[], fetch=fetch)
+
+    assert CSS_URL in fetched
+    assert ICON_URL in fetched
+    assert PRELOAD_URL in fetched
+    assert ALTERNATE_URL not in fetched
+    assert CANONICAL_URL not in fetched
+    assert NEXT_URL not in fetched
+    assert f"{CANONICAL_URL}/no-rel" not in fetched

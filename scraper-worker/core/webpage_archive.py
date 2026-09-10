@@ -15,6 +15,7 @@ from typing import Callable, Iterable
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 CSS_URL_PATTERN = re.compile(r"url\(\s*(['\"]?)(.*?)\1\s*\)", re.IGNORECASE)
 
@@ -40,11 +41,33 @@ def normalize_url(url: str, base: str = "") -> str:
     return urlunsplit((split.scheme.lower(), split.netloc, split.path, split.query, ""))
 
 
+LINK_RESOURCE_RELS = frozenset(
+    {
+        "stylesheet",
+        "icon",
+        "apple-touch-icon",
+        "apple-touch-icon-precomposed",
+        "mask-icon",
+        "manifest",
+        "preload",
+        "modulepreload",
+    }
+)
+
+
+def _is_resource_link(element: Tag) -> bool:
+    rel = element.get("rel") or []
+    tokens = rel.split() if isinstance(rel, str) else [str(item) for item in rel]
+    return bool({token.lower() for token in tokens} & LINK_RESOURCE_RELS)
+
+
 def _resource_urls(content: bytes, base_url: str) -> list[str]:
     urls: list[str] = []
     soup = BeautifulSoup(content, "html.parser")
     elements = soup.find_all(["img", "script", "link", "source", "iframe", "video"])
     for element in elements:
+        if element.name == "link" and not _is_resource_link(element):
+            continue
         for attribute in ("src", "data-src", "data-original", "href", "poster"):
             value = element.get(attribute)
             if value:
