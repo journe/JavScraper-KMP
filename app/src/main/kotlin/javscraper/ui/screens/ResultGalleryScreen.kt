@@ -85,7 +85,8 @@ fun ResultGalleryScreen(
     actions: GalleryActions,
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    posterRefreshKey: Any? = null
 ) {
     val translations = LocalTranslations.current
     val videos = state.videos
@@ -135,6 +136,9 @@ fun ResultGalleryScreen(
                     PosterCard(
                         video = video,
                         onClick = { actions.onVideoClick(video) },
+                        // 裁剪后文件内容变化但路径不变:refreshKey 参与 Coil 缓存 key,
+                        // 返回图库也能重读新 poster 而不是命中旧缓存
+                        posterRefreshKey = posterRefreshKey,
                         modifier = galleryPosterModifier(
                             video = video,
                             sharedTransitionScope = sharedTransitionScope,

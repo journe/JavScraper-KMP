@@ -50,6 +50,9 @@ fun App() {
             var navExpanded by remember { mutableStateOf(false) }
             var logsVisible by remember { mutableStateOf(false) }
             var selectedVideoPath by remember { mutableStateOf<String?>(null) }
+            // 裁剪成功后自增:提升到详情/图库共同父级,两侧 PosterCard 共用同一
+            // refreshKey 绕过 Coil 缓存重读,返回图库也能看到裁剪后的 poster
+            var posterRefreshVersion by remember { mutableLongStateOf(0L) }
             LaunchedEffect(viewModel.currentScreen) {
                 if (viewModel.currentScreen != Screen.GALLERY) selectedVideoPath = null
             }
@@ -133,6 +136,7 @@ fun App() {
 
                                         Screen.GALLERY -> ResultGalleryScreen(
                                             state = galleryState,
+                                            posterRefreshKey = posterRefreshVersion,
                                             actions = viewModel.galleryActions.copy(
                                                 onClear = {
                                                     selectedVideoPath = null
@@ -164,7 +168,9 @@ fun App() {
                                                 ?.let(viewModel::openSingleScrape)
                                         },
                                         sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent
+                                        animatedVisibilityScope = this@AnimatedContent,
+                                        posterRefreshKey = posterRefreshVersion,
+                                        onPosterCropped = { posterRefreshVersion++ }
                                     )
                                 }
                             }

@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="app-direct" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="javscraper.MainKt" />
+    <module name="JavScraper.app.main" />
+    <option name="WORKING_DIRECTORY" value="$ProjectFileDir$/app" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

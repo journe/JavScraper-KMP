@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,6 +43,7 @@ import javscraper.ui.components.PosterSource
 import javscraper.ui.components.VideoInfoCard
 import javscraper.ui.components.cropSourceModel
 import javscraper.ui.components.localPosterPath
+import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
 import java.io.File
 
@@ -55,12 +55,13 @@ fun VideoDetailScreen(
     onRefresh: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // 由 App 层持有并注入:与图库页共享同一裁剪版本号,两侧 PosterCard 同步刷新
+    posterRefreshKey: Any? = null,
+    onPosterCropped: () -> Unit = {}
 ) {
     val translations = LocalTranslations.current
     var cropVisible by remember { mutableStateOf(false) }
-    // 裁剪成功后自增,驱动 PosterCard 的 poster 缓存重读(mtime 变化)
-    var posterVersion by remember { mutableLongStateOf(0L) }
     Surface(
         modifier = modifier.fillMaxSize().padding(16.dp),
         color = MaterialTheme.colorScheme.background
@@ -78,7 +79,7 @@ fun VideoDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = video.title.ifBlank { video.number },
+                        text = video.number,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -123,7 +124,7 @@ fun VideoDetailScreen(
                     onClick = { cropVisible = true },
                     modifier = posterModifier,
                     cardWidth = 320.dp,
-                    posterRefreshKey = posterVersion,
+                    posterRefreshKey = posterRefreshKey,
                     // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
                     source = PosterSource.FANART
                 )
@@ -142,7 +143,7 @@ fun VideoDetailScreen(
                 videoNumber = video.number,
                 sourceFile = source,
                 posterFile = File(localPosterPath(video)),
-                onCropped = { posterVersion++ },
+                onCropped = onPosterCropped,
                 onDismiss = { cropVisible = false }
             )
         } else {
@@ -160,11 +161,7 @@ private fun VideoDetailScreenPreview() {
             SharedTransitionLayout {
                 AnimatedContent(targetState = false, label = "video-detail-preview") { _ ->
                     VideoDetailScreen(
-                        video = Video(
-                            number = "SONE-001",
-                            title = "已刮削元数据标题",
-                            path = "F:/Videos/SONE-001.mp4"
-                        ),
+                        video = previewVideoWithAllFields(),
                         onBack = {},
                         onRefresh = {},
                         sharedTransitionScope = this@SharedTransitionLayout,

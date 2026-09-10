@@ -23,6 +23,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.models.Video
+import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
 
 internal data class VideoInfoRow(
@@ -111,26 +112,3 @@ fun VideoInfoCardPreviewFull() {
         }
     }
 }
-
-private fun previewVideoWithAllFields(): Video = Video(
-    number = "SONE-001",
-    title = "包含完整字段的刮削结果标题",
-    actresses = listOf("演员 A", "演员 B"),
-    date = "2026-08-26",
-    maker = "片商",
-    label = "发行标签",
-    series = "系列",
-    director = "导演",
-    duration = 120,
-    rating = 9.2,
-    tags = listOf("标签 A", "标签 B"),
-    coverUrl = "https://example.com/cover.jpg",
-    posterUrl = "https://example.com/poster.jpg",
-    sampleImages = listOf(
-        "https://example.com/sample-1.jpg",
-        "https://example.com/sample-2.jpg"
-    ),
-    summary = "这是完整刮削结果预览的简介内容，用于检查长文本滚动和换行效果。",
-    source = "JavBus",
-    detailUrl = "https://example.com/detail"
-)
