@@ -85,3 +85,28 @@ def test_smart_search_passes_webpage_option_to_scraper():
 
     assert result is not None
     assert result.webpage
+
+
+class MirrorScraper(BaseScraper):
+    @property
+    def site_id(self):
+        return "fc2mirror"
+
+    @property
+    def site_name(self):
+        return "FC2 Mirror"
+
+    def _search_one(self, number):
+        return None
+
+    def search(self, number):
+        return [Video(number=number, title="Mirror", source="fc2mirror")]
+
+
+def test_smart_search_includes_enabled_fc2_mirror():
+    ScraperRegistry.clear()
+    ScraperRegistry.register(MirrorScraper)
+
+    results = search_candidates("FC2-PPV-1723984", enabled_sites=["fc2mirror"])
+
+    assert [video.source for video in results] == ["fc2mirror"]

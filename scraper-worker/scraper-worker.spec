@@ -31,6 +31,7 @@ a = Analysis(
         'scrapers.openaver.censored.javdb',
         'scrapers.openaver.censored.jav321',
         'scrapers.openaver.uncensored.fc2',
+        'scrapers.openaver.uncensored.fc2_mirror',
         'scrapers.openaver.uncensored.heyzo',
         'scrapers.openaver.uncensored.avsox',
         'scrapers.openaver.uncensored.d2pass',

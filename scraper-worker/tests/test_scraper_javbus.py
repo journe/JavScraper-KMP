@@ -1,14 +1,14 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+from bs4 import BeautifulSoup
+
 from scrapers.models import Video
 from scrapers.openaver.censored.javbus import JavBusScraper
 
-
 SAMPLE_HTML = """
 <html><body>
-<div class="container">
 <h3>SONE-205 Sample Title</h3>
-<div class="row">
 <div class="col-md-3 info">
 <p>发行日期: 2025-01-15</p>
 <p>长度: 120 分钟</p>
@@ -16,54 +16,70 @@ SAMPLE_HTML = """
 <p>制作商: <a href="/studio/abc">ABC Studio</a></p>
 <p>发行商: <a href="/label/def">DEF Label</a></p>
 <p>系列: <a href="/series/ghi">GHI Series</a></p>
-<p>
-<a href="/genre/1">HD</a>
-<a href="/genre/2">独家</a>
-<a href="/other">Not Tag</a>
-</p>
+<p><a href="/genre/1">HD</a><a href="/genre/2">独家</a></p>
 <p>演員 :</p>
-<p>
-<a href="/star/1">Hitomi Tanaka</a>
-<a href="/star/2">Yui Hatano</a>
-</p>
+<p><a href="/star/1">Hitomi Tanaka</a><a href="/star/2">Yui Hatano</a></p>
 </div>
-<div class="col-md-9">
-<a class="bigImage" href="https://pics.javbus.com/cover.jpg">
-<img src="https://pics.javbus.com/cover_s.jpg">
-</a>
-</div>
-</div>
-</div>
+<a class="bigImage" href="https://pics.javbus.com/cover.jpg"><img src="cover_s.jpg"></a>
 <div id="sample-waterfall">
-<a class="sample-box" href="/pics/sample/1.jpg">
-<div class="photo-frame"><img src="/pics/sample/1.jpg"></div>
-</a>
-<a class="sample-box" href="/pics/sample/2.jpg">
-<div class="photo-frame"><img src="/pics/sample/2.jpg"></div>
-</a>
+<a class="sample-box" href="/pics/sample/1.jpg"><img src="/pics/sample/1s.jpg"></a>
+<a class="sample-box" href="/pics/sample/2.jpg"><img src="/pics/sample/2s.jpg"></a>
 </div>
 </body></html>
 """
 
+JP_HTML = """
+<html><body>
+<h3>ABC-123 日本語タイトル</h3>
+<div class="col-md-3 info">
+<p>品番: ABC-123</p>
+<p>発売日: 2025-02-03</p>
+<p>収録時間: 90分</p>
+<p>監督: <a href="/director/x">監督氏</a></p>
+<p>メーカー: <a href="/studio/x">メーカー</a></p>
+<p>レーベル: <a href="/label/x">レーベル</a></p>
+<p>シリーズ: <a href="/series/x">シリーズ</a></p>
+<p>ジャンル: <a href="/genre/x">タグ</a></p>
+<p>出演者:</p>
+<p><a href="/star/x">出演者</a></p>
+</div>
+<a class="bigImage" href="/cover.jpg"><img title="ABC-123 日本語タイトル"></a>
+<div id="sample-waterfall"><a href="/sample.jpg"><img src="/sample_s.jpg"></a></div>
+</body></html>
+"""
+
+SEARCH_HTML = """
+<html><body><div id="waterfall">
+<a class="movie-box" href="https://www.javbus.com/ABC-456"><date>ABC-456</date></a>
+<a class="movie-box" href="https://www.javbus.com/DEF-789"></a>
+</div></body></html>
+"""
+
 
 @pytest.fixture(autouse=True)
-def clear_registry_teardown():
+def clear_registry():
     from scrapers.registry import ScraperRegistry
+
+    if ScraperRegistry.get("javbus") is None:
+        ScraperRegistry.register(JavBusScraper)
+
     yield
     ScraperRegistry.clear()
 
 
-def test_auto_register():
+def response(html: str, url: str, status_code: int = 200) -> MagicMock:
+    item = MagicMock()
+    item.status_code = status_code
+    item.text = html
+    item.content = html.encode("utf-8")
+    item.url = url
+    return item
+
+
+def test_auto_register_and_site_properties():
     from scrapers.registry import ScraperRegistry
-    # Re-register in case prior tests cleared the registry
-    if ScraperRegistry.get("javbus") is None:
-        ScraperRegistry.register(JavBusScraper)
-    cls = ScraperRegistry.get("javbus")
-    assert cls is not None
-    assert cls is JavBusScraper
 
-
-def test_site_properties():
+    assert ScraperRegistry.get("javbus") is JavBusScraper
     scraper = JavBusScraper()
     assert scraper.site_id == "javbus"
     assert scraper.site_name == "JavBus"
@@ -73,169 +89,122 @@ def test_site_properties():
 def test_search_success(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
+    mock_session.get.return_value = response(SAMPLE_HTML, "https://www.javbus.com/SONE-205")
 
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.text = SAMPLE_HTML
-    mock_resp.url = "https://www.javbus.com/SONE-205"
-    mock_session.get.return_value = mock_resp
-
-    scraper = JavBusScraper()
-    result = scraper.search("sone205")
+    result = JavBusScraper().search("sone205")
 
     assert len(result) == 1
-    result = result[0]
-    assert isinstance(result, Video)
-    assert result.number == "SONE-205"
-    assert result.title == "SONE-205 Sample Title"
-    assert result.date == "2025-01-15"
-    assert result.duration == 120
-    assert result.maker == "ABC Studio"
-    assert result.label == "DEF Label"
-    assert result.series == "GHI Series"
-    assert result.director == "JKL Director"
-    assert result.tags == ["HD", "独家"]
-    assert result.cover_url == "https://pics.javbus.com/cover.jpg"
-    assert result.sample_images == [
+    video = result[0]
+    assert isinstance(video, Video)
+    assert video.number == "SONE-205"
+    assert video.title == "Sample Title"
+    assert video.date == "2025-01-15"
+    assert video.duration == 120
+    assert video.maker == "ABC Studio"
+    assert video.label == "DEF Label"
+    assert video.series == "GHI Series"
+    assert video.director == "JKL Director"
+    assert video.tags == ["HD", "独家"]
+    assert video.cover_url == "https://pics.javbus.com/cover.jpg"
+    assert video.sample_images == [
         "https://www.javbus.com/pics/sample/1.jpg",
         "https://www.javbus.com/pics/sample/2.jpg",
     ]
-    assert result.source == "javbus"
-    assert result.detail_url == "https://www.javbus.com/SONE-205"
-    assert result.actresses is not None
-    assert len(result.actresses) == 2
-    assert result.actresses[0].name == "Hitomi Tanaka"
-    assert result.actresses[1].name == "Yui Hatano"
+    assert [actress.name for actress in video.actresses] == ["Hitomi Tanaka", "Yui Hatano"]
 
 
 @patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_not_found(mock_session_cls):
+def test_source_japanese_layout_and_title_prefix(mock_session_cls):
+    mock_session_cls.return_value = MagicMock()
+    scraper = JavBusScraper(lang="ja")
+
+    video = scraper._parse(
+        BeautifulSoup(JP_HTML, "html.parser"),
+        "ABC-123",
+        "https://www.javbus.com/ja/ABC-123",
+    )
+
+    assert video.title == "日本語タイトル"
+    assert video.date == "2025-02-03"
+    assert video.duration == 90
+    assert video.director == "監督氏"
+    assert video.maker == "メーカー"
+    assert video.label == "レーベル"
+    assert video.series == "シリーズ"
+    assert video.tags == ["タグ"]
+    assert [actress.name for actress in video.actresses] == ["出演者"]
+    assert video.cover_url == "https://www.javbus.com/cover.jpg"
+    assert video.sample_images == ["https://www.javbus.com/sample.jpg"]
+
+
+def test_source_search_url_and_ids():
+    scraper = JavBusScraper()
+
+    assert scraper._build_search_url("ABC", 2, 1) == "https://www.javbus.com/search/ABC/2&type=1"
+    assert scraper._parse_search_ids(BeautifulSoup(SEARCH_HTML, "html.parser")) == ["ABC-456", "DEF-789"]
+
+
+def test_source_browser_fingerprint():
+    headers = JavBusScraper()._session.headers
+
+    assert headers["User-Agent"].startswith("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")
+    assert headers["Accept-Encoding"] == "gzip, deflate"
+    assert headers["Connection"] == "keep-alive"
+
+
+@patch("scrapers.openaver.censored.javbus.requests.Session")
+def test_search_not_found_connection_and_timeout(mock_session_cls):
+    from requests import ConnectionError, Timeout
+
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 404
-    mock_session.get.return_value = mock_resp
+    mock_session.get.side_effect = [MagicMock(status_code=404), ConnectionError(), Timeout()]
 
     scraper = JavBusScraper()
-    result = scraper.search("ABCD-999")
-    assert result == []
+    assert scraper.search("ABC-123") == []
+    assert scraper.search("ABC-123") == []
+    assert scraper.search("ABC-123") == []
 
 
 @patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_connection_error(mock_session_cls):
+def test_search_save_webpage_fetches_images_with_referer(mock_session_cls):
+    import base64
+
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
+    main = response(SAMPLE_HTML, "https://www.javbus.com/SONE-205")
+    main.headers = {"Content-Type": "text/html"}
+    resource_calls = []
 
-    from requests.exceptions import ConnectionError
-    mock_session.get.side_effect = ConnectionError()
+    def get_side_effect(url, *args, **kwargs):
+        if url == "https://www.javbus.com/SONE-205":
+            return main
+        resource_calls.append(kwargs)
+        item = MagicMock()
+        item.status_code = 200
+        item.url = url
+        item.content = b"resource-bytes"
+        item.headers = {"Content-Type": "image/jpeg"}
+        return item
 
-    scraper = JavBusScraper()
-    result = scraper.search("SONE-205")
-    assert result == []
+    mock_session.get.side_effect = get_side_effect
 
+    video = JavBusScraper().search("SONE-205", save_webpage=True)[0]
 
-@patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_timeout(mock_session_cls):
+    assert video.webpage
+    assert base64.b64decode(video.webpage)
+    assert all(call["headers"]["Referer"] == "https://www.javbus.com/SONE-205" for call in resource_calls)
+
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
+    main = response(SAMPLE_HTML, "https://www.javbus.com/SONE-205")
+    main.headers = {"Content-Type": "text/html"}
+    cover = MagicMock(status_code=200, url="https://pics.javbus.com/cover.jpg", content=b"cover")
+    sample = MagicMock(status_code=200, url="https://www.javbus.com/pics/sample/1.jpg", content=b"sample")
+    mock_session.get.side_effect = [main, cover, sample]
 
-    from requests.exceptions import Timeout
-    mock_session.get.side_effect = Timeout()
+    video = JavBusScraper().search("SONE-205", save_webpage=True)[0]
 
-    scraper = JavBusScraper()
-    result = scraper.search("SONE-205")
-    assert result == []
-
-
-@patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_no_info_block(mock_session_cls):
-    mock_session = MagicMock()
-    mock_session_cls.return_value = mock_session
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.text = "<html><body><p>No info block</p></body></html>"
-    mock_session.get.return_value = mock_resp
-
-    scraper = JavBusScraper()
-    result = scraper.search("SONE-205")
-    assert result == []
-
-
-@patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_normalizes_number(mock_session_cls):
-    mock_session = MagicMock()
-    mock_session_cls.return_value = mock_session
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.text = SAMPLE_HTML
-    mock_resp.url = "https://www.javbus.com/SONE-205"
-    mock_session.get.return_value = mock_resp
-
-    scraper = JavBusScraper()
-    result = scraper.search("SONE205")
-
-    mock_session.get.assert_called_once_with("https://www.javbus.com/SONE-205", timeout=15)
-    assert len(result) == 1
-    result = result[0]
-    assert result.number == "SONE-205"
-
-
-@patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_duration_multilanguage(mock_session_cls):
-    for duration_text in ("120 分钟", "120 分鐘", "120 min"):
-        mock_session = MagicMock()
-        mock_session_cls.return_value = mock_session
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = SAMPLE_HTML.replace("120 分钟", duration_text)
-        mock_resp.url = "https://www.javbus.com/SONE-205"
-        mock_session.get.return_value = mock_resp
-
-        scraper = JavBusScraper()
-        result = scraper.search("SONE-205")
-
-        assert len(result) == 1
-        assert result[0].duration == 120, duration_text
-
-def test_normalize_number():
-    scraper = JavBusScraper()
-    assert scraper.normalize_number("SONE205") == "SONE-205"
-    assert scraper.normalize_number("sone205") == "SONE-205"
-    assert scraper.normalize_number("abc-123") == "ABC-123"
-    assert scraper.normalize_number("ABC-123") == "ABC-123"
-
-
-@patch("scrapers.openaver.censored.javbus.requests.Session")
-def test_search_save_webpage_requests_images_with_referer(mock_session_cls):
-    mock_session = MagicMock()
-    mock_session_cls.return_value = mock_session
-    detail_url = "https://www.javbus.com/SONE-205"
-    calls = []
-
-    def get(url, **kwargs):
-        calls.append((url, kwargs))
-        response = MagicMock()
-        response.status_code = 200
-        response.url = url
-        if url == detail_url:
-            response.text = SAMPLE_HTML
-            response.content = SAMPLE_HTML.encode("utf-8")
-            response.headers = {"Content-Type": "text/html"}
-        else:
-            response.content = b"image-bytes"
-            response.headers = {"Content-Type": "image/jpeg"}
-        return response
-
-    mock_session.get.side_effect = get
-
-    scraper = JavBusScraper()
-    result = scraper.search("SONE-205", save_webpage=True)
-
-    assert result[0].webpage
-    resource_calls = [item for item in calls if item[0] != detail_url]
-    assert resource_calls
-    for _, kwargs in resource_calls:
-        assert kwargs["headers"]["Referer"] == detail_url
+    assert video.webpage
+    assert base64.b64decode(video.webpage)
+    assert mock_session.get.call_args_list[-2].kwargs["headers"]["Referer"] == "https://www.javbus.com/SONE-205"

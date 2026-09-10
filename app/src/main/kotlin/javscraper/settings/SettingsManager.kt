@@ -14,7 +14,7 @@ data class AppSettings(
     val downloadImages: Boolean = true, val downloadPreviewImages: Boolean = false,
     val downloadWebPages: Boolean = false, val autoScrape: Boolean = false, val fileLoggingEnabled: Boolean = false,
     val language: String = "en",
-    val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2","heyzo","mmtv"),
+    val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2", "fc2mirror","heyzo","mmtv"),
     val folderLayers: List<String> = listOf("{num} {title}"),
     val filenameFormat: String = "{num} {title}",
     val maxTitleLength: Int = 50,

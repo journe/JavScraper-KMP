@@ -6,7 +6,7 @@ from scrapers.registry import ScraperRegistry
 from scrapers.models import Video
 
 CENSORED = ["javbus", "javdb", "jav321", "javlibrary", "dmm", "mmtv"]
-UNCENSORED = ["fc2", "heyzo", "avsox", "d2pass", "mmtv"]
+UNCENSORED = ["fc2", "fc2mirror", "heyzo", "avsox", "d2pass", "mmtv"]
 
 
 def _is_uncensored(number: str) -> bool:

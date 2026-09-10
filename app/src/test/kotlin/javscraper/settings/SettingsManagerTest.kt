@@ -23,7 +23,7 @@ class SettingsManagerTest {
         assertEquals(false, settings.autoScrape)
         assertEquals(false, settings.fileLoggingEnabled)
         assertEquals("en", settings.language)
-        assertEquals(10, settings.enabledSites.size)
+        assertEquals(11, settings.enabledSites.size)
         assertTrue(settings.enabledSites.contains("mmtv"))
         assertEquals(1.5f, settings.posterCropAspect)
     }
@@ -34,6 +34,7 @@ class SettingsManagerTest {
         assertTrue(settings.enabledSites.contains("javbus"))
         assertTrue(settings.enabledSites.contains("javdb"))
         assertTrue(settings.enabledSites.contains("fc2"))
+        assertTrue(settings.enabledSites.contains("fc2mirror"))
         assertTrue(settings.enabledSites.contains("javlibrary"))
     }
 

@@ -2,16 +2,34 @@ import re
 from typing import Optional
 
 import requests
-from bs4 import BeautifulSoup
-from urllib.parse import quote
 
 from scrapers.base import BaseScraper
-from scrapers.models import Video, Actress
+from scrapers.models import Video
 from scrapers.registry import ScraperRegistry
+
+from .d2pass_parsing import (
+    SITES,
+    SITE_DETAIL_URL,
+    extract_gallery,
+    parse_caribbeancom_html,
+    parse_json,
+)
 
 
 class D2PassScraper(BaseScraper):
-    BASE_URL = "https://www.d2pass.com"
+    def __init__(self):
+        self._session = requests.Session()
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "ja-JP,ja;q=0.9",
+                "Referer": "https://www.1pondo.tv/",
+            }
+        )
 
     @property
     def site_id(self) -> str:
@@ -21,100 +39,72 @@ class D2PassScraper(BaseScraper):
     def site_name(self) -> str:
         return "D2Pass"
 
-    def __init__(self):
-        self._session = requests.Session()
-        self._session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
-        })
+    def normalize_number(self, number: str) -> str:
+        return number.strip()
+
+    def _detect_site_order(self, number: str) -> list[str]:
+        if re.match(r"^\d{6}-\d{2,3}$", number):
+            return ["caribbeancom", "1pondo", "10musume"]
+        if re.match(r"^\d{6}_\d{3}$", number):
+            return ["1pondo", "caribbeancom", "10musume"]
+        if re.match(r"^\d{6}_\d{2}$", number):
+            return ["10musume", "1pondo", "caribbeancom"]
+        return ["1pondo", "caribbeancom", "10musume"]
+
+    def _fetch_json(self, site: str, movie_id: str) -> Optional[dict]:
+        try:
+            response = self._session.get(SITES[site].format(id=movie_id), timeout=15)
+            if response.status_code != 200:
+                return None
+            return response.json()
+        except (requests.RequestException, ValueError, TypeError):
+            return None
+
+    def _fetch_gallery_from_html(self, site: str, movie_id: str) -> list[str]:
+        if site != "caribbeancom":
+            return []
+        try:
+            response = self._session.get(SITE_DETAIL_URL[site].format(id=movie_id), timeout=15)
+            if response.status_code != 200:
+                return []
+            return extract_gallery(response.text, movie_id)
+        except requests.RequestException:
+            return []
+
+    def _parse_caribbeancom_html(self, movie_id: str) -> Optional[Video]:
+        try:
+            response = self._session.get(
+                SITE_DETAIL_URL["caribbeancom"].format(id=movie_id),
+                timeout=15,
+            )
+            if response.status_code != 200:
+                return None
+            return parse_caribbeancom_html(response.text, movie_id)
+        except requests.RequestException:
+            return None
 
     def _search_one(self, number: str) -> Optional[Video]:
-        number = self.normalize_number(number)
-        try:
-            # Search
-            search_url = f"{self.BASE_URL}/search?q={quote(number)}"
-            resp = self._session.get(search_url, timeout=15)
-            if resp.status_code != 200:
-                return None
+        movie_id = self.normalize_number(number)
+        for site in self._detect_site_order(movie_id):
+            data = self._fetch_json(site, movie_id)
+            if data is None:
+                if site == "caribbeancom":
+                    fallback = self._parse_caribbeancom_html(movie_id)
+                    if fallback is not None:
+                        return fallback
+                continue
 
-            soup = BeautifulSoup(resp.text, "html.parser")
+            video = parse_json(data, site, movie_id)
+            if video is None:
+                continue
+            if not video.sample_images and site == "caribbeancom":
+                video.sample_images = self._fetch_gallery_from_html(site, movie_id)
+            return video
+        return None
 
-            # Find first result link
-            detail_link = None
-            number_norm = number.upper().replace("-", "")
-            for item in soup.select(".search-result a, a[href*='/movie/']"):
-                href = item.get("href", "")
-                text = item.get_text(strip=True).upper().replace("-", "")
-                if number_norm in text and "/movie/" in href:
-                    detail_link = href
-                    break
-
-            if not detail_link:
-                # Fallback: pick first movie link
-                first = soup.select_one('a[href*="/movie/"]')
-                if not first:
-                    return None
-                detail_link = first.get("href")
-
-            if detail_link.startswith("/"):
-                detail_link = f"{self.BASE_URL}{detail_link}"
-
-            # Detail page
-            resp = self._session.get(detail_link, timeout=15)
-            if resp.status_code != 200:
-                return None
-
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-            title_elem = soup.select_one("h1, h2, h3")
-            title = title_elem.get_text(strip=True) if title_elem else ""
-            title = re.sub(rf"^{re.escape(number)}\s*", "", title, flags=re.IGNORECASE)
-
-            cover_elem = soup.select_one('meta[property="og:image"], .cover img, img.poster')
-            cover_url = ""
-            if cover_elem:
-                if cover_elem.name == "meta":
-                    cover_url = cover_elem.get("content", "")
-                else:
-                    cover_url = cover_elem.get("src", "")
-
-            date = ""
-            maker = ""
-            tags = []
-            actresses = []
-
-            # Parse detail info rows
-            for row in soup.select(".info-row, .detail-row, .meta-row, tr"):
-                text = row.get_text(strip=True)
-                m = re.search(r"(\d{4}-\d{2}-\d{2})", text)
-                if m:
-                    date = m.group(1)
-
-                for a in row.find_all("a"):
-                    href = a.get("href", "")
-                    t = a.get_text(strip=True)
-                    if t:
-                        if "/tag/" in href:
-                            tags.append(t)
-                        elif "/actress/" in href or "/star/" in href:
-                            actresses.append(Actress(name=t))
-
-            actresses = list({a.name: a for a in actresses}.values())
-
-            return Video(
-                number=number,
-                title=title,
-                actresses=actresses,
-                date=date,
-                maker=maker,
-                tags=tags,
-                cover_url=cover_url,
-                source="d2pass",
-                detail_url=detail_link,
-            )
-
-        except (requests.Timeout, requests.ConnectionError):
-            return None
+    def search_by_keyword(self, keyword: str, limit: int = 20) -> list[Video]:
+        result = self._search_one(keyword)
+        return [result] if result is not None else []
 
 
 ScraperRegistry.register(D2PassScraper)

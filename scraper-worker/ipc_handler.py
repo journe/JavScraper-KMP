@@ -147,6 +147,7 @@ from scrapers.openaver.censored import javbus  # noqa: F401
 from scrapers.openaver.censored import javdb  # noqa: F401
 from scrapers.openaver.censored import jav321  # noqa: F401
 from scrapers.openaver.uncensored import fc2  # noqa: F401
+from scrapers.openaver.uncensored import fc2_mirror  # noqa: F401
 from scrapers.openaver.uncensored import heyzo  # noqa: F401
 from scrapers.openaver.uncensored import avsox  # noqa: F401
 from scrapers.openaver.uncensored import d2pass  # noqa: F401
