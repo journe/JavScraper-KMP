@@ -10,6 +10,7 @@
 - 单刮削对话框：`app/src/main/kotlin/javscraper/ui/screens/SingleScrapeDialog.kt`
 - 单刮削状态机：`app/src/main/kotlin/javscraper/SingleScrapeController.kt`
 - 抓取与写入编排：`app/src/main/kotlin/javscraper/scrape/ScrapeOrchestrator.kt`
+- 写入选项（设置投影）：`app/src/main/kotlin/javscraper/scrape/ScrapeOptions.kt`
 - Worker JSON-RPC：`app/src/main/kotlin/javscraper/sidecar/SidecarManager.kt`
 - Python RPC 入口：`scraper-worker/main.py`、`scraper-worker/ipc_handler.py`
 - 站点搜索策略：`scraper-worker/core/smart_search.py`
@@ -153,7 +154,7 @@ stateDiagram-v2
 
 ## 6. 确认后的磁盘写入
 
-用户确认后，控制器重新进入 `Scraping`，并在 `Dispatchers.IO` 中调用 `ScrapeOrchestrator.writeToDisk(listOf(file), video)`。写入配置来自当前 `ScrapeOrchestrator`，设置变化时由 `WorkerController.rebuildOrchestrator()` 重建。
+用户确认后，控制器重新进入 `Scraping`，并在 `Dispatchers.IO` 中调用 `ScrapeOrchestrator.writeToDisk(listOf(file), video)`。写入配置集中放在 `ScrapeOptions`（由 `AppSettings` 投影而来），设置变化时由 `WorkerController.rebuildOrchestrator()` 重建。
 
 写入流程：
 
@@ -240,7 +241,7 @@ stateDiagram-v2
 | 点击开始立即提示 worker 未运行 | worker 路径、worker 进程启动日志、`SidecarManager.start()` |
 | 返回中文乱码 | worker 是否包含 `main.py` 的 UTF-8 IO 修复；是否重新打包并部署 exe |
 | 站点不可选或不符合设置 | 设置页启用状态、`enabledSites`、`AppViewModel.enabledSiteInfos` |
-| 自动模式漏掉启用站点 | 检查设置 `enabledSites`、`ScrapeOrchestrator.enabledSites` 与 RPC `sites` 参数 |
+| 自动模式漏掉启用站点 | 检查设置 `enabledSites`、`ScrapeOptions.enabledSites` 与 RPC `sites` 参数 |
 | 预览取消后仍出现文件 | 检查是否还有旧版本代码；当前取消分支在 `writeToDisk` 前返回 |
 | 开启“下载网页”但没有 MHTML | 检查 worker 是否为新打包版本、`save_webpage` 请求参数和 `Video.webpage` 返回字段 |
 | MHTML 存在但图片缺失 | 查看图片提取 RPC 错误，确认站点返回的图片 URL 已作为资源写入 MHTML |

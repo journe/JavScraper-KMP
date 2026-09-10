@@ -72,6 +72,7 @@ open class TranslationEn {
     open val settingsDownloadImages: String = "Download images"
     open val settingsDownloadPreviewImages: String = "Download preview images"
     open val settingsDownloadWebPages: String = "Download webpage"
+    open val settingsNfoLockData: String = "Lock NFO metadata (lockdata)"
     open val settingsTestSites: String = "Test Sites"
     open val settingsTestSitesTitle: String = "Site Connectivity Test"
     open val settingsTestSitesRunning: String = "Testing site connections..."

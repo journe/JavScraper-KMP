@@ -26,6 +26,7 @@ class SettingsManagerTest {
         assertEquals(11, settings.enabledSites.size)
         assertTrue(settings.enabledSites.contains("mmtv"))
         assertEquals(1.5f, settings.posterCropAspect)
+        assertEquals(true, settings.lockData)
     }
 
     @Test
@@ -54,7 +55,8 @@ class SettingsManagerTest {
             fileLoggingEnabled = true,
             language = "zh",
             enabledSites = listOf("javbus", "javdb"),
-            posterCropAspect = 1.8f
+            posterCropAspect = 1.8f,
+            lockData = false
         )
         val jsonStr = json.encodeToString(AppSettings.serializer(), original)
         val decoded = json.decodeFromString(AppSettings.serializer(), jsonStr)
@@ -72,6 +74,7 @@ class SettingsManagerTest {
         assertEquals("zh", decoded.language)
         assertEquals(2, decoded.enabledSites.size)
         assertEquals(1.8f, decoded.posterCropAspect)
+        assertEquals(false, decoded.lockData)
     }
 
     @Test

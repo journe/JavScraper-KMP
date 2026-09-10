@@ -247,4 +247,42 @@ class NfoWriterTest {
         assertTrue(nfo.contains("\n    <name>Actor A</name>"), "Actor child element should be indented")
         assertTrue(nfo.contains("\n</movie>"), "Root element should close on its own line")
     }
+
+    @Test
+    fun `generate includes num element`() {
+        val video = Video(number = "SONE-205")
+        val nfo = NfoWriter.generate(video)
+        assertContains(nfo, "<num>SONE-205</num>")
+    }
+
+    @Test
+    fun `generate includes country and language`() {
+        val video = Video(number = "SONE-205")
+        val nfo = NfoWriter.generate(video)
+        assertContains(nfo, "<country>Japan</country>")
+        assertContains(nfo, "<language>ja</language>")
+    }
+
+    @Test
+    fun `generate includes uniqueid elements`() {
+        val video = Video(number = "SONE-205")
+        val nfo = NfoWriter.generate(video)
+        assertContains(nfo, "<uniqueid type=\"num\" default=\"true\">SONE-205</uniqueid>")
+        assertContains(nfo, "<uniqueid type=\"home\">SONE-205</uniqueid>")
+    }
+
+    @Test
+    fun `generate lockdata follows flag`() {
+        val locked = NfoWriter.generate(Video(number = "SONE-205"), lockData = true)
+        val unlocked = NfoWriter.generate(Video(number = "SONE-205"), lockData = false)
+        assertContains(locked, "<lockdata>true</lockdata>")
+        assertContains(unlocked, "<lockdata>false</lockdata>")
+    }
+
+    @Test
+    fun `generate includes poster element`() {
+        val video = Video(number = "SONE-001", coverUrl = "https://example.com/cover.jpg")
+        val nfo = NfoWriter.generate(video)
+        assertContains(nfo, "<poster>https://example.com/cover.jpg</poster>")
+    }
 }

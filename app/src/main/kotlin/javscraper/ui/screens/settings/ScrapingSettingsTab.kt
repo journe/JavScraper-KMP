@@ -52,6 +52,7 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
             )
         }
         SettingsSwitchRow(t.settingsDownloadWebPages, state.downloadWebPages, actions.onDownloadWebPagesChange)
+        SettingsSwitchRow(t.settingsNfoLockData, state.lockData, actions.onLockDataChange)
         Spacer(Modifier.height(32.dp))
     }
     if (checkDialogVisible) {

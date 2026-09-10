@@ -7,6 +7,7 @@ import javscraper.io.pickFile
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import javscraper.scrape.ScrapeOrchestrator
+import javscraper.scrape.ScrapeOptions
 import javscraper.settings.SettingsManager
 import javscraper.sidecar.SidecarManager
 import kotlinx.coroutines.CoroutineScope
@@ -136,20 +137,10 @@ class WorkerController(
     }
 
     private fun createScrapeOrchestrator(m: SidecarManager): ScrapeOrchestrator {
+        // SettingsController 每次修改都会同步写回 SettingsManager，因此读取后者即当前设置。
         return ScrapeOrchestrator(
             sidecar = m,
-            outputDir = settings.outputDir,
-            createMovieFolders = settings.createMovieFolders,
-            hardlinkInsteadOfCopy = settings.hardlinkInsteadOfCopy,
-            downloadImages = settings.downloadImages,
-            downloadPreviewImages = settings.downloadPreviewImages,
-            downloadWebPages = settings.downloadWebPages,
-            folderLayers = settings.folderLayers,
-            filenameFormat = settings.filenameFormat,
-            maxTitleLength = settings.maxTitleLength,
-            maxFilenameLength = settings.maxFilenameLength,
-            suffixKeywords = settings.suffixKeywords,
-            enabledSites = settings.enabledSites.toSet()
+            options = ScrapeOptions.from(SettingsManager.get())
         )
     }
 }

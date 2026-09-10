@@ -64,6 +64,7 @@ class TranslationZh : TranslationEn() {
     override val settingsDownloadImages: String = "下载图片"
     override val settingsDownloadPreviewImages: String = "下载预览图"
     override val settingsDownloadWebPages: String = "下载网页"
+    override val settingsNfoLockData: String = "锁定 NFO 元数据（lockdata）"
     override val settingsTestSites: String = "测试站点"
     override val settingsTestSitesTitle: String = "站点连通性测试"
     override val settingsTestSitesRunning: String = "正在测试站点连接..."

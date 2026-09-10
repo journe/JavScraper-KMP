@@ -8,7 +8,7 @@ import javax.xml.stream.XMLStreamWriter
 object NfoWriter {
     private val factory = XMLOutputFactory.newInstance()
 
-    fun generate(video: Video): String {
+    fun generate(video: Video, lockData: Boolean = true): String {
         val sw = StringWriter()
         val w = factory.createXMLStreamWriter(sw)
         w.writeStartDocument("UTF-8", "1.0")
@@ -17,6 +17,7 @@ object NfoWriter {
         write(w, "title", video.title.ifBlank { video.number })
         write(w, "originaltitle", video.number)
         write(w, "sorttitle", video.number)
+        write(w, "num", video.number)
         if (video.series.isNotBlank()) write(w, "set", video.series)
         if (video.date.length >= 4) {
             write(w, "year", video.date.take(4))
@@ -25,10 +26,15 @@ object NfoWriter {
         }
         if (video.duration != null && video.duration > 0) write(w, "runtime", video.duration.toString())
         write(w, "mpaa", "JP-18+")
+        write(w, "country", "Japan")
+        write(w, "language", "ja")
         if (video.source.isNotBlank()) write(w, "source", video.source)
         if (video.detailUrl.isNotBlank()) write(w, "website", video.detailUrl)
         val poster = video.posterUrl.ifBlank { video.coverUrl }
-        if (poster.isNotBlank()) write(w, "thumb", poster)
+        if (poster.isNotBlank()) {
+            write(w, "poster", poster)
+            write(w, "thumb", poster)
+        }
         if (video.coverUrl.isNotBlank()) write(w, "cover", video.coverUrl)
         if (video.sampleImages.isNotEmpty()) writeFanart(w, video.sampleImages)
         if (video.summary.isNotBlank()) {
@@ -47,6 +53,9 @@ object NfoWriter {
             write(w, "tag", it)
         }
         if (video.rating != null && video.rating > 0) write(w, "rating", video.rating.toString())
+        write(w, "lockdata", lockData.toString())
+        writeUniqueId(w, "num", video.number, isDefault = true)
+        writeUniqueId(w, "home", video.number, isDefault = false)
         w.writeCharacters("\n")
         w.writeEndElement()
         w.writeEndDocument()
@@ -57,6 +66,15 @@ object NfoWriter {
     private fun write(w: XMLStreamWriter, name: String, value: String, indent: String = "  ") {
         w.writeCharacters("\n$indent")
         w.writeStartElement(name)
+        w.writeCharacters(value)
+        w.writeEndElement()
+    }
+
+    private fun writeUniqueId(w: XMLStreamWriter, type: String, value: String, isDefault: Boolean) {
+        w.writeCharacters("\n  ")
+        w.writeStartElement("uniqueid")
+        w.writeAttribute("type", type)
+        if (isDefault) w.writeAttribute("default", "true")
         w.writeCharacters(value)
         w.writeEndElement()
     }

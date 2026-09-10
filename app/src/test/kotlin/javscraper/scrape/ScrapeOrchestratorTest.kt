@@ -6,6 +6,7 @@ import javscraper.models.ScannedFile
 import javscraper.models.Video
 import javscraper.models.WebpageArchiver
 import javscraper.models.WebpageImageResult
+import javscraper.settings.AppSettings
 import javscraper.sidecar.SidecarManager
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -49,12 +50,14 @@ class ScrapeOrchestratorTest {
         source.writeText("video")
         val orchestrator = ScrapeOrchestrator(
             sidecar = SidecarManager("unused-worker.exe"),
-            outputDir = output.absolutePath,
-            createMovieFolders = true,
-            folderLayers = emptyList(),
-            downloadImages = false,
-            filenameFormat = "{num} {title}{suffix}",
-            suffixKeywords = listOf("-cd1")
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = true,
+                folderLayers = emptyList(),
+                downloadImages = false,
+                filenameFormat = "{num} {title}{suffix}",
+                suffixKeywords = listOf("-cd1")
+            )),
         )
 
         runTest {
@@ -76,8 +79,10 @@ class ScrapeOrchestratorTest {
         val source = output.resolve("missing-source.mp4")
         val orchestrator = ScrapeOrchestrator(
             sidecar = SidecarManager("unused-worker.exe"),
-            outputDir = output.absolutePath,
-            downloadImages = false
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                downloadImages = false
+            )),
         )
 
         runTest {
@@ -115,10 +120,12 @@ fun `writeToDisk saves webpage and extracts images from mhtml`() {
     val archiver = RecordingWebpageArchiver()
     val orchestrator = ScrapeOrchestrator(
         sidecar = SidecarManager("unused-worker.exe"),
-        outputDir = output.absolutePath,
-        createMovieFolders = false,
-        downloadImages = true,
-        downloadWebPages = true,
+        options = ScrapeOptions.from(AppSettings(
+            outputDir = output.absolutePath,
+            createMovieFolders = false,
+            downloadImages = true,
+            downloadWebPages = true,
+        )),
         webpageArchiver = archiver
     )
     val video = Video(
@@ -148,10 +155,12 @@ fun `writeToDisk omits webpage when setting is disabled`() {
     val archiver = RecordingWebpageArchiver()
     val orchestrator = ScrapeOrchestrator(
         sidecar = SidecarManager("unused-worker.exe"),
-        outputDir = output.absolutePath,
-        createMovieFolders = false,
-        downloadImages = false,
-        downloadWebPages = false,
+        options = ScrapeOptions.from(AppSettings(
+            outputDir = output.absolutePath,
+            createMovieFolders = false,
+            downloadImages = false,
+            downloadWebPages = false,
+        )),
         webpageArchiver = archiver
     )
 
@@ -175,10 +184,12 @@ fun `writeToDisk reports missing webpage and image extraction failures`() {
     val archiver = RecordingWebpageArchiver(WebpageImageResult(false, "missing image"))
     val orchestrator = ScrapeOrchestrator(
         sidecar = SidecarManager("unused-worker.exe"),
-        outputDir = output.absolutePath,
-        createMovieFolders = false,
-        downloadImages = true,
-        downloadWebPages = true,
+        options = ScrapeOptions.from(AppSettings(
+            outputDir = output.absolutePath,
+            createMovieFolders = false,
+            downloadImages = true,
+            downloadWebPages = true,
+        )),
         webpageArchiver = archiver
     )
 
@@ -208,11 +219,13 @@ fun `writeToDisk downloads preview images from network when enabled`() = runTest
     try {
         val orchestrator = ScrapeOrchestrator(
             sidecar = SidecarManager("unused-worker.exe"),
-            outputDir = output.absolutePath,
-            createMovieFolders = false,
-            downloadImages = true,
-            downloadPreviewImages = true,
-            downloadWebPages = true,
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = false,
+                downloadImages = true,
+                downloadPreviewImages = true,
+                downloadWebPages = true,
+            )),
             webpageArchiver = archiver
         )
         val video = Video(
@@ -245,11 +258,13 @@ fun `writeToDisk omits preview images when disabled`() = runTest {
     val archiver = RecordingWebpageArchiver()
     val orchestrator = ScrapeOrchestrator(
         sidecar = SidecarManager("unused-worker.exe"),
-        outputDir = output.absolutePath,
-        createMovieFolders = false,
-        downloadImages = true,
-        downloadPreviewImages = false,
-        downloadWebPages = true,
+        options = ScrapeOptions.from(AppSettings(
+            outputDir = output.absolutePath,
+            createMovieFolders = false,
+            downloadImages = true,
+            downloadPreviewImages = false,
+            downloadWebPages = true,
+        )),
         webpageArchiver = archiver
     )
     val video = Video(

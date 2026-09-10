@@ -104,6 +104,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     var downloadImages by settings::downloadImages
     var downloadPreviewImages by settings::downloadPreviewImages
     var downloadWebPages by settings::downloadWebPages
+    var lockData by settings::lockData
     var autoScrape by settings::autoScrape
     var folderLayers by settings::folderLayers
     var filenameFormat by settings::filenameFormat
@@ -166,6 +167,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun updateDownloadImages(v: Boolean) = settings.updateDownloadImages(v)
     fun updateDownloadPreviewImages(v: Boolean) = settings.updateDownloadPreviewImages(v)
     fun updateDownloadWebPages(v: Boolean) = settings.updateDownloadWebPages(v)
+    fun updateLockData(v: Boolean) = settings.updateLockData(v)
     fun updateAutoScrape(v: Boolean) = settings.updateAutoScrape(v)
     fun updateFileLogging(v: Boolean) = settings.updateFileLogging(v)
     fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
@@ -324,7 +326,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     val settingsState: SettingsState
         get() = SettingsState(
             workerPath, outputDir, scanDir, scanRecursive, createMovieFolders,
-            hardlinkInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, autoScrape,
+            hardlinkInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
             maxTitleLength, maxFilenameLength, suffixKeywords,
@@ -333,7 +335,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     val settingsActions: SettingsActions = SettingsActions(
         ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectWorkerPath,
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
-        ::updateHardlink, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateAutoScrape,
+        ::updateHardlink, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateAutoScrape,
         ::updateFileLogging,
         ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,

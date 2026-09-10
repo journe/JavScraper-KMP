@@ -11,20 +11,10 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.Base64
 
+/** 依赖项：[SidecarManager] 负责抓取，[ScrapeOptions] 承载全部输出配置。 */
 class ScrapeOrchestrator(
     private val sidecar: SidecarManager,
-    private val outputDir: String,
-    private val createMovieFolders: Boolean = true,
-    private val hardlinkInsteadOfCopy: Boolean = true,
-    private val downloadImages: Boolean = true,
-    private val downloadPreviewImages: Boolean = false,
-    private val downloadWebPages: Boolean = false,
-    private val folderLayers: List<String> = listOf("{num} {title}"),
-    private val filenameFormat: String = "{num} {title}",
-    private val maxTitleLength: Int = 50,
-    private val maxFilenameLength: Int = 60,
-    private val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc"),
-    private val enabledSites: Set<String>? = null,
+    private val options: ScrapeOptions,
     private val webpageArchiver: WebpageArchiver? = null
 ) {
     private val activeWebpageArchiver: WebpageArchiver by lazy { webpageArchiver ?: SidecarWebpageArchiver(sidecar) }
@@ -38,19 +28,19 @@ class ScrapeOrchestrator(
     suspend fun fetch(sf: ScannedFile, site: String? = null): ScrapeResult {
         if (sf.number.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "No number"))
-        return sidecar.scrape(sf.number, site, enabledSites?.toList(), downloadWebPages)
+        return sidecar.scrape(sf.number, site, options.enabledSites?.toList(), options.downloadWebPages)
     }
 
     /** Fetch all metadata candidates without any file IO. */
     suspend fun fetchCandidates(sf: ScannedFile, site: String? = null): List<Video> {
         if (sf.number.isBlank()) return emptyList()
-        return sidecar.searchCandidates(sf.number, site, enabledSites?.toList(), downloadWebPages)
+        return sidecar.searchCandidates(sf.number, site, options.enabledSites?.toList(), options.downloadWebPages)
     }
     /** Write scraped metadata (NFO/images) and organize files to the output directory. */
     suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {
         if (files.isEmpty())
             return ScrapeResult(false, error = ScrapeError(-1, "No files"))
-        if (outputDir.isBlank())
+        if (options.outputDir.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "Output directory is empty"))
 
         val ioErrors = mutableListOf<String>()
@@ -62,13 +52,16 @@ class ScrapeOrchestrator(
             ioErrors += "Directory creation failed: ${e.message}"
         }
         try {
-            Files.writeString(firstPaths.folder.resolve(firstPaths.nfoBase + ".nfo"), NfoWriter.generate(video))
+            Files.writeString(
+                firstPaths.folder.resolve(firstPaths.nfoBase + ".nfo"),
+                NfoWriter.generate(video, options.lockData)
+            )
         } catch (e: Exception) {
             log.error(e) { "NFO failed" }
             ioErrors += "NFO failed: ${e.message}"
         }
         var mhtmlPath: Path? = null
-        if (downloadWebPages) {
+        if (options.downloadWebPages) {
             try {
                 mhtmlPath = writeWebpage(firstPaths.folder, video)
                 if (mhtmlPath == null) ioErrors += "Webpage content missing"
@@ -77,8 +70,8 @@ class ScrapeOrchestrator(
                 ioErrors += "Webpage failed: ${e.message}"
             }
         }
-        if (downloadImages) {
-            if (downloadWebPages) {
+        if (options.downloadImages) {
+            if (options.downloadWebPages) {
                 val path = mhtmlPath
                 if (path != null) {
                     try {
@@ -93,7 +86,7 @@ class ScrapeOrchestrator(
                         ioErrors += "Images failed: ${e.message}"
                     }
                 }
-                if (downloadPreviewImages) {
+                if (options.downloadPreviewImages) {
                     try {
                         ImageSaver.download(firstPaths.folder, sampleImages = video.sampleImages)
                     } catch (e: Exception) {
@@ -102,7 +95,7 @@ class ScrapeOrchestrator(
                     }
                 }
             } else try {
-                val previewImages = if (downloadPreviewImages) video.sampleImages else emptyList()
+                val previewImages = if (options.downloadPreviewImages) video.sampleImages else emptyList()
                 ImageSaver.download(firstPaths.folder, video.coverUrl, video.posterUrl, previewImages)
             } catch (e: Exception) {
                 log.warn(e) { "Images failed" }
@@ -116,7 +109,7 @@ class ScrapeOrchestrator(
                 val src = Path.of(sf.path)
                 val tgt = paths.fullPath
                 if (!Files.exists(tgt)) {
-                    if (hardlinkInsteadOfCopy) {
+                    if (options.hardlinkInsteadOfCopy) {
                         try {
                             Files.createLink(tgt, src)
                         } catch (e: Exception) {
@@ -150,7 +143,7 @@ class ScrapeOrchestrator(
     }
 
     private fun writeWebpage(folder: Path, video: Video): Path? {
-        if (!downloadWebPages || video.webpage.isBlank()) return null
+        if (!options.downloadWebPages || video.webpage.isBlank()) return null
         val target = folder.resolve(webpageFileName(video))
         Files.write(target, Base64.getMimeDecoder().decode(video.webpage))
         return target
@@ -166,16 +159,16 @@ class ScrapeOrchestrator(
     }
     private fun resolveOutputPaths(sf: ScannedFile, video: Video): OutputPaths {
         val ext = sf.fileName.substringAfterLast('.')
-        if (outputDir.isBlank()) return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName), sf.fileName.substringBeforeLast("."))
+        if (options.outputDir.isBlank()) return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName), sf.fileName.substringBeforeLast("."))
 
-        val base = Path.of(outputDir)
-        if (!createMovieFolders) return OutputPaths(base, sf.fileName, base.resolve(sf.fileName), sf.fileName.substringBeforeLast("."))
+        val base = Path.of(options.outputDir)
+        if (!options.createMovieFolders) return OutputPaths(base, sf.fileName, base.resolve(sf.fileName), sf.fileName.substringBeforeLast("."))
 
-        val suffix = RenameFormatter.detectSuffix(sf.fileName, suffixKeywords)
-        val layers = RenameFormatter.formatFolder(video, folderLayers, suffix)
+        val suffix = RenameFormatter.detectSuffix(sf.fileName, options.suffixKeywords)
+        val layers = RenameFormatter.formatFolder(video, options.folderLayers, suffix)
         val folder = layers.fold(base) { acc, layer -> acc.resolve(layer) }
         val rawFilename = RenameFormatter.formatFilename(
-            video, filenameFormat, suffix, maxFilenameLength, maxTitleLength
+            video, options.filenameFormat, suffix, options.maxFilenameLength, options.maxTitleLength
         )
         val nfoBase = RenameFormatter.stripPartSuffix(rawFilename, suffix)
         val filename = "$rawFilename.$ext"
