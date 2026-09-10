@@ -21,7 +21,13 @@ import javscraper.models.Video
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.ui.theme.JavScraperTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
+import javax.imageio.ImageIO
+
+/** PosterCard 展示的本地图片:竖版 poster(默认)或目录下的横版 fanart(详情页)。 */
+enum class PosterSource { POSTER, FANART }
 
 @Composable
 fun PosterCard(
@@ -29,29 +35,49 @@ fun PosterCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     cardWidth: Dp = 180.dp,
-    posterRefreshKey: Any? = null
+    posterRefreshKey: Any? = null,
+    source: PosterSource = PosterSource.POSTER
 ) {
+    val imageFile = remember(video.path, posterRefreshKey, source) {
+        when (source) {
+            PosterSource.POSTER -> localPosterModel(video)
+            PosterSource.FANART -> localFanartModel(video)
+        }
+    }
+    // FANART 模式:高度固定为 posterHeight(与 poster 一致),
+    // 宽度按图片真实高宽比自适应,使 Box 与图片同比例,
+    // ContentScale.Crop 不裁切内容;读取完成前用缺省横版比例占位
+    val fanartAspect by produceState(DEFAULT_FANART_ASPECT, imageFile) {
+        if (source == PosterSource.FANART && imageFile != null) {
+            val dimension = withContext(Dispatchers.IO) { readImageDimensions(imageFile) }
+            if (dimension != null) value = dimension.second.toFloat() / dimension.first
+        }
+    }
+    val imageHeight = posterHeight(cardWidth)
+    val imageWidth = when (source) {
+        PosterSource.POSTER -> cardWidth
+        PosterSource.FANART -> imageHeight / fanartAspect
+    }
     Card(
         onClick = onClick,
-        modifier = modifier.width(cardWidth),
+        modifier = modifier.width(imageWidth),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
             Box(
-                Modifier.fillMaxWidth().height(posterHeight(cardWidth))
+                Modifier.fillMaxWidth().height(imageHeight)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                val posterFile = remember(video.path, posterRefreshKey) { localPosterModel(video) }
-                if (posterFile != null) {
+                if (imageFile != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(PlatformContext.INSTANCE)
-                            .data(posterFile)
+                            .data(imageFile)
                             // 裁剪后文件内容变化但路径不变:用 refreshKey 参与缓存 key,
                             // 强制 Coil 重新解码,否则命中旧缓存不刷新
-                            .memoryCacheKey("${posterFile.absolutePath}#$posterRefreshKey")
-                            .diskCacheKey("${posterFile.absolutePath}#$posterRefreshKey")
+                            .memoryCacheKey("${imageFile.absolutePath}#$posterRefreshKey")
+                            .diskCacheKey("${imageFile.absolutePath}#$posterRefreshKey")
                             .build(),
                         contentDescription = video.title.ifBlank { video.number },
                         contentScale = ContentScale.Crop,
@@ -98,7 +124,7 @@ fun PosterCard(
     }
 }
 
-internal fun posterHeight(cardWidth: Dp): Dp = cardWidth * 4 / 3
+internal fun posterHeight(cardWidth: Dp): Dp = cardWidth * 1.41F
 
 private val posterFileNames = listOf("poster.jpg", "poster.png")
 
@@ -112,6 +138,50 @@ internal fun localPosterModel(video: Video): File? =
     localPosterPath(video).takeIf { it.isNotBlank() }
         ?.let(::File)
         ?.takeIf(File::isFile)
+
+private val fanartFileNames = listOf("fanart.jpg", "fanart.png")
+
+internal fun localFanartPath(video: Video): String {
+    val directory = File(video.path).parentFile ?: return ""
+    val candidates = fanartFileNames.map(directory::resolve)
+    return candidates.firstOrNull(File::isFile)?.path ?: ""
+}
+
+/** 详情页横版封面来源:取视频同目录的 fanart,缺省回退 poster(与裁剪源优先级一致)。 */
+internal fun localFanartModel(video: Video): File? =
+    localFanartPath(video).takeIf { it.isNotBlank() }
+        ?.let(::File)
+        ?.takeIf(File::isFile)
+        ?: localPosterModel(video)
+
+/** fanart 缺省高宽比(高/宽):读取真实尺寸前的占位,取横版封面典型比例(如 800x538)。 */
+internal const val DEFAULT_FANART_ASPECT = 2f / 3f
+
+/** 仅解析图片头部读取宽高,不做整图解码;非图片或读取失败返回 null。 */
+internal fun readImageDimensions(file: File): Pair<Int, Int>? {
+    val input = try {
+        ImageIO.createImageInputStream(file)
+    } catch (_: Exception) {
+        null
+    } ?: return null
+    try {
+        val readers = ImageIO.getImageReaders(input)
+        if (!readers.hasNext()) return null
+        val reader = readers.next()
+        reader.input = input
+        return try {
+            val width = reader.getWidth(0)
+            val height = reader.getHeight(0)
+            if (width > 0 && height > 0) width to height else null
+        } finally {
+            reader.dispose()
+        }
+    } catch (_: Exception) {
+        return null
+    } finally {
+        runCatching { input.close() }
+    }
+}
 
 private val cropSourceFileNames = listOf("fanart.jpg", "fanart.png", "poster.jpg", "poster.png")
 

@@ -50,7 +50,7 @@ fun VideoInfoCard(video: Video, modifier: Modifier = Modifier) {
                 ) {
                     Text(
                         text = row.label,
-                        modifier = Modifier.width(116.dp),
+                        modifier = Modifier.width(54.dp),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -108,16 +108,6 @@ fun VideoInfoCardPreviewFull() {
     CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
         JavScraperTheme {
             VideoInfoCard(previewVideoWithAllFields())
-        }
-    }
-}
-
-@Preview
-@Composable
-fun VideoInfoCardPreviewSparse() {
-    CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
-        JavScraperTheme {
-            VideoInfoCard(Video(number = "SONE-002"))
         }
     }
 }

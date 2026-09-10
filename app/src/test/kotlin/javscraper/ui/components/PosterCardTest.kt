@@ -18,9 +18,104 @@ import kotlinx.coroutines.runBlocking
 
 class PosterCardTest {
     @Test
-    fun `poster height is four thirds of card width`() {
-        assertEquals(240.dp, posterHeight(180.dp))
-        assertEquals(320.dp, posterHeight(240.dp))
+    fun `poster height is 141 percent of card width`() {
+        assertEquals(253.8f, posterHeight(180.dp).value, 0.01f)
+        assertEquals(338.4f, posterHeight(240.dp).value, 0.01f)
+    }
+
+    @Test
+    fun `local fanart model is returned when downloaded`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val fanart = directory.resolve("fanart.jpg")
+        try {
+            Files.createFile(fanart)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(fanart.toFile(), localFanartModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local fanart model prefers jpg over png files`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val jpg = directory.resolve("fanart.jpg")
+        val png = directory.resolve("fanart.png")
+        try {
+            Files.createFile(jpg)
+            Files.createFile(png)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(jpg.toFile(), localFanartModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local fanart model falls back to poster when fanart missing`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val poster = directory.resolve("poster.jpg")
+        try {
+            Files.createFile(poster)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(poster.toFile(), localFanartModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local fanart model prefers fanart over poster`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val fanart = directory.resolve("fanart.jpg")
+        val poster = directory.resolve("poster.jpg")
+        try {
+            Files.createFile(fanart)
+            Files.createFile(poster)
+            val video = Video(number = "ABP-123", path = directory.resolve("ABP-123.mp4").toString())
+
+            assertEquals(fanart.toFile(), localFanartModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local fanart model is null when missing`() {
+        val video = Video(number = "ABP-123", path = "D:/videos/ABP-123.mp4")
+
+        assertNull(localFanartModel(video))
+    }
+
+    @Test
+    fun `read image dimensions reports real image size without full decode`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val fanart = directory.resolve("fanart.jpg")
+        try {
+            assertTrue(
+                ImageIO.write(BufferedImage(800, 538, BufferedImage.TYPE_INT_RGB), "jpg", fanart.toFile())
+            )
+
+            assertEquals(800 to 538, readImageDimensions(fanart.toFile()))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `read image dimensions is null for non-image file`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val junk = directory.resolve("fanart.jpg")
+        try {
+            Files.write(junk, byteArrayOf(1, 2, 3))
+
+            assertNull(readImageDimensions(junk.toFile()))
+        } finally {
+            deleteRecursively(directory)
+        }
     }
     @Test
     fun `local poster path is resolved beside the video`() {

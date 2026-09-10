@@ -40,6 +40,7 @@ import javscraper.i18n.TranslationZh
 import javscraper.models.Video
 import javscraper.ui.components.PosterCard
 import javscraper.ui.components.PosterCropDialog
+import javscraper.ui.components.PosterSource
 import javscraper.ui.components.VideoInfoCard
 import javscraper.ui.components.cropSourceModel
 import javscraper.ui.components.localPosterPath
@@ -122,7 +123,9 @@ fun VideoDetailScreen(
                     onClick = { cropVisible = true },
                     modifier = posterModifier,
                     cardWidth = 320.dp,
-                    posterRefreshKey = posterVersion
+                    posterRefreshKey = posterVersion,
+                    // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
+                    source = PosterSource.FANART
                 )
                 VideoInfoCard(
                     video = video,
