@@ -7,12 +7,17 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -47,7 +52,7 @@ import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
 import java.io.File
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun VideoDetailScreen(
     video: Video,
@@ -110,9 +115,13 @@ fun VideoDetailScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            // Flow 自适应布局:宽度足够时封面与信息卡同一行,不够时自动换行,
+            // 无需手动阈值切换,任意窗口宽度下 VideoInfoCard 都可见
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 val posterModifier = galleryPosterModifier(
                     video = video,
@@ -130,7 +139,8 @@ fun VideoDetailScreen(
                 )
                 VideoInfoCard(
                     video = video,
-                    modifier = Modifier.weight(1f)
+                    // FlowRow 中 weight 表示占满该行剩余宽度(实验 API)
+                    modifier = Modifier.weight(1f, fill = false).widthIn(min = 360.dp)
                 )
             }
         }
@@ -153,7 +163,8 @@ fun VideoDetailScreen(
     }
 }
 
-@Preview
+@Preview(widthDp = 1280, heightDp = 720, name = "Wide")
+@Preview(widthDp = 600, heightDp = 800, name = "Narrow")
 @Composable
 private fun VideoDetailScreenPreview() {
     CompositionLocalProvider(LocalTranslations provides TranslationZh()) {

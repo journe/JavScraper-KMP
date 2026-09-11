@@ -78,6 +78,7 @@ internal fun videoInfoRows(video: Video, t: TranslationEn): List<VideoInfoRow> {
         t.videoFieldTitle to video.title,
         t.videoFieldActresses to video.actresses.joinToString(", "),
         t.videoFieldDate to video.date,
+        t.videoFieldSummary to video.summary,
         t.videoFieldMaker to video.maker,
         t.videoFieldLabel to video.label,
         t.videoFieldSeries to video.series,
@@ -85,12 +86,11 @@ internal fun videoInfoRows(video: Video, t: TranslationEn): List<VideoInfoRow> {
         t.videoFieldDuration to video.duration?.toString(),
         t.videoFieldRating to video.rating?.toString(),
         t.videoFieldTags to video.tags.joinToString(", "),
+        t.videoFieldSource to video.source,
+        t.videoFieldDetailUrl to video.detailUrl,
         t.videoFieldCoverUrl to video.coverUrl,
         t.videoFieldPosterUrl to video.posterUrl,
         t.videoFieldSampleImages to video.sampleImages.joinToString("\n"),
-        t.videoFieldSummary to video.summary,
-        t.videoFieldSource to video.source,
-        t.videoFieldDetailUrl to video.detailUrl
     )
     return fields.map { (label, value) ->
         val normalizedValue = value.orEmpty()

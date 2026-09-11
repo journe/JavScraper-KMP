@@ -3,7 +3,7 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
     kotlin("jvm") version "2.4.10"
-    id("org.jetbrains.compose") version "1.10.3"
+    id("org.jetbrains.compose") version "1.12.0"
     id("org.jetbrains.kotlin.plugin.compose") version "2.4.10"
     kotlin("plugin.serialization") version "2.4.10"
 }
@@ -15,9 +15,10 @@ repositories { mavenCentral(); google() }
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    implementation("org.jetbrains.compose.material3:material3:1.9.0")
+    // CMP 1.12.0 的 Material3 随 Jetpack M3 1.5.0-alpha22 发布,版本号为 1.12.0-alpha03
+    implementation("org.jetbrains.compose.material3:material3:1.12.0-alpha03")
     implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
-    implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.10.3")
+    implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.12.0")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
