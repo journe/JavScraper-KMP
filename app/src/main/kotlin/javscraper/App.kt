@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
+import javscraper.ui.LocalSharedTransitionScope
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.LogsDialog
 import javscraper.ui.components.WorkerSetupDialog
@@ -115,6 +116,8 @@ fun App() {
                             null
                         }
                         SharedTransitionLayout {
+                            // scope 通过 CompositionLocal 下发,深层组件免参数透传
+                            CompositionLocalProvider(LocalSharedTransitionScope provides this) {
                             AnimatedContent(
                                 targetState = detailVideo,
                                 transitionSpec = {
@@ -167,12 +170,12 @@ fun App() {
                                             galleryState.fileByPath(video.path)
                                                 ?.let(viewModel::openSingleScrape)
                                         },
-                                        sharedTransitionScope = this@SharedTransitionLayout,
                                         animatedVisibilityScope = this@AnimatedContent,
                                         posterRefreshKey = posterRefreshVersion,
                                         onPosterCropped = { posterRefreshVersion++ }
                                     )
                                 }
+                            }
                             }
                         }
                     }
