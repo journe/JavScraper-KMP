@@ -46,7 +46,7 @@ class WorkerController(
     suspend fun ensureWorkerRunning() {
         try {
             onStatusChange(settings.strings.statusStarting)
-            val m = SidecarManager(resolveWorkerPath())
+            val m = SidecarManager(resolveWorkerPath(), SettingsManager.get().requestTimeoutMs.toLong())
             val started = withContext(Dispatchers.IO) { m.start() }
             if (started) {
                 val siteList = withContext(Dispatchers.IO) { m.listSites() }

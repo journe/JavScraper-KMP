@@ -17,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.models.SiteCheckResult
+import javscraper.settings.AppSettings
 import javscraper.ui.components.SiteItem
 import javscraper.ui.components.SiteSelector
 
@@ -53,6 +54,23 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
         }
         SettingsSwitchRow(t.settingsDownloadWebPages, state.downloadWebPages, actions.onDownloadWebPagesChange)
         SettingsSwitchRow(t.settingsNfoLockData, state.lockData, actions.onLockDataChange)
+        Spacer(Modifier.height(16.dp))
+        Text(t.settingsRequestTimeout, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(
+            t.settingsRequestTimeoutHint,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppSettings.REQUEST_TIMEOUT_OPTIONS.forEach { option ->
+                FilterChip(
+                    selected = state.requestTimeoutMs == option,
+                    onClick = { actions.onRequestTimeoutMsChange(option) },
+                    label = { Text(t.settingsRequestTimeoutOption(option / 1000)) }
+                )
+            }
+        }
         Spacer(Modifier.height(32.dp))
     }
     if (checkDialogVisible) {

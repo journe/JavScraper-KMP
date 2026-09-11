@@ -27,6 +27,7 @@ class SettingsManagerTest {
         assertTrue(settings.enabledSites.contains("mmtv"))
         assertEquals(1.5f, settings.posterCropAspect)
         assertEquals(true, settings.lockData)
+        assertEquals(15_000, settings.requestTimeoutMs)
     }
 
     @Test
@@ -56,7 +57,8 @@ class SettingsManagerTest {
             language = "zh",
             enabledSites = listOf("javbus", "javdb"),
             posterCropAspect = 1.8f,
-            lockData = false
+            lockData = false,
+            requestTimeoutMs = 60_000
         )
         val jsonStr = json.encodeToString(AppSettings.serializer(), original)
         val decoded = json.decodeFromString(AppSettings.serializer(), jsonStr)
@@ -75,6 +77,7 @@ class SettingsManagerTest {
         assertEquals(2, decoded.enabledSites.size)
         assertEquals(1.8f, decoded.posterCropAspect)
         assertEquals(false, decoded.lockData)
+        assertEquals(60_000, decoded.requestTimeoutMs)
     }
 
     @Test
@@ -82,6 +85,17 @@ class SettingsManagerTest {
         val jsonStr = """{"workerPath": "custom.exe"}"""
         val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
         assertEquals(1.5f, settings.posterCropAspect)
+    }
+
+    @Test
+    fun `AppSettings request timeout options and fallback`() {
+        // 选项恰为用户要求的四个档位
+        assertEquals(listOf(5_000, 15_000, 30_000, 60_000), AppSettings.REQUEST_TIMEOUT_OPTIONS)
+        assertTrue(AppSettings.REQUEST_TIMEOUT_OPTIONS.contains(AppSettings().requestTimeoutMs))
+        // 旧配置缺少 requestTimeoutMs 键时回退默认值
+        val jsonStr = """{"workerPath": "custom.exe"}"""
+        val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
+        assertEquals(15_000, settings.requestTimeoutMs)
     }
 
     @Test

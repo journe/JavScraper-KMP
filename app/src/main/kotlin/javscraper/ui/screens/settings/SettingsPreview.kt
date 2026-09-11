@@ -43,6 +43,7 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     maxTitleLength = 200,
     maxFilenameLength = 150,
     suffixKeywords = listOf("-cd1", "-cd2"),
+    requestTimeoutMs = 15_000,
     siteCheckRunning = false,
     siteCheckResults = null
 )
@@ -72,5 +73,6 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onMaxTitleLengthChange = {},
     onMaxFilenameLengthChange = {},
     onSuffixKeywordsChange = {},
+    onRequestTimeoutMsChange = {},
     onCheckSites = {}
 )

@@ -15,8 +15,14 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+/** JSON-RPC 请求等待 worker 响应超时（区别于协程取消）。见 [SidecarManager.sendRequest]。 */
+
 @OptIn(ExperimentalSerializationApi::class)
-class SidecarManager(private val workerPath: String) : AutoCloseable {
+class SidecarManager(
+    private val workerPath: String,
+    /** 单次 JSON-RPC 请求等待 worker 响应的超时（毫秒），可注入短值用于测试。 */
+    private val requestTimeoutMs: Long = 15_000
+) : AutoCloseable {
     private val log = mu.KotlinLogging.logger {}
 
     private var process: Process? = null
@@ -24,6 +30,7 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
     private var stdoutReader: BufferedReader? = null
     private val requestId = AtomicInteger(0)
     private val pendingRequests = ConcurrentHashMap<String, CompletableDeferred<JsonElement>>()
+    private val progressStages = ConcurrentHashMap<String, String>()
     private val mutex = Mutex()
     private var responseReader: Job? = null
     private var scope: CoroutineScope? = null
@@ -66,7 +73,16 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
                 }
             }.also { it.isDaemon = true; it.start() }
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-            responseReader = scope?.launch { readResponses() }
+            responseReader = scope?.launch {
+                SidecarResponseReader(
+                    stdoutReader,
+                    pendingRequests,
+                    progressStages,
+                    json,
+                    prettyJson,
+                    log
+                ).readResponses()
+            }
             delay(500)
             if (process == null || process!!.isAlive.not()) {
                 log.warn {
@@ -281,7 +297,19 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
                 stdin?.newLine()
                 stdin?.flush()
             }
-            val response = withTimeout(15_000) { deferred.await() }
+            // 直接 withTimeout 抛出的 TimeoutCancellationException 继承自 CancellationException，
+            // 会被调用方（如 SingleScrapeController）的 catch(CancellationException) 当作协程取消
+            // 重新抛出而跳过错误处理，导致单文件刮削对话框停留在 loading 状态无法恢复。
+            // 因此这里捕获超时并转换为普通异常 SidecarTimeoutException。
+            val response = try {
+                withTimeout(requestTimeoutMs) { deferred.await() }
+            } catch (_: TimeoutCancellationException) {
+                val latestStage = progressStages.remove(id)
+                throw SidecarTimeoutException(
+                    "Timed out waiting for $requestTimeoutMs ms (method=$method, latestStage=$latestStage)",
+                    latestStage
+                )
+            }
             log.info {
                 "JSON-RPC response: id=$id, elapsedMs=${System.currentTimeMillis() - startedAt}"
             }
@@ -294,45 +322,6 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
             }
             pendingRequests.remove(id)
             throw e
-        }
-    }
-
-    private suspend fun readResponses() {
-        log.info { "Response reader started" }
-        try {
-            var line: String?
-            while (stdoutReader?.readLine().also { line = it } != null) {
-                if (line.isNullOrBlank()) continue
-                try {
-                    val response = json.parseToJsonElement(line.orEmpty()).jsonObject
-                    val id = response["id"]?.jsonPrimitive?.contentOrNull
-                    if (id != null) {
-                        log.info {
-                            "JSON-RPC response body: id=$id, json=${
-                                prettyJson.encodeToString(JsonObject.serializer(), response)
-                            }"
-                        }
-                        val deferred = pendingRequests.remove(id)
-                        if (deferred != null) {
-                            val error = response["error"]
-                            if (error != null && error !is JsonNull) {
-                                deferred.completeExceptionally(
-                                    RuntimeException(
-                                        error.jsonObject["message"]?.jsonPrimitive?.contentOrNull ?: ""
-                                    )
-                                )
-                            } else {
-                                deferred.complete(response["result"] ?: JsonNull)
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    log.warn(e) { "Response parse error: ${e.message}" }
-                }
-            }
-            log.info { "Response reader reached end of stream" }
-        } catch (e: IOException) {
-            log.info { "Response reader closed: ${e.message}" }
         }
     }
 
@@ -375,6 +364,7 @@ class SidecarManager(private val workerPath: String) : AutoCloseable {
         stdin = null
         stdoutReader = null
         pendingRequests.clear()
+        progressStages.clear()
         log.info { "Worker cleanup completed" }
     }
 }

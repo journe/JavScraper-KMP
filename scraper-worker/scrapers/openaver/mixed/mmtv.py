@@ -29,14 +29,14 @@ class MmtvScraper(BaseScraper):
             "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
         })
 
-    def search(self, number: str) -> list[Video]:
+    def _search_all(self, number: str) -> list[Video]:
         number = self.normalize_number(number)
         results: list[Video] = []
         try:
             for real_url in self._find_detail_urls(number):
                 try:
                     resp = self._session.get(real_url, timeout=15)
-                except (requests.Timeout, requests.ConnectionError):
+                except requests.ConnectionError:
                     continue
                 if resp.status_code != 200:
                     continue
@@ -44,7 +44,7 @@ class MmtvScraper(BaseScraper):
                 if video is not None:
                     results.append(video)
             return results
-        except (requests.Timeout, requests.ConnectionError):
+        except requests.ConnectionError:
             return []
 
     def _search_one(self, number: str) -> Optional[Video]:

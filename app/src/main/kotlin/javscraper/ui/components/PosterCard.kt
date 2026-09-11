@@ -124,7 +124,7 @@ fun PosterCard(
     }
 }
 
-internal fun posterHeight(cardWidth: Dp): Dp = cardWidth * 1.41F
+internal fun posterHeight(cardWidth: Dp): Dp = cardWidth * 1.42F
 
 private val posterFileNames = listOf("poster.jpg", "poster.png")
 

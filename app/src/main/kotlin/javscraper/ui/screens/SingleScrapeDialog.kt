@@ -69,14 +69,37 @@ private fun InputDialog(
                     )
                 }
                 state.singleScrapeError?.let { error ->
+                    val stageMessage = when (state.singleScrapeErrorStage) {
+                        "webpage_request" -> t.singleScrapeErrorWebpageRequestTimeout
+                        "webpage_archive" -> t.singleScrapeErrorWebpageArchiveTimeout
+                        null, "" -> if (error.contains("Timed out waiting", ignoreCase = true))
+                            t.singleScrapeErrorWorkerTimeout else null
+
+                        else -> null
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            error,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        if (stageMessage != null) {
+                            Column {
+                                Text(
+                                    stageMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    error,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        } else {
+                            Text(
+                                error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
                 OutlinedTextField(

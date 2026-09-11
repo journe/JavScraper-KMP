@@ -39,6 +39,7 @@ data class ScrapeProgressState(
     val sites: List<SiteInfo>,
     val outputDir: String,
     val singleScrapeError: String?,
+    val singleScrapeErrorStage: String?,
     val showMissingOutputDir: Boolean
 )
 

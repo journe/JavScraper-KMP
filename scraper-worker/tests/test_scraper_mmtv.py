@@ -124,11 +124,14 @@ def test_search_timeout(mock_session_cls):
     mock_session = MagicMock()
     mock_session_cls.return_value = mock_session
     from requests.exceptions import Timeout
+    from core.scrape_errors import WebpageRequestTimeoutError
     mock_session.get.side_effect = Timeout()
 
-    result = MmtvScraper().search("ABC-123")
-    assert result == []
+    with pytest.raises(WebpageRequestTimeoutError) as error:
+        MmtvScraper().search("ABC-123")
 
+    assert error.value.stage == "webpage_request"
+    assert error.value.site_id == "mmtv"
 
 @patch("scrapers.openaver.mixed.mmtv.requests.Session")
 def test_search_empty_title_returns_none(mock_session_cls):
@@ -232,6 +235,64 @@ def test_search_skips_failed_detail_candidates(mock_session_cls):
     results = MmtvScraper().search("ABC-123")
 
     assert [result.detail_url for result in results] == [second_url]
+
+
+@patch("scrapers.openaver.mixed.mmtv.requests.Session")
+def test_search_save_webpage_archives_each_candidate(mock_session_cls):
+    import base64
+    import email
+    from email.policy import default as email_policy
+
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+    search_html = """
+<html><body>
+<figure class="video-preview">
+  <a href="/zh/amateur_content/123/content.html"><img alt="ABC-123 第一结果"></a>
+</figure>
+<figure class="video-preview">
+  <a href="/zh/amateur_content/456/content.html"><img alt="ABC-123 第二结果"></a>
+</figure>
+</body></html>"""
+    second_url = "https://www.7mmtv.sx/zh/amateur_content/456/content.html"
+    second_html = DETAIL_HTML.replace("素人サンプルタイトル", "第二结果")
+
+    def page_response(text, url):
+        response = MagicMock()
+        response.status_code = 200
+        response.text = text
+        response.url = url
+        response.content = text.encode("utf-8")
+        response.headers = {"Content-Type": "text/html"}
+        return response
+
+    pages = iter([
+        page_response(search_html, "https://www.7mmtv.sx/zh/searchform_search/all/index.html"),
+        page_response(DETAIL_HTML, DETAIL_URL),
+        page_response(second_html, second_url),
+    ])
+
+    def get_side_effect(url, *args, **kwargs):
+        try:
+            return next(pages)
+        except StopIteration:
+            resource = MagicMock()
+            resource.status_code = 200
+            resource.url = url
+            resource.content = b"resource-bytes"
+            resource.headers = {"Content-Type": "image/jpeg"}
+            return resource
+
+    mock_session.get.side_effect = get_side_effect
+
+    results = MmtvScraper().search("ABC-123", save_webpage=True)
+
+    assert [result.detail_url for result in results] == [DETAIL_URL, second_url]
+    for result in results:
+        assert result.webpage
+        archive = email.message_from_bytes(base64.b64decode(result.webpage), policy=email_policy)
+        locations = {part["Content-Location"] for part in archive.walk() if part.get("Content-Location")}
+        assert result.detail_url in locations
 
 def test_normalize_number():
     scraper = MmtvScraper()

@@ -3,6 +3,8 @@ import traceback
 from typing import Any, Callable
 
 from core.file_prober import extract_number
+from core.progress import current_request_id
+from core.scrape_errors import ScrapeStageError
 from core.smart_search import search_candidates, search_multi, smart_search
 from core.webpage_archive import extract_images
 from scrapers.models import scrape_error, scrape_success
@@ -27,20 +29,37 @@ def handle_request(request: dict) -> dict:
     handler = _handlers.get(method)
     if not handler:
         return _error(req_id, -32601, f"Unknown: {method}")
+    progress_token = None
+    if req_id is not None:
+        progress_token = current_request_id.set(str(req_id))
     try:
         result = handler(**params)
         return _success(req_id, result)
+    except ScrapeStageError as e:
+        traceback.print_exc(file=sys.stderr)
+        return _error(
+            req_id,
+            e.code,
+            e.message,
+            {"stage": e.stage, "site_id": e.site_id, "number": e.number, "detail_url": e.detail_url},
+        )
     except Exception as e:
         traceback.print_exc(file=sys.stderr)
         return _error(req_id, -1, str(e))
+    finally:
+        if progress_token is not None:
+            current_request_id.reset(progress_token)
 
 
 def _success(id: Any, result: Any) -> dict:
     return {"jsonrpc": "2.0", "id": id, "result": result}
 
 
-def _error(id: Any, code: int, message: str) -> dict:
-    return {"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}}
+def _error(id: Any, code: int, message: str, data: dict | None = None) -> dict:
+    error: dict[str, Any] = {"code": code, "message": message}
+    if data is not None:
+        error["data"] = data
+    return {"jsonrpc": "2.0", "id": id, "error": error}
 
 
 @register_handler("list_sites")

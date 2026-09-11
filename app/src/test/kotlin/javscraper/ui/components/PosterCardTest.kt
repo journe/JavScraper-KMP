@@ -18,9 +18,9 @@ import kotlinx.coroutines.runBlocking
 
 class PosterCardTest {
     @Test
-    fun `poster height is 141 percent of card width`() {
-        assertEquals(253.8f, posterHeight(180.dp).value, 0.01f)
-        assertEquals(338.4f, posterHeight(240.dp).value, 0.01f)
+    fun `poster height is 142 percent of card width`() {
+        assertEquals(255.6f, posterHeight(180.dp).value, 0.01f)
+        assertEquals(340.8f, posterHeight(240.dp).value, 0.01f)
     }
 
     @Test

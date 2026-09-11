@@ -43,6 +43,7 @@ data class SettingsState(
     val maxTitleLength: Int,
     val maxFilenameLength: Int,
     val suffixKeywords: List<String>,
+    val requestTimeoutMs: Int,
     val siteCheckRunning: Boolean,
     val siteCheckResults: List<SiteCheckResult>?
 )
@@ -71,6 +72,7 @@ data class SettingsActions(
     val onMaxTitleLengthChange: (Int) -> Unit,
     val onMaxFilenameLengthChange: (Int) -> Unit,
     val onSuffixKeywordsChange: (List<String>) -> Unit,
+    val onRequestTimeoutMsChange: (Int) -> Unit,
     val onCheckSites: () -> Unit
 )
 

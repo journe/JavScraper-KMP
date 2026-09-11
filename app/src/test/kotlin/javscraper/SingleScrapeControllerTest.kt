@@ -44,4 +44,35 @@ class SingleScrapeControllerTest {
 
         assertEquals("NEW-001", controller.singleScrapeTask?.number)
     }
+
+    @Test
+    fun `scrape failure keeps timeout stage for localized ui`() {
+        val controller = SingleScrapeController(
+            scope = TestScope(),
+            orch = { null },
+            outputDir = { "output" }
+        )
+
+        controller.failSingleScrape(
+            message = "Saving webpage timed out",
+            stage = "webpage_archive"
+        )
+
+        assertEquals("webpage_archive", controller.singleScrapeErrorStage)
+    }
+
+    @Test
+    fun `timeout stage translations distinguish request and archive`() {
+        val translations = javscraper.i18n.TranslationZh()
+
+        assertEquals("请求网页超时：站点响应过慢，可重试或更换站点。", translations.singleScrapeErrorWebpageRequestTimeout)
+        assertEquals(
+            "保存网页超时：元数据已找到，但归档页面资源耗时过长；可关闭“下载网页”后重试。",
+            translations.singleScrapeErrorWebpageArchiveTimeout
+        )
+        assertEquals(
+            "Worker 响应超时且未收到明确阶段；请查看应用日志中的最后一条 Scrape progress。",
+            translations.singleScrapeErrorWorkerTimeout
+        )
+    }
 }

@@ -42,6 +42,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var maxTitleLength by mutableStateOf(SettingsManager.get().maxTitleLength)
     var maxFilenameLength by mutableStateOf(SettingsManager.get().maxFilenameLength)
     var suffixKeywords by mutableStateOf(SettingsManager.get().suffixKeywords)
+    var requestTimeoutMs by mutableStateOf(SettingsManager.get().requestTimeoutMs)
 
     val strings: TranslationEn
         get() = if (currentLanguage == "zh") TranslationZh() else TranslationEn()
@@ -202,6 +203,12 @@ class SettingsController(private val scope: CoroutineScope) {
         onScrapeSettingsChanged()
     }
 
+    fun updateRequestTimeoutMs(v: Int) {
+        requestTimeoutMs = v
+        SettingsManager.update { it.copy(requestTimeoutMs = v) }
+        onScrapeSettingsChanged()
+    }
+
     fun resetSettings() {
         SettingsManager.reset()
         val fresh = SettingsManager.get()
@@ -224,6 +231,7 @@ class SettingsController(private val scope: CoroutineScope) {
         maxTitleLength = fresh.maxTitleLength
         maxFilenameLength = fresh.maxFilenameLength
         suffixKeywords = fresh.suffixKeywords
+        requestTimeoutMs = fresh.requestTimeoutMs
         onFileLoggingChanged(fileLoggingEnabled)
         onScrapeSettingsChanged()
     }

@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import javscraper.models.ScannedFile
 import javscraper.models.SingleScrapeDialogState
 import javscraper.models.Video
+import javscraper.sidecar.SidecarRequestException
+import javscraper.sidecar.SidecarTimeoutException
 import javscraper.scrape.ScrapeOrchestrator
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
@@ -30,6 +32,7 @@ class SingleScrapeController(
     var singleScrapeSite by mutableStateOf<String?>(null)
     var singleScrapeTask by mutableStateOf<ScrapeTask?>(null)
     var singleScrapeError by mutableStateOf<String?>(null)
+    var singleScrapeErrorStage by mutableStateOf<String?>(null)
     var showMissingOutputDir by mutableStateOf(false)
 
     /** Invoked with the finished task and its video when the user confirms a result. */
@@ -56,6 +59,7 @@ class SingleScrapeController(
         singleScrapeSite = null
         singleScrapeTask = ScrapeTask(file.number, file.fileName, status = ScrapeTaskStatus.PENDING)
         singleScrapeError = null
+        singleScrapeErrorStage = null
         singleScrapeDialogState = SingleScrapeDialogState.Input
     }
 
@@ -81,6 +85,7 @@ class SingleScrapeController(
             return
         }
         singleScrapeError = null
+        singleScrapeErrorStage = null
         singleScrapeDialogState = SingleScrapeDialogState.Scraping
         singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SCRAPING)
         singleScrapeJob = scope.launch {
@@ -121,7 +126,12 @@ class SingleScrapeController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                failSingleScrape(e.message ?: "Unknown error")
+                val stage = when (e) {
+                    is SidecarRequestException -> e.stage
+                    is SidecarTimeoutException -> e.stage
+                    else -> null
+                }
+                failSingleScrape(e.message ?: "Unknown error", stage)
             } finally {
                 singleScrapeJob = null
                 previewConfirm?.cancel()
@@ -172,7 +182,8 @@ class SingleScrapeController(
         closeSingleScrape()
     }
 
-    private fun failSingleScrape(message: String) {
+    internal fun failSingleScrape(message: String, stage: String? = null) {
+        singleScrapeErrorStage = stage
         singleScrapeError = message
         singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.FAILED, error = message)
         singleScrapeDialogState = SingleScrapeDialogState.Input

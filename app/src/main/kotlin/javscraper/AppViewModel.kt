@@ -88,6 +88,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     var singleScrapeSite by singleScrape::singleScrapeSite
     var singleScrapeTask by singleScrape::singleScrapeTask
     var singleScrapeError by singleScrape::singleScrapeError
+    var singleScrapeErrorStage by singleScrape::singleScrapeErrorStage
     var showMissingOutputDir by singleScrape::showMissingOutputDir
 
     // --- Settings state (delegated to SettingsController) ---
@@ -111,6 +112,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     var maxTitleLength by settings::maxTitleLength
     var maxFilenameLength by settings::maxFilenameLength
     var suffixKeywords by settings::suffixKeywords
+    var requestTimeoutMs by settings::requestTimeoutMs
 
     // --- Worker state (delegated to WorkerController) ---
     var sites by worker::sites
@@ -179,6 +181,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     fun updateMaxTitleLength(v: Int) = settings.updateMaxTitleLength(v)
     fun updateMaxFilenameLength(v: Int) = settings.updateMaxFilenameLength(v)
     fun updateSuffixKeywords(v: List<String>) = settings.updateSuffixKeywords(v)
+    fun updateRequestTimeoutMs(v: Int) = settings.updateRequestTimeoutMs(v)
 
     // --- Worker (forwarded to WorkerController) ---
 
@@ -304,7 +307,7 @@ class AppViewModel(private val scope: CoroutineScope) {
         get() = ScrapeProgressState(
             tasks, scraping, singleScrapeDialogState, singleScrapeNumber,
             singleScrapeSite, singleScrapeTask, enabledSiteInfos,
-            outputDir, singleScrapeError, showMissingOutputDir
+            outputDir, singleScrapeError, singleScrapeErrorStage, showMissingOutputDir
         )
     val scrapeProgressActions: ScrapeProgressActions = ScrapeProgressActions(
         ::startAllScraping, ::cancelScraping, ::openSingleScrapeFromTask,
@@ -329,7 +332,7 @@ class AppViewModel(private val scope: CoroutineScope) {
             hardlinkInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
-            maxTitleLength, maxFilenameLength, suffixKeywords,
+            maxTitleLength, maxFilenameLength, suffixKeywords, requestTimeoutMs,
             siteCheckRunning, siteCheckResults
         )
     val settingsActions: SettingsActions = SettingsActions(
@@ -339,6 +342,6 @@ class AppViewModel(private val scope: CoroutineScope) {
         ::updateFileLogging,
         ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,
-        ::updateMaxFilenameLength, ::updateSuffixKeywords, ::checkSites
+        ::updateMaxFilenameLength, ::updateSuffixKeywords, ::updateRequestTimeoutMs, ::checkSites
     )
 }

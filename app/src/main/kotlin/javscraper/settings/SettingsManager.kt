@@ -23,8 +23,15 @@ data class AppSettings(
     val maxFilenameLength: Int = 60,
     val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc"),
     /** 封面裁剪高宽比(高/宽),默认 1.5 = 2:3 海报标准,范围见 PosterCropper。 */
-    val posterCropAspect: Float = 1.5f
-)
+    val posterCropAspect: Float = 1.5f,
+    /** 单次刮削请求等待 worker 响应的超时（毫秒），可选项见 [REQUEST_TIMEOUT_OPTIONS]。 */
+    val requestTimeoutMs: Int = 15_000
+) {
+    companion object {
+        /** 设置页可选的超时时间（毫秒）。 */
+        val REQUEST_TIMEOUT_OPTIONS: List<Int> = listOf(5_000, 15_000, 30_000, 60_000)
+    }
+}
 
 object SettingsManager {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }

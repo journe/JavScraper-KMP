@@ -12,6 +12,7 @@ from email.policy import default
 from io import BytesIO
 from pathlib import Path
 from typing import Callable, Iterable
+from .scrape_errors import ScrapeStageError
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
@@ -141,6 +142,8 @@ def build_mhtml(
         processed_urls.add(url)
         try:
             captured = fetch(url)
+        except ScrapeStageError:
+            raise
         except Exception:
             captured = None
         if captured is None:

@@ -1,3 +1,4 @@
+import json
 import pytest
 from ipc_handler import handle_request
 from scrapers.registry import ScraperRegistry
@@ -179,3 +180,67 @@ def test_extract_webpage_images():
         poster_url="https://example.test/b.jpg",
         sample_images=["https://example.test/c.jpg"],
     )
+
+def test_search_webpage_archive_timeout_returns_stage_error():
+    from core.scrape_errors import WebpageArchiveTimeoutError
+
+    class ArchiveTimeoutScraper(MockScraper):
+        def search(self, number, save_webpage=False):
+            raise WebpageArchiveTimeoutError(
+                "Saving webpage timed out",
+                site_id="mock",
+                number=number,
+                detail_url="https://example.test/video.html",
+            )
+
+    ScraperRegistry.register(ArchiveTimeoutScraper)
+    result = handle_request({
+        "id": "stage-timeout",
+        "method": "search",
+        "params": {"number": "ABC-123", "site": "mock", "save_webpage": True},
+    })
+
+    assert result["error"]["code"] == -31
+    assert result["error"]["message"] == "Saving webpage timed out"
+    assert result["error"]["data"]["stage"] == "webpage_archive"
+    assert result["error"]["data"]["site_id"] == "mock"
+    assert result["error"]["data"]["detail_url"] == "https://example.test/video.html"
+
+
+def test_search_emits_request_and_archive_progress_notifications(capsys):
+    class ProgressScraper(BaseScraper):
+        @property
+        def site_id(self):
+            return "mock"
+
+        @property
+        def site_name(self):
+            return "Mock Site"
+
+        def _search_one(self, number):
+            return None
+
+        def _search_all(self, number):
+            return [Video(number=number, title="Result", source="mock")]
+
+    ScraperRegistry.register(ProgressScraper)
+    result = handle_request({
+        "id": "progress-1",
+        "method": "search",
+        "params": {"number": "ABC-123", "site": "mock", "save_webpage": True},
+    })
+
+    assert result["result"][0]["title"] == "Result"
+    notifications = [
+        json.loads(line)
+        for line in capsys.readouterr().out.splitlines()
+        if line.strip()
+    ]
+    progress = [item["params"] for item in notifications if item.get("method") == "scrape.progress"]
+    assert [(item["stage"], item["status"]) for item in progress] == [
+        ("webpage_request", "start"),
+        ("webpage_request", "success"),
+        ("webpage_archive", "start"),
+        ("webpage_archive", "success"),
+    ]
+    assert all(item["request_id"] == "progress-1" for item in progress)
