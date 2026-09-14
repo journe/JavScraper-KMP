@@ -43,6 +43,8 @@ class TranslationZh : TranslationEn() {
     override val galleryDetailTitle: String = "视频详情"
     override val galleryDetailBack: String = "返回结果列表"
     override val galleryDetailRefresh: String = "重新刮削"
+    override val galleryDetailPlay: String = "播放视频"
+    override val galleryDetailOpenFolder: String = "打开所在目录"
     override val galleryDetailExtraFanart: String = "额外图集"
     override val galleryEmptyHint: String = "暂无结果"
 

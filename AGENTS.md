@@ -71,6 +71,8 @@ cd scraper-worker; venv\Scripts\python -m PyInstaller scraper-worker.spec --noco
 
 ## 测试指南
 
+代码改动后默认只运行与本次修改直接相关的增量测试；全量测试仅在用户明确要求时执行。
+
 ### Kotlin 测试
 
 - 使用 kotlin.test 框架 + JUnit 运行器。

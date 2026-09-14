@@ -24,9 +24,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,14 +44,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.models.Video
@@ -73,6 +76,8 @@ fun VideoDetailScreen(
     video: Video,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
+    onPlayVideo: () -> Unit = {},
+    onOpenFolder: () -> Unit = {},
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
     // 由 App 层持有并注入:与图库页共享同一裁剪版本号,两侧 PosterCard 同步刷新
@@ -132,30 +137,27 @@ fun VideoDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                FilledIconButton(
+
+                DetailIconButton(
                     onClick = onRefresh,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Icon(
-                        Icons.Filled.Refresh,
-                        contentDescription = translations.galleryDetailRefresh
-                    )
-                }
-                FilledIconButton(
+                    icon = Icons.Filled.Refresh,
+                    contentDescription = translations.galleryDetailRefresh
+                )
+                DetailIconButton(
+                    onClick = onOpenFolder,
+                    icon = Icons.Filled.FolderOpen,
+                    contentDescription = translations.galleryDetailOpenFolder
+                )
+                DetailIconButton(
+                    onClick = onPlayVideo,
+                    icon = Icons.Filled.PlayArrow,
+                    contentDescription = translations.galleryDetailPlay
+                )
+                DetailIconButton(
                     onClick = onBack,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = translations.galleryDetailBack
-                    )
-                }
+                    icon = Icons.Filled.Close,
+                    contentDescription = translations.galleryDetailBack
+                )
             }
             Spacer(Modifier.height(16.dp))
             // Flow 自适应布局:宽度足够时封面与信息卡同一行,不够时自动换行,
@@ -240,6 +242,23 @@ fun VideoDetailScreen(
     }
 }
 
+@Composable
+private fun DetailIconButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    contentDescription: String
+) {
+    FilledIconButton(
+        onClick = onClick,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    ) {
+        Icon(icon, contentDescription = contentDescription)
+    }
+}
+
 @Preview(widthDp = 1280, heightDp = 720, name = "Wide")
 @Preview(widthDp = 600, heightDp = 800, name = "Narrow")
 @Composable
@@ -249,14 +268,16 @@ private fun VideoDetailScreenPreview() {
             SharedTransitionLayout {
                 // Preview 中也通过同一 CompositionLocal 提供 scope
                 CompositionLocalProvider(LocalSharedTransitionScope provides this) {
-                AnimatedContent(targetState = false, label = "video-detail-preview") { _ ->
-                    VideoDetailScreen(
-                        video = previewVideoWithAllFields(),
-                        onBack = {},
-                        onRefresh = {},
-                        animatedVisibilityScope = this@AnimatedContent
-                    )
-                }
+                    AnimatedContent(targetState = false, label = "video-detail-preview") { _ ->
+                        VideoDetailScreen(
+                            video = previewVideoWithAllFields(),
+                            onBack = {},
+                            onRefresh = {},
+                            onPlayVideo = {},
+                            onOpenFolder = {},
+                            animatedVisibilityScope = this@AnimatedContent
+                        )
+                    }
                 }
             }
         }

@@ -21,6 +21,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.ui.LocalSharedTransitionScope
+import javscraper.io.external.SystemFileLauncher
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.LogsDialog
 import javscraper.ui.components.WorkerSetupDialog
@@ -28,6 +29,8 @@ import javscraper.ui.screens.*
 import javscraper.ui.screens.settings.*
 
 import javscraper.ui.theme.JavScraperTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 enum class Screen { SCAN, PROGRESS, GALLERY, NETWORK_PREVIEW, SETTINGS }
 
@@ -52,6 +55,7 @@ fun App() {
             var navExpanded by remember { mutableStateOf(false) }
             var logsVisible by remember { mutableStateOf(false) }
             var selectedVideoPath by remember { mutableStateOf<String?>(null) }
+            val systemFileLauncher = remember { SystemFileLauncher() }
             val galleryListState = rememberLazyGridState()
             // 裁剪成功后自增:提升到详情/图库共同父级,两侧 PosterCard 共用同一
             // refreshKey 绕过 Coil 缓存重读,返回图库也能看到裁剪后的 poster
@@ -173,6 +177,16 @@ fun App() {
                                         onRefresh = {
                                             galleryState.fileByPath(video.path)
                                                 ?.let(viewModel::openSingleScrape)
+                                        },
+                                        onPlayVideo = {
+                                            scope.launch(Dispatchers.IO) {
+                                                systemFileLauncher.openVideo(video.path)
+                                            }
+                                        },
+                                        onOpenFolder = {
+                                            scope.launch(Dispatchers.IO) {
+                                                systemFileLauncher.openContainingDirectory(video.path)
+                                            }
                                         },
                                         animatedVisibilityScope = this@AnimatedContent,
                                         posterRefreshKey = posterRefreshVersion,
