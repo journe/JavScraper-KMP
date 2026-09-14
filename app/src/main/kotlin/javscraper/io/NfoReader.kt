@@ -19,7 +19,7 @@ object NfoReader {
     fun read(path: Path): Video? {
         if (!Files.isRegularFile(path)) return null
         return try {
-            val content = keepFirstXmlDeclaration(Files.readString(path))
+            val content = keepFirstXmlDeclaration(Files.readString(path).removePrefix("\uFEFF"))
             val safeContent = bareAmpersand.replace(content, "&amp;")
             val document = newDocumentBuilder().parse(InputSource(StringReader(safeContent)))
             Video(

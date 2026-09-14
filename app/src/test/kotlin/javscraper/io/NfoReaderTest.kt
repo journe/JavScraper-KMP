@@ -130,4 +130,24 @@ class NfoReaderTest {
             Files.deleteIfExists(ampersand)
         }
     }
+
+    @Test
+    fun `read supports NFO with UTF-8 BOM`() {
+        val nfo = Files.createTempFile("javscraper-nfo-bom-", ".nfo")
+        try {
+            Files.writeString(
+                nfo,
+                "\uFEFF<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" +
+                    "<movie><num>ABP-159</num><title>天然成分由来</title><plot>桃谷エリカ</plot></movie>"
+            )
+
+            val video = NfoReader.read(nfo)
+
+            assertEquals("ABP-159", video?.number)
+            assertEquals("天然成分由来", video?.title)
+            assertEquals("桃谷エリカ", video?.summary)
+        } finally {
+            Files.deleteIfExists(nfo)
+        }
+    }
 }
