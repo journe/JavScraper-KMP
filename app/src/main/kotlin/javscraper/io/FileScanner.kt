@@ -4,7 +4,8 @@ import javscraper.models.ScannedFile
 import mu.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.streams.toList
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 object FileScanner {
     private val log = KotlinLogging.logger {}
@@ -49,23 +50,61 @@ object FileScanner {
 
     fun scanDirectory(dir: Path, recursive: Boolean = true): List<ScannedFile> {
         if (!Files.isDirectory(dir)) return emptyList()
-        val s = if (recursive) Files.walk(dir) else Files.list(dir)
+        val stream = if (recursive) Files.walk(dir) else Files.list(dir)
         return try {
-            s.use {
-                it.filter { Files.isRegularFile(it) }.filter { isVideo(it) }.map { f ->
-                    val nfoFile = findMatchingNfo(f)
-                    ScannedFile(
-                        f.toAbsolutePath().toString(),
-                        f.fileName.toString(),
-                        extractNumber(f.fileName.toString()),
-                        nfoFile != null,
-                        nfoFile?.let(NfoReader::read)
-                    )
-                }.toList()
+            stream.use {
+                val files = it
+                    .filter { file -> Files.isRegularFile(file) }
+                    .filter { file -> isVideo(file) }
+                    .iterator()
+                val result = ArrayList<ScannedFile>()
+                while (files.hasNext()) result.add(toScannedFile(files.next()))
+                result
             }
         } catch (e: Exception) {
             log.error(e) { "scan error" }; emptyList()
         }
+    }
+
+    fun scanDirectoryFlow(
+        dir: Path,
+        recursive: Boolean = true,
+        batchSize: Int = 50
+    ): Flow<List<ScannedFile>> = flow {
+        if (!Files.isDirectory(dir)) return@flow
+        val effectiveBatchSize = batchSize.coerceAtLeast(1)
+        val stream = if (recursive) Files.walk(dir) else Files.list(dir)
+        try {
+            stream.use {
+                var batch = ArrayList<ScannedFile>(effectiveBatchSize)
+                val files = it
+                    .filter { file -> Files.isRegularFile(file) }
+                    .filter { file -> isVideo(file) }
+                    .iterator()
+                while (files.hasNext()) {
+                    val file = files.next()
+                    batch.add(toScannedFile(file))
+                    if (batch.size == effectiveBatchSize) {
+                        emit(batch)
+                        batch = ArrayList(effectiveBatchSize)
+                    }
+                }
+                if (batch.isNotEmpty()) emit(batch)
+            }
+        } catch (e: Exception) {
+            log.error(e) { "scan error" }
+        }
+    }
+
+    private fun toScannedFile(file: Path): ScannedFile {
+        val nfoFile = findMatchingNfo(file)
+        return ScannedFile(
+            file.toAbsolutePath().toString(),
+            file.fileName.toString(),
+            extractNumber(file.fileName.toString()),
+            nfoFile != null,
+            nfoFile?.let(NfoReader::read)
+        )
     }
 
     private fun findMatchingNfo(video: Path): Path? {

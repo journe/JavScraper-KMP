@@ -25,10 +25,13 @@ import javscraper.ui.screens.settings.SettingsActions
 import javscraper.ui.screens.settings.SettingsState
 import javscraper.ui.screens.upsertScrapeTask
 import javscraper.ui.screens.upsertVideo
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.nio.file.Path
 import java.nio.file.Paths
 
 /**
@@ -36,7 +39,12 @@ import java.nio.file.Paths
  * Coordinates settings ([SettingsController]), worker lifecycle ([WorkerController])
  * and scan/scrape orchestration, keeping composables stateless.
  */
-class AppViewModel(private val scope: CoroutineScope) {
+class AppViewModel(
+    private val scope: CoroutineScope,
+    private val scanDirectoryFlow: (Path, Boolean) -> Flow<List<ScannedFile>> = { dir, recursive ->
+        FileScanner.scanDirectoryFlow(dir, recursive)
+    }
+) {
 
     private val settings = SettingsController(scope)
     private val appLog = AppLogController()
@@ -194,23 +202,30 @@ class AppViewModel(private val scope: CoroutineScope) {
     // --- Scan ---
 
     fun startScan() {
+        if (scanning) return
         scope.launch {
             scanning = true
-            val allFiles = FileScanner.scanDirectory(
-                Paths.get(scanDir), scanRecursive
-            )
-            scrapedFiles = allFiles.filter { it.isScraped }
-            scannedFiles = allFiles
-            scanning = false
-            val groups = scannedFiles
-                .filter { !it.isScraped && it.number.isNotBlank() }
-                .groupBy { it.number }
-            tasks = groups.map { (number, groupedFiles) ->
-                ScrapeTask(
-                    number = number,
-                    fileName = groupedFiles.first().fileName,
-                    partCount = groupedFiles.size
-                )
+            scannedFiles = emptyList()
+            scrapedFiles = emptyList()
+            try {
+                scanDirectoryFlow(Paths.get(scanDir), scanRecursive)
+                    .flowOn(Dispatchers.IO)
+                    .collect { batch ->
+                        scannedFiles = scannedFiles + batch
+                        scrapedFiles = scannedFiles.filter { it.isScraped }
+                    }
+                val groups = scannedFiles
+                    .filter { !it.isScraped && it.number.isNotBlank() }
+                    .groupBy { it.number }
+                tasks = groups.map { (number, groupedFiles) ->
+                    ScrapeTask(
+                        number = number,
+                        fileName = groupedFiles.first().fileName,
+                        partCount = groupedFiles.size
+                    )
+                }
+            } finally {
+                scanning = false
             }
         }
     }
