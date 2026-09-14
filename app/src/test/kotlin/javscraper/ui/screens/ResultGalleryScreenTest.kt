@@ -4,9 +4,18 @@ import javscraper.models.ScannedFile
 import javscraper.models.Video
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ResultGalleryScreenTest {
+    @Test
+    fun `gallery fast scrollbar appears only for multiple videos`() {
+        assertFalse(galleryShowsFastScrollbar(0))
+        assertFalse(galleryShowsFastScrollbar(1))
+        assertTrue(galleryShowsFastScrollbar(2))
+    }
+
     @Test
     fun `gallery item key is stable across path changes and falls back to path`() {
         val sourceVideo = Video(number = "ABP-123", title = "Old", path = "D:/videos/ABP-123.mp4")

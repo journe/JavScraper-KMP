@@ -1,25 +1,41 @@
 package javscraper.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.layout.ContentScale
-import coil3.PlatformContext
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
-import javscraper.models.Video
+import coil3.PlatformContext
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
+import javscraper.models.Video
+import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -92,32 +108,57 @@ fun PosterCard(
                     )
                 }
             }
-            Column(Modifier.padding(8.dp)) {
-                Text(
-                    video.number,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            when (source) {
+                PosterSource.POSTER -> Column(Modifier.padding(8.dp)) {
+                    Text(
+                        video.number,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        video.title,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        video.actresses.joinToString(", "),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+//                    Text(
+//                        video.maker,
+//                        style = MaterialTheme.typography.labelSmall,
+//                        color = MaterialTheme.colorScheme.secondary
+//                    )
+                }
+                PosterSource.FANART -> {}
+            }
+
+
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PosterCardPreview() {
+    CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
+        JavScraperTheme {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                PosterCard(
+                    previewVideoWithAllFields()
                 )
-                if (video.title.isNotBlank()) Text(
-                    video.title,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (video.actresses.isNotEmpty()) Text(
-                    video.actresses.joinToString(", "),
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                if (video.maker.isNotBlank()) Text(
-                    video.maker,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary
+                PosterCard(
+                    Video(
+                        number = "ABP-123",
+                        title = "这是一个用于预览超长标题换行与省略效果的测试文本这是一个用于预览超长标题换行与省略"
+                    )
                 )
             }
         }
@@ -191,30 +232,4 @@ internal fun cropSourceModel(video: Video): File? {
     return cropSourceFileNames
         .map(directory::resolve)
         .firstOrNull(File::isFile)
-}
-
-@Preview
-@Composable
-private fun PosterCardPreview() {
-    CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
-        JavScraperTheme {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PosterCard(
-                    Video(
-                        number = "SONE-001",
-                        title = "包含标题、演员与片商的完整卡片",
-                        actresses = listOf("演员 A", "演员 B"),
-                        maker = "片商",
-                        path = "F:/codeprojects/JavScraper/samples/aaa/aaa.mp4"
-                    )
-                )
-                PosterCard(
-                    Video(
-                        number = "ABP-123",
-                        title = "这是一个用于预览超长标题换行与省略效果的测试文本"
-                    )
-                )
-            }
-        }
-    }
 }

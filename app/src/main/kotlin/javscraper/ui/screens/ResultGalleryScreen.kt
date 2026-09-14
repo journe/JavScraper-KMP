@@ -32,6 +32,9 @@ import javscraper.models.Video
 import javscraper.ui.components.PosterCard
 import javscraper.ui.theme.JavScraperTheme
 import java.io.File
+import io.github.oikvpqya.compose.fastscroller.VerticalScrollbar
+import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
+import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 
 /** Bundled gallery state to reduce parameter count on [ResultGalleryScreen]. */
 data class GalleryState(
@@ -129,25 +132,35 @@ fun ResultGalleryScreen(
         if (videos.isEmpty()) {
             EmptyGallery()
         } else {
-            LazyVerticalGrid(
-                state = listState,
-                columns = GridCells.Adaptive(190.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(videos, key = { galleryListItemKey(it) }) { video ->
-                    PosterCard(
-                        video = video,
-                        onClick = { actions.onVideoClick(video) },
-                        // 裁剪后文件内容变化但路径不变:refreshKey 参与 Coil 缓存 key,
-                        // 返回图库也能重读新 poster 而不是命中旧缓存
-                        posterRefreshKey = posterRefreshKey,
-                        modifier = galleryPosterModifier(
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                LazyVerticalGrid(
+                    state = listState,
+                    columns = GridCells.Adaptive(190.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize().padding(end = 20.dp)
+                ) {
+                    items(videos, key = { galleryListItemKey(it) }) { video ->
+                        PosterCard(
                             video = video,
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope
+                            onClick = { actions.onVideoClick(video) },
+                            // 裁剪后文件内容变化但路径不变:refreshKey 参与 Coil 缓存 key,
+                            // 返回图库也能重读新 poster 而不是命中旧缓存
+                            posterRefreshKey = posterRefreshKey,
+                            modifier = galleryPosterModifier(
+                                video = video,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
                         )
+                    }
+                }
+                if (galleryShowsFastScrollbar(videos.size)) {
+                    VerticalScrollbar(
+                        adapter = rememberScrollbarAdapter(scrollState = listState),
+                        style = defaultMaterialScrollbarStyle(),
+                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                        enablePressToScroll = true
                     )
                 }
             }
@@ -177,6 +190,8 @@ internal fun galleryPosterModifier(
 
 internal fun galleryListItemKey(video: Video): String =
     video.number.ifBlank { video.path }
+
+internal fun galleryShowsFastScrollbar(videoCount: Int): Boolean = videoCount > 1
 
 internal fun galleryPosterKey(video: Video): String =
     "gallery-poster-${video.path.ifBlank { video.number }}"

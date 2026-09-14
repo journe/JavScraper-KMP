@@ -7,8 +7,8 @@ import javscraper.models.Video
  * 仅在 @Preview 与 UI 测试中使用,不要在业务代码中引用。
  */
 internal fun previewVideoWithAllFields(): Video = Video(
-    number = "SONE-001",
-    title = "包含完整字段的刮削结果标题",
+    number = "IPZ-127",
+    title = "包含完整字段的刮削结果标题,预览专用",
     actresses = listOf("演员 A", "演员 B"),
     date = "2026-08-26",
     maker = "片商",
