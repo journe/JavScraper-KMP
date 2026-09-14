@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
+import javscraper.ui.components.ScanDirectoryField
 
 /** Scan/output directories and file naming rules. */
 @Composable
@@ -22,14 +23,13 @@ fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text(t.commonScanDirectory, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        OutlinedTextField(
-            value = state.scanDir, onValueChange = {}, readOnly = true,
-            modifier = Modifier.fillMaxWidth(), singleLine = true,
-            trailingIcon = {
-                IconButton(onClick = actions.onSelectScanDir) {
-                    Icon(Icons.Default.FolderOpen, t.commonBrowse)
-                }
-            }
+        ScanDirectoryField(
+            value = state.scanDir,
+            history = state.scanDirHistory,
+            onHistorySelect = actions.onSelectScanDirFromHistory,
+            onBrowse = actions.onSelectScanDir,
+            label = t.commonScanDirectory,
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
         SettingsSwitchRow(t.settingsScanRecursive, state.scanRecursive, actions.onScanRecursiveChange)

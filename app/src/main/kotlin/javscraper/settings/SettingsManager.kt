@@ -10,6 +10,7 @@ import java.nio.file.Paths
 @Serializable
 data class AppSettings(
     val workerPath: String = "worker/scraper-worker.exe", val outputDir: String = "", val scanDir: String = "",
+    val scanDirHistory: List<String> = emptyList(),
     val scanRecursive: Boolean = true, val createMovieFolders: Boolean = true, val hardlinkInsteadOfCopy: Boolean = true,
     val downloadImages: Boolean = true, val downloadPreviewImages: Boolean = false,
     val downloadWebPages: Boolean = false, val autoScrape: Boolean = false, val fileLoggingEnabled: Boolean = false,

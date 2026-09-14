@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,7 +24,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,17 +34,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.ScannedFile
+import javscraper.ui.components.ScanDirectoryField
 
 /** Bundled scan-screen state to reduce parameter count on [FileScanScreen]. */
 data class FileScanState(
     val scannedFiles: List<ScannedFile>,
     val scrapedFiles: List<ScannedFile>,
     val scanDir: String,
+    val scanDirHistory: List<String>,
     val isScanning: Boolean
 )
 
 data class FileScanActions(
     val onSelectDirectory: () -> Unit,
+    val onSelectDirectoryFromHistory: (String) -> Unit,
     val onStartScan: () -> Unit,
     val onStartScrape: () -> Unit
 )
@@ -73,21 +74,13 @@ fun FileScanScreen(
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
+        ScanDirectoryField(
             value = scanDir,
-            onValueChange = {},
-            label = { Text(t.commonScanDirectory) },
-            readOnly = true,
-            trailingIcon = {
-                IconButton(onClick = onSelectDirectory) {
-                    Icon(
-                        Icons.Default.FolderOpen,
-                        t.commonBrowse
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            history = state.scanDirHistory,
+            onHistorySelect = actions.onSelectDirectoryFromHistory,
+            onBrowse = onSelectDirectory,
+            label = t.commonScanDirectory,
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

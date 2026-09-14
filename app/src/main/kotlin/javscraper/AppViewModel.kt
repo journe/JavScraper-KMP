@@ -93,6 +93,7 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     // --- Settings state (delegated to SettingsController) ---
     var scanDir by settings::scanDir
+    var scanDirHistory by settings::scanDirHistory
     var outputDir by settings::outputDir
     var workerPath by settings::workerPath
     var currentLanguage by settings::currentLanguage
@@ -161,6 +162,7 @@ class AppViewModel(private val scope: CoroutineScope) {
 
     fun updateLanguage(lang: String) = settings.updateLanguage(lang)
     fun selectScanDir() = settings.selectScanDir()
+    fun selectScanDirFromHistory(directory: String) = settings.selectScanDirFromHistory(directory)
     fun selectOutputDir() = settings.selectOutputDir()
     fun updateWorkerPath(v: String) = settings.updateWorkerPath(v)
     fun updateScanRecursive(v: Boolean) = settings.updateScanRecursive(v)
@@ -298,9 +300,9 @@ class AppViewModel(private val scope: CoroutineScope) {
     // --- UI state mappings (consumed by App.kt; screens stay stateless) ---
 
     val scanState: FileScanState
-        get() = FileScanState(scannedFiles, scrapedFiles, scanDir, scanning)
+        get() = FileScanState(scannedFiles, scrapedFiles, scanDir, scanDirHistory, scanning)
     val scanActions: FileScanActions = FileScanActions(
-        ::selectScanDir, ::startScan, { navigate(Screen.PROGRESS) }
+        ::selectScanDir, ::selectScanDirFromHistory, ::startScan, { navigate(Screen.PROGRESS) }
     )
 
     val scrapeProgressState: ScrapeProgressState
@@ -328,7 +330,7 @@ class AppViewModel(private val scope: CoroutineScope) {
     )
     val settingsState: SettingsState
         get() = SettingsState(
-            workerPath, outputDir, scanDir, scanRecursive, createMovieFolders,
+            workerPath, outputDir, scanDir, scanDirHistory, scanRecursive, createMovieFolders,
             hardlinkInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
@@ -336,7 +338,7 @@ class AppViewModel(private val scope: CoroutineScope) {
             siteCheckRunning, siteCheckResults
         )
     val settingsActions: SettingsActions = SettingsActions(
-        ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectWorkerPath,
+        ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectScanDirFromHistory, ::selectWorkerPath,
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
         ::updateHardlink, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateAutoScrape,
         ::updateFileLogging,

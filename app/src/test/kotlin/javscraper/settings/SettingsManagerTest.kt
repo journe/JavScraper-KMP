@@ -15,6 +15,7 @@ class SettingsManagerTest {
         assertEquals("worker/scraper-worker.exe", settings.workerPath)
         assertEquals("", settings.outputDir)
         assertEquals(true, settings.scanRecursive)
+        assertEquals(emptyList(), settings.scanDirHistory)
         assertEquals(true, settings.createMovieFolders)
         assertEquals(true, settings.hardlinkInsteadOfCopy)
         assertEquals(true, settings.downloadImages)
@@ -46,6 +47,7 @@ class SettingsManagerTest {
             workerPath = "C:\\worker\\scraper-worker.exe",
             outputDir = "C:\\output",
             scanDir = "C:\\videos",
+            scanDirHistory = listOf("C:\\videos", "D:\\media"),
             scanRecursive = false,
             createMovieFolders = false,
             hardlinkInsteadOfCopy = false,
@@ -65,6 +67,7 @@ class SettingsManagerTest {
         assertEquals(original.workerPath, decoded.workerPath)
         assertEquals(original.outputDir, decoded.outputDir)
         assertEquals(original.scanDir, decoded.scanDir)
+        assertEquals(original.scanDirHistory, decoded.scanDirHistory)
         assertEquals(false, decoded.scanRecursive)
         assertEquals(false, decoded.createMovieFolders)
         assertEquals(false, decoded.hardlinkInsteadOfCopy)
@@ -78,6 +81,14 @@ class SettingsManagerTest {
         assertEquals(1.8f, decoded.posterCropAspect)
         assertEquals(false, decoded.lockData)
         assertEquals(60_000, decoded.requestTimeoutMs)
+    }
+
+    @Test
+    fun `AppSettings scan directory history falls back to empty on missing key`() {
+        val jsonStr = """{"workerPath": "custom.exe"}"""
+        val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
+
+        assertEquals(emptyList(), settings.scanDirHistory)
     }
 
     @Test

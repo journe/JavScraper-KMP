@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.io.pickDirectory
+import javscraper.settings.ScanDirectoryHistory
 import javscraper.settings.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var onFileLoggingChanged: (Boolean) -> Unit = {}
 
     var scanDir by mutableStateOf(SettingsManager.get().scanDir)
+    var scanDirHistory by mutableStateOf(SettingsManager.get().scanDirHistory)
     var outputDir by mutableStateOf(SettingsManager.get().outputDir)
     var workerPath by mutableStateOf(SettingsManager.get().workerPath)
     var currentLanguage by mutableStateOf(SettingsManager.get().language)
@@ -63,6 +65,7 @@ class SettingsController(private val scope: CoroutineScope) {
                 if (dir != null) {
                     withContext(Dispatchers.Main) {
                         scanDir = dir
+                        rememberScanDir(dir)
                         saveBothDirs()
                     }
                 }
@@ -93,8 +96,21 @@ class SettingsController(private val scope: CoroutineScope) {
         }
     }
 
+
+    fun selectScanDirFromHistory(directory: String) {
+        val selected = directory.trim()
+        if (selected.isBlank()) return
+        scanDir = selected
+        rememberScanDir(selected)
+        saveBothDirs()
+    }
+
+    private fun rememberScanDir(directory: String) {
+        scanDirHistory = ScanDirectoryHistory.remember(scanDirHistory, directory)
+    }
+
     private fun saveBothDirs() {
-        SettingsManager.update { it.copy(scanDir = scanDir, outputDir = outputDir) }
+        SettingsManager.update { it.copy(scanDir = scanDir, scanDirHistory = scanDirHistory, outputDir = outputDir) }
     }
 
     // --- Settings updates ---
@@ -213,6 +229,7 @@ class SettingsController(private val scope: CoroutineScope) {
         SettingsManager.reset()
         val fresh = SettingsManager.get()
         scanDir = fresh.scanDir
+        scanDirHistory = fresh.scanDirHistory
         outputDir = fresh.outputDir
         workerPath = fresh.workerPath
         scanRecursive = fresh.scanRecursive
