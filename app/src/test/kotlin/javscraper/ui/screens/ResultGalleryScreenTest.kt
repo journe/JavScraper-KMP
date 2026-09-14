@@ -8,6 +8,17 @@ import kotlin.test.assertNull
 
 class ResultGalleryScreenTest {
     @Test
+    fun `gallery item key is stable across path changes and falls back to path`() {
+        val sourceVideo = Video(number = "ABP-123", title = "Old", path = "D:/videos/ABP-123.mp4")
+        val outputVideo = Video(number = "ABP-123", title = "New", path = "D:/output/ABP-123.mp4")
+        val pathOnlyVideo = Video(number = "", title = "Path only", path = "D:/videos/path-only.mp4")
+
+        assertEquals("ABP-123", galleryListItemKey(sourceVideo))
+        assertEquals("ABP-123", galleryListItemKey(outputVideo))
+        assertEquals("D:/videos/path-only.mp4", galleryListItemKey(pathOnlyVideo))
+    }
+
+    @Test
     fun `gallery source file is resolved by video path`() {
         val file = ScannedFile(
             path = "D:/videos/ABP-123.mp4",

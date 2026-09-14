@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -51,6 +52,7 @@ fun App() {
             var navExpanded by remember { mutableStateOf(false) }
             var logsVisible by remember { mutableStateOf(false) }
             var selectedVideoPath by remember { mutableStateOf<String?>(null) }
+            val galleryListState = rememberLazyGridState()
             // 裁剪成功后自增:提升到详情/图库共同父级,两侧 PosterCard 共用同一
             // refreshKey 绕过 Coil 缓存重读,返回图库也能看到裁剪后的 poster
             var posterRefreshVersion by remember { mutableLongStateOf(0L) }
@@ -143,12 +145,14 @@ fun App() {
                                             actions = viewModel.galleryActions.copy(
                                                 onClear = {
                                                     selectedVideoPath = null
+                                                    galleryListState.requestScrollToItem(0)
                                                     viewModel.clearResults()
                                                 },
                                                 onVideoClick = { video ->
                                                     selectedVideoPath = video.path
                                                 }
                                             ),
+                                            listState = galleryListState,
                                             sharedTransitionScope = this@SharedTransitionLayout,
                                             animatedVisibilityScope = this@AnimatedContent
                                         )

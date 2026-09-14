@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -86,6 +88,7 @@ fun ResultGalleryScreen(
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    listState: LazyGridState,
     posterRefreshKey: Any? = null
 ) {
     val translations = LocalTranslations.current
@@ -127,12 +130,13 @@ fun ResultGalleryScreen(
             EmptyGallery()
         } else {
             LazyVerticalGrid(
+                state = listState,
                 columns = GridCells.Adaptive(190.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                items(videos) { video ->
+                items(videos, key = { galleryListItemKey(it) }) { video ->
                     PosterCard(
                         video = video,
                         onClick = { actions.onVideoClick(video) },
@@ -170,6 +174,9 @@ internal fun galleryPosterModifier(
         )
     }
 }
+
+internal fun galleryListItemKey(video: Video): String =
+    video.number.ifBlank { video.path }
 
 internal fun galleryPosterKey(video: Video): String =
     "gallery-poster-${video.path.ifBlank { video.number }}"
@@ -215,7 +222,8 @@ private fun ResultGalleryScreenPreview() {
                     ),
                     outputDir = "F:/Output"
                 ),
-                actions = GalleryActions(onClear = {}, onOpenOutputDir = {}, onVideoClick = {})
+                actions = GalleryActions(onClear = {}, onOpenOutputDir = {}, onVideoClick = {}),
+                listState = rememberLazyGridState()
             )
         }
     }
