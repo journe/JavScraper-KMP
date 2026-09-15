@@ -11,7 +11,9 @@ import java.nio.file.Paths
 data class AppSettings(
     val workerPath: String = "worker/scraper-worker.exe", val outputDir: String = "", val scanDir: String = "",
     val scanDirHistory: List<String> = emptyList(),
-    val scanRecursive: Boolean = true, val createMovieFolders: Boolean = true, val hardlinkInsteadOfCopy: Boolean = true,
+    val scanRecursive: Boolean = true, val createMovieFolders: Boolean = true,
+    /** true 表示移动原视频，false 表示复制并保留源文件。 */
+    val moveInsteadOfCopy: Boolean = true,
     val downloadImages: Boolean = true, val downloadPreviewImages: Boolean = false,
     val downloadWebPages: Boolean = false, val autoScrape: Boolean = false, val fileLoggingEnabled: Boolean = false,
     /** NFO 中是否写入 `lockdata` 标记（媒体服务器据此锁定元数据）。 */

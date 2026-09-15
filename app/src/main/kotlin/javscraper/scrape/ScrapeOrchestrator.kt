@@ -109,13 +109,8 @@ class ScrapeOrchestrator(
                 val src = Path.of(sf.path)
                 val tgt = paths.fullPath
                 if (!Files.exists(tgt)) {
-                    if (options.hardlinkInsteadOfCopy) {
-                        try {
-                            Files.createLink(tgt, src)
-                        } catch (e: Exception) {
-                            log.warn(e) { "Hardlink failed, falling back to copy" }
-                            Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
-                        }
+                    if (options.moveInsteadOfCopy) {
+                        Files.move(src, tgt, StandardCopyOption.REPLACE_EXISTING)
                     } else {
                         Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
                     }

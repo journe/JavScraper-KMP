@@ -110,7 +110,7 @@ class AppViewModel(
     var fileLoggingEnabled by settings::fileLoggingEnabled
     var scanRecursive by settings::scanRecursive
     var createMovieFolders by settings::createMovieFolders
-    var hardlinkInsteadOfCopy by settings::hardlinkInsteadOfCopy
+    var moveInsteadOfCopy by settings::moveInsteadOfCopy
     var downloadImages by settings::downloadImages
     var downloadPreviewImages by settings::downloadPreviewImages
     var downloadWebPages by settings::downloadWebPages
@@ -175,7 +175,7 @@ class AppViewModel(
     fun updateWorkerPath(v: String) = settings.updateWorkerPath(v)
     fun updateScanRecursive(v: Boolean) = settings.updateScanRecursive(v)
     fun updateCreateMovieFolders(v: Boolean) = settings.updateCreateMovieFolders(v)
-    fun updateHardlink(v: Boolean) = settings.updateHardlink(v)
+    fun updateMoveInsteadOfCopy(v: Boolean) = settings.updateMoveInsteadOfCopy(v)
     fun updateDownloadImages(v: Boolean) = settings.updateDownloadImages(v)
     fun updateDownloadPreviewImages(v: Boolean) = settings.updateDownloadPreviewImages(v)
     fun updateDownloadWebPages(v: Boolean) = settings.updateDownloadWebPages(v)
@@ -346,7 +346,7 @@ class AppViewModel(
     val settingsState: SettingsState
         get() = SettingsState(
             workerPath, outputDir, scanDir, scanDirHistory, scanRecursive, createMovieFolders,
-            hardlinkInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
+            moveInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
             maxTitleLength, maxFilenameLength, suffixKeywords, requestTimeoutMs,
@@ -355,7 +355,7 @@ class AppViewModel(
     val settingsActions: SettingsActions = SettingsActions(
         ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectScanDirFromHistory, ::selectWorkerPath,
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
-        ::updateHardlink, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateAutoScrape,
+        ::updateMoveInsteadOfCopy, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateAutoScrape,
         ::updateFileLogging,
         ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,

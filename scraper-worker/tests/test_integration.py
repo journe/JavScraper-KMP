@@ -14,10 +14,12 @@ def test_get_capabilities():
 
 
 def test_list_sites():
-    """list_sites includes javbus."""
+    """list_sites includes javbus and follows openaver package categories."""
     result = handle_request({"id": "1", "method": "list_sites", "params": {}})
-    site_ids = [s["id"] for s in result["result"]]
-    assert "javbus" in site_ids
+    categories = {site["id"]: site["category"] for site in result["result"]}
+    assert categories["javbus"] == "censored"
+    assert categories["fc2"] == "uncensored"
+    assert categories["mmtv"] == "mixed"
 
 
 def test_probe_file():

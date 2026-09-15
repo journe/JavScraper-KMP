@@ -11,7 +11,7 @@ class ScrapeOptionsTest {
         val settings = AppSettings(
             outputDir = "D:/Media",
             createMovieFolders = false,
-            hardlinkInsteadOfCopy = false,
+            moveInsteadOfCopy = false,
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
@@ -28,7 +28,7 @@ class ScrapeOptionsTest {
 
         assertEquals("D:/Media", options.outputDir)
         assertEquals(false, options.createMovieFolders)
-        assertEquals(false, options.hardlinkInsteadOfCopy)
+        assertEquals(false, options.moveInsteadOfCopy)
         assertEquals(false, options.downloadImages)
         assertEquals(true, options.downloadPreviewImages)
         assertEquals(true, options.downloadWebPages)

@@ -1,5 +1,6 @@
 package javscraper.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -34,7 +35,35 @@ data class ScannedFile(
 )
 
 @Serializable
-data class SiteInfo(val id: String, val name: String)
+enum class SiteCategory {
+    @SerialName("censored")
+    CENSORED,
+
+    @SerialName("uncensored")
+    UNCENSORED,
+
+    @SerialName("mixed")
+    MIXED,
+
+    @SerialName("unknown")
+    UNKNOWN;
+
+    companion object {
+        fun fromId(id: String?): SiteCategory = when (id) {
+            "censored" -> CENSORED
+            "uncensored" -> UNCENSORED
+            "mixed" -> MIXED
+            else -> UNKNOWN
+        }
+    }
+}
+
+@Serializable
+data class SiteInfo(
+    val id: String,
+    val name: String,
+    val category: SiteCategory = SiteCategory.UNKNOWN
+)
 
 @Serializable
 data class SiteCheckResult(

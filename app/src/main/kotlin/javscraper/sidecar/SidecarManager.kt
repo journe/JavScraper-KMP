@@ -2,6 +2,7 @@ package javscraper.sidecar
 
 import javscraper.models.ScrapeResult
 import javscraper.models.SiteCheckResult
+import javscraper.models.SiteCategory
 import javscraper.models.SiteInfo
 import javscraper.models.Video
 import javscraper.models.WebpageImageResult
@@ -152,7 +153,8 @@ class SidecarManager(
             val sites = sendRequest("list_sites", JsonObject(emptyMap())).jsonArray.map {
                 SiteInfo(
                     it.jsonObject["id"]?.jsonPrimitive?.content ?: "",
-                    it.jsonObject["name"]?.jsonPrimitive?.content ?: ""
+                    it.jsonObject["name"]?.jsonPrimitive?.content ?: "",
+                    SiteCategory.fromId(it.jsonObject["category"]?.jsonPrimitive?.content)
                 )
             }
             log.info {

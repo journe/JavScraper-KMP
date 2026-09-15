@@ -3,6 +3,7 @@ package javscraper.ui.screens.settings
 import androidx.compose.runtime.Composable
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
+import javscraper.models.SiteCategory
 import javscraper.models.SiteInfo
 import javscraper.ui.theme.JavScraperTheme
 
@@ -24,7 +25,7 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     scanDirHistory = listOf("D:/Downloads", "E:/Movies"),
     scanRecursive = true,
     createMovieFolders = true,
-    hardlinkInsteadOfCopy = false,
+    moveInsteadOfCopy = false,
     downloadImages = true,
     downloadPreviewImages = false,
     downloadWebPages = false,
@@ -32,9 +33,9 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     autoScrape = false,
     fileLoggingEnabled = true,
     sites = listOf(
-        SiteInfo("javbus", "JavBus"),
-        SiteInfo("javdb", "JavDB"),
-        SiteInfo("dmm", "DMM")
+        SiteInfo("javbus", "JavBus", SiteCategory.CENSORED),
+        SiteInfo("javdb", "JavDB", SiteCategory.CENSORED),
+        SiteInfo("dmm", "DMM", SiteCategory.CENSORED)
     ),
     enabledSiteIds = listOf("javbus", "javdb"),
     language = "zh",
@@ -59,7 +60,7 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onWorkerPathChange = {},
     onScanRecursiveChange = {},
     onCreateMovieFoldersChange = {},
-    onHardlinkChange = {},
+    onMoveInsteadOfCopyChange = {},
     onDownloadImagesChange = {},
     onDownloadPreviewImagesChange = {},
     onDownloadWebPagesChange = {},

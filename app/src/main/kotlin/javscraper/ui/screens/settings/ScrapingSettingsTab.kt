@@ -30,7 +30,14 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
         Text(t.commonScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         SiteSelector(
-            sites = state.sites.map { SiteItem(it.id, it.name, it.id in state.enabledSiteIds) },
+            sites = state.sites.map {
+                SiteItem(
+                    id = it.id,
+                    name = it.name,
+                    category = it.category,
+                    enabled = it.id in state.enabledSiteIds
+                )
+            },
             onToggle = actions.onToggleSite
         )
         Spacer(Modifier.height(12.dp))

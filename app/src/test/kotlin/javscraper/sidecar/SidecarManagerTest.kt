@@ -20,7 +20,7 @@ class SidecarManagerTest {
 
     @Test
     fun `parse listSites JSON response`() {
-        val jsonStr = """{"jsonrpc":"2.0","id":"1","result":[{"id":"javbus","name":"JavBus"},{"id":"javdb","name":"JavDB"}]}"""
+        val jsonStr = """{"jsonrpc":"2.0","id":"1","result":[{"id":"javbus","name":"JavBus","category":"censored"},{"id":"javdb","name":"JavDB","category":"uncensored"}]}"""
         val obj = json.parseToJsonElement(jsonStr).jsonObject
         assertEquals("2.0", obj["jsonrpc"]?.jsonPrimitive?.content)
         assertEquals("1", obj["id"]?.jsonPrimitive?.content)
@@ -29,6 +29,7 @@ class SidecarManagerTest {
         val first = result!![0].jsonObject
         assertEquals("javbus", first["id"]?.jsonPrimitive?.content)
         assertEquals("JavBus", first["name"]?.jsonPrimitive?.content)
+        assertEquals("censored", first["category"]?.jsonPrimitive?.content)
     }
 
     @Test

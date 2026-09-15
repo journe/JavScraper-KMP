@@ -113,7 +113,7 @@ class SingleScrapeController(
                 }
                 val video = (singleScrapeDialogState as? SingleScrapeDialogState.Preview)?.video
                     ?: candidates[selectedIndex]
-                // 确认写入 → 建目录/写 NFO/下载图片/复制文件
+                // 确认写入 → 建目录/写 NFO/下载图片/移动或复制文件
                 singleScrapeDialogState = SingleScrapeDialogState.Scraping
                 val writeResult = withContext(Dispatchers.IO) { orch()?.writeToDisk(listOf(sf), video) }
                 if (writeResult == null || !writeResult.success) {

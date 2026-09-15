@@ -74,6 +74,36 @@ class ScrapeOrchestratorTest {
         }
     }
     @Test
+    fun `writeToDisk moves source video to output`() {
+        val sourceDir = createTempDirectory("javscraper-move-source").toFile()
+        val outputDir = createTempDirectory("javscraper-move-output").toFile()
+        val source = sourceDir.resolve("ABC-005.mp4")
+        source.writeText("video")
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = outputDir.absolutePath,
+                createMovieFolders = false,
+                moveInsteadOfCopy = true,
+                downloadImages = false,
+                filenameFormat = "{num}"
+            )),
+        )
+
+        runTest {
+            val result = orchestrator.writeToDisk(
+                listOf(ScannedFile(source.absolutePath, source.name, "ABC-005")),
+                Video(number = "ABC-005", title = "Test")
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val target = outputDir.resolve("ABC-005.mp4")
+            assertTrue(target.isFile)
+            assertEquals("video", target.readText())
+            assertFalse(source.exists())
+        }
+    }
+    @Test
     fun `writeToDisk reports failure when source file is missing`() {
         val output = createTempDirectory("javscraper-io-failure").toFile()
         val source = output.resolve("missing-source.mp4")

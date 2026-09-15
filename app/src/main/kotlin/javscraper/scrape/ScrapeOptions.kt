@@ -11,7 +11,7 @@ import javscraper.settings.AppSettings
 data class ScrapeOptions(
     val outputDir: String,
     val createMovieFolders: Boolean,
-    val hardlinkInsteadOfCopy: Boolean,
+    val moveInsteadOfCopy: Boolean,
     val downloadImages: Boolean,
     val downloadPreviewImages: Boolean,
     val downloadWebPages: Boolean,
@@ -28,7 +28,7 @@ data class ScrapeOptions(
         fun from(settings: AppSettings): ScrapeOptions = ScrapeOptions(
             outputDir = settings.outputDir,
             createMovieFolders = settings.createMovieFolders,
-            hardlinkInsteadOfCopy = settings.hardlinkInsteadOfCopy,
+            moveInsteadOfCopy = settings.moveInsteadOfCopy,
             downloadImages = settings.downloadImages,
             downloadPreviewImages = settings.downloadPreviewImages,
             downloadWebPages = settings.downloadWebPages,

@@ -84,9 +84,10 @@ class ModelsTest {
 
     @Test
     fun `SiteInfo data class`() {
-        val site = SiteInfo(id = "javbus", name = "JavBus")
+        val site = SiteInfo(id = "javbus", name = "JavBus", category = SiteCategory.CENSORED)
         assertEquals("javbus", site.id)
         assertEquals("JavBus", site.name)
+        assertEquals(SiteCategory.CENSORED, site.category)
     }
 
     @Test

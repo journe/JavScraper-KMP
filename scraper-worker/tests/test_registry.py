@@ -59,8 +59,27 @@ def test_list_sites():
     assert len(sites) == 2
     assert sites[0]["id"] == "another"
     assert sites[0]["name"] == "Another Site"
+    assert sites[0]["category"] == "unknown"
     assert sites[1]["id"] == "mock"
     assert sites[1]["name"] == "Mock"
+    assert sites[1]["category"] == "unknown"
+
+
+@pytest.mark.parametrize(
+    ("module", "category"),
+    [
+        ("scrapers.openaver.censored.mock", "censored"),
+        ("scrapers.openaver.uncensored.mock", "uncensored"),
+        ("scrapers.openaver.mixed.mock", "mixed"),
+    ],
+)
+def test_list_sites_category_follows_openaver_package(monkeypatch, module, category):
+    monkeypatch.setattr(MockScraper, "__module__", module)
+    ScraperRegistry.register(MockScraper)
+
+    assert ScraperRegistry.list_sites() == [
+        {"id": "mock", "name": "Mock", "category": category}
+    ]
 
 
 def test_list_sites_empty():

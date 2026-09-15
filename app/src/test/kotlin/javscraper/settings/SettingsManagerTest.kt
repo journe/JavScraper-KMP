@@ -17,7 +17,7 @@ class SettingsManagerTest {
         assertEquals(true, settings.scanRecursive)
         assertEquals(emptyList(), settings.scanDirHistory)
         assertEquals(true, settings.createMovieFolders)
-        assertEquals(true, settings.hardlinkInsteadOfCopy)
+        assertEquals(true, settings.moveInsteadOfCopy)
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.downloadPreviewImages)
         assertEquals(false, settings.downloadWebPages)
@@ -50,7 +50,7 @@ class SettingsManagerTest {
             scanDirHistory = listOf("C:\\videos", "D:\\media"),
             scanRecursive = false,
             createMovieFolders = false,
-            hardlinkInsteadOfCopy = false,
+            moveInsteadOfCopy = false,
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
@@ -70,7 +70,7 @@ class SettingsManagerTest {
         assertEquals(original.scanDirHistory, decoded.scanDirHistory)
         assertEquals(false, decoded.scanRecursive)
         assertEquals(false, decoded.createMovieFolders)
-        assertEquals(false, decoded.hardlinkInsteadOfCopy)
+        assertEquals(false, decoded.moveInsteadOfCopy)
         assertEquals(false, decoded.downloadImages)
         assertEquals(true, decoded.downloadPreviewImages)
         assertEquals(true, decoded.downloadWebPages)
@@ -83,6 +83,13 @@ class SettingsManagerTest {
         assertEquals(60_000, decoded.requestTimeoutMs)
     }
 
+    @Test
+    fun `AppSettings ignores legacy hardlink key and defaults to move`() {
+        val jsonStr = """{"hardlinkInsteadOfCopy": false}"""
+        val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
+
+        assertTrue(settings.moveInsteadOfCopy)
+    }
     @Test
     fun `AppSettings scan directory history falls back to empty on missing key`() {
         val jsonStr = """{"workerPath": "custom.exe"}"""

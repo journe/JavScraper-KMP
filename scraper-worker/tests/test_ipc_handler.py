@@ -56,7 +56,9 @@ def test_list_sites_empty():
 def test_list_sites_with_registered():
     ScraperRegistry.register(MockScraper)
     result = handle_request({"id": "1", "method": "list_sites", "params": {}})
-    assert result["result"] == [{"id": "mock", "name": "Mock Site"}]
+    assert result["result"] == [
+        {"id": "mock", "name": "Mock Site", "category": "unknown"}
+    ]
 
 
 def test_get_capabilities():
@@ -64,7 +66,9 @@ def test_get_capabilities():
     result = handle_request({"id": "1", "method": "get_capabilities", "params": {}})
     assert result["result"]["version"] == "0.1.0"
     assert "probe_file" in result["result"]["features"]
-    assert result["result"]["sites"] == [{"id": "mock", "name": "Mock Site"}]
+    assert result["result"]["sites"] == [
+        {"id": "mock", "name": "Mock Site", "category": "unknown"}
+    ]
 
 
 def test_probe_file():

@@ -46,7 +46,7 @@ fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
         )
         Spacer(Modifier.height(12.dp))
         SettingsSwitchRow(t.settingsMovieFolders, state.createMovieFolders, actions.onCreateMovieFoldersChange)
-        SettingsSwitchRow(t.settingsHardlinks, state.hardlinkInsteadOfCopy, actions.onHardlinkChange)
+        SettingsSwitchRow(t.settingsMoveOriginalVideo, state.moveInsteadOfCopy, actions.onMoveInsteadOfCopyChange)
 
         Spacer(Modifier.height(20.dp))
         Text(t.settingsRenameTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)

@@ -32,7 +32,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var enabledSites by mutableStateOf(SettingsManager.get().enabledSites)
     var scanRecursive by mutableStateOf(SettingsManager.get().scanRecursive)
     var createMovieFolders by mutableStateOf(SettingsManager.get().createMovieFolders)
-    var hardlinkInsteadOfCopy by mutableStateOf(SettingsManager.get().hardlinkInsteadOfCopy)
+    var moveInsteadOfCopy by mutableStateOf(SettingsManager.get().moveInsteadOfCopy)
     var downloadImages by mutableStateOf(SettingsManager.get().downloadImages)
     var downloadPreviewImages by mutableStateOf(SettingsManager.get().downloadPreviewImages)
     var downloadWebPages by mutableStateOf(SettingsManager.get().downloadWebPages)
@@ -131,9 +131,9 @@ class SettingsController(private val scope: CoroutineScope) {
         onScrapeSettingsChanged()
     }
 
-    fun updateHardlink(v: Boolean) {
-        hardlinkInsteadOfCopy = v
-        SettingsManager.update { it.copy(hardlinkInsteadOfCopy = v) }
+    fun updateMoveInsteadOfCopy(v: Boolean) {
+        moveInsteadOfCopy = v
+        SettingsManager.update { it.copy(moveInsteadOfCopy = v) }
         onScrapeSettingsChanged()
     }
 
@@ -234,7 +234,7 @@ class SettingsController(private val scope: CoroutineScope) {
         workerPath = fresh.workerPath
         scanRecursive = fresh.scanRecursive
         createMovieFolders = fresh.createMovieFolders
-        hardlinkInsteadOfCopy = fresh.hardlinkInsteadOfCopy
+        moveInsteadOfCopy = fresh.moveInsteadOfCopy
         downloadImages = fresh.downloadImages
         downloadPreviewImages = fresh.downloadPreviewImages
         downloadWebPages = fresh.downloadWebPages
