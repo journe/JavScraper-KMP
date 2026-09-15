@@ -16,6 +16,8 @@ from .models import Video
 
 
 class BaseScraper(ABC):
+    MIRROR_URLS: tuple[str, ...] = ()
+
     @property
     @abstractmethod
     def site_id(self) -> str:

@@ -62,7 +62,9 @@ enum class SiteCategory {
 data class SiteInfo(
     val id: String,
     val name: String,
-    val category: SiteCategory = SiteCategory.UNKNOWN
+    val category: SiteCategory = SiteCategory.UNKNOWN,
+    @SerialName("base_url") val baseUrl: String = "",
+    @SerialName("mirror_urls") val mirrorUrls: List<String> = emptyList()
 )
 
 @Serializable

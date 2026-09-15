@@ -152,9 +152,12 @@ class SidecarManager(
         return try {
             val sites = sendRequest("list_sites", JsonObject(emptyMap())).jsonArray.map {
                 SiteInfo(
-                    it.jsonObject["id"]?.jsonPrimitive?.content ?: "",
-                    it.jsonObject["name"]?.jsonPrimitive?.content ?: "",
-                    SiteCategory.fromId(it.jsonObject["category"]?.jsonPrimitive?.content)
+                    id = it.jsonObject["id"]?.jsonPrimitive?.content ?: "",
+                    name = it.jsonObject["name"]?.jsonPrimitive?.content ?: "",
+                    category = SiteCategory.fromId(it.jsonObject["category"]?.jsonPrimitive?.content),
+                    baseUrl = it.jsonObject["base_url"]?.jsonPrimitive?.content ?: "",
+                    mirrorUrls = it.jsonObject["mirror_urls"]?.jsonArray?.map { item -> item.jsonPrimitive.content }
+                        ?: emptyList()
                 )
             }
             log.info {
@@ -169,11 +172,19 @@ class SidecarManager(
         }
     }
 
-    suspend fun checkSites(sites: List<String>? = null): List<SiteCheckResult> {
+    suspend fun checkSites(
+        sites: List<String>? = null,
+        siteMirrors: Map<String, String>? = null
+    ): List<SiteCheckResult> {
         val startedAt = System.currentTimeMillis()
         log.info { "check_sites request: sites=${sites?.joinToString(",") ?: "all"}" }
         val params = buildJsonObject {
             if (!sites.isNullOrEmpty()) put("sites", JsonArray(sites.map { JsonPrimitive(it) }))
+            if (!siteMirrors.isNullOrEmpty()) {
+                put("site_mirrors", buildJsonObject {
+                    siteMirrors.forEach { (id, url) -> put(id, url) }
+                })
+            }
         }
         return try {
             val results = sendRequest("check_sites", params).jsonArray.map {
@@ -197,6 +208,7 @@ class SidecarManager(
         number: String,
         site: String? = null,
         enabledSites: List<String>? = null,
+        siteMirrors: Map<String, String>? = null,
         saveWebpage: Boolean = false
     ): ScrapeResult {
         val startedAt = System.currentTimeMillis()
@@ -207,6 +219,11 @@ class SidecarManager(
             put("number", number)
             site?.let { put("site", it) }
             enabledSites?.let { put("sites", JsonArray(it.map(::JsonPrimitive))) }
+            if (!siteMirrors.isNullOrEmpty()) {
+                put("site_mirrors", buildJsonObject {
+                    siteMirrors.forEach { (id, url) -> put(id, url) }
+                })
+            }
             if (saveWebpage) put("save_webpage", true)
         }
         return try {
@@ -235,6 +252,7 @@ class SidecarManager(
         number: String,
         site: String? = null,
         enabledSites: List<String>? = null,
+        siteMirrors: Map<String, String>? = null,
         saveWebpage: Boolean = false
     ): List<Video> {
         val startedAt = System.currentTimeMillis()
@@ -245,6 +263,11 @@ class SidecarManager(
             put("number", number)
             site?.let { put("site", it) }
             enabledSites?.let { put("sites", JsonArray(it.map(::JsonPrimitive))) }
+            if (!siteMirrors.isNullOrEmpty()) {
+                put("site_mirrors", buildJsonObject {
+                    siteMirrors.forEach { (id, url) -> put(id, url) }
+                })
+            }
             if (saveWebpage) put("save_webpage", true)
         }
         return try {

@@ -1,5 +1,5 @@
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Optional
 
 from scrapers.registry import ScraperRegistry
@@ -32,11 +32,15 @@ def _is_site_enabled(site: str, enabled_sites: Iterable[str] | None) -> bool:
     return enabled_sites is None or site in set(enabled_sites)
 
 
-def _search_class(site_id: str, number: str, save_webpage: bool) -> list[Video]:
-    cls = ScraperRegistry.get(site_id)
-    if cls is None:
+def _search_class(
+    site_id: str,
+    number: str,
+    save_webpage: bool,
+    site_mirrors: Mapping[str, str] | None = None,
+) -> list[Video]:
+    searcher = ScraperRegistry.create(site_id, (site_mirrors or {}).get(site_id))
+    if searcher is None:
         return []
-    searcher = cls()
     if save_webpage:
         return searcher.search(number, save_webpage=True)
     return searcher.search(number)
@@ -46,6 +50,7 @@ def search_candidates(
     number: str,
     site: str | None = None,
     enabled_sites: Iterable[str] | None = None,
+    site_mirrors: Mapping[str, str] | None = None,
     first_only: bool = False,
     save_webpage: bool = False,
 ) -> list[Video]:
@@ -54,7 +59,7 @@ def search_candidates(
     for site_id in site_ids:
         if not _is_site_enabled(site_id, enabled_sites):
             continue
-        site_results = _search_class(site_id, number, save_webpage)
+        site_results = _search_class(site_id, number, save_webpage, site_mirrors)
         results.extend(site_results)
         if first_only and results:
             return results
@@ -65,6 +70,7 @@ def smart_search(
     number: str,
     site: str | None = None,
     enabled_sites: Iterable[str] | None = None,
+    site_mirrors: Mapping[str, str] | None = None,
     save_webpage: bool = False,
 ) -> Optional[Video]:
     return next(
@@ -72,6 +78,7 @@ def smart_search(
             number,
             site=site,
             enabled_sites=enabled_sites,
+            site_mirrors=site_mirrors,
             first_only=True,
             save_webpage=save_webpage,
         )),
@@ -82,6 +89,7 @@ def smart_search(
 def search_multi(
     number: str,
     sites: list[str] | None = None,
+    site_mirrors: Mapping[str, str] | None = None,
     save_webpage: bool = False,
 ) -> list[Video]:
     site_ids = sites
@@ -89,5 +97,5 @@ def search_multi(
         site_ids = [item["id"] for item in ScraperRegistry.list_sites()]
     results: list[Video] = []
     for site_id in site_ids:
-        results.extend(_search_class(site_id, number, save_webpage))
+        results.extend(_search_class(site_id, number, save_webpage, site_mirrors))
     return results

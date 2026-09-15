@@ -118,7 +118,7 @@ stateDiagram-v2
 
 1. `SingleScrapeController` 调用 `ScrapeOrchestrator.fetchCandidates(sf, site)`。
 2. `fetchCandidates` 校验番号非空。
-3. `ScrapeOrchestrator` 调用 `SidecarManager.searchCandidates(number, site, enabledSites, downloadWebPages)`。
+3. `ScrapeOrchestrator` 调用 `SidecarManager.searchCandidates(number, site, enabledSites, siteMirrorUrls, downloadWebPages)`。
 4. `SidecarManager` 会确保 worker 进程存活，发送 JSON-RPC `search` 方法，并等待响应。
 5. 单个请求最多等待 60 秒；超时或异常会向上抛给单刮削控制器。
 
@@ -126,7 +126,7 @@ stateDiagram-v2
 
 1. `scraper-worker/main.py` 以 UTF-8 读写 stdin、stdout、stderr，逐行读取 JSON-RPC 请求。
 2. `ipc_handler.py` 将 `search` 路由到内部处理函数。
-3. 处理函数调用候选搜索：指定站点时仅搜索该启用站点；未指定站点时先按内置优先级链排序，再仅尝试启用列表中的站点。
+3. 处理函数调用候选搜索：指定站点时仅搜索该启用站点；未指定站点时先按内置优先级链排序，再仅尝试启用列表中的站点。请求会携带 `site_mirrors`，命中配置了镜像的站点时仅替换该请求实例的 `BASE_URL`。
 4. 爬虫返回 `list[Video]` 后，worker 将全部候选转为 JSON 数组。
 5. Kotlin 反序列化为 `List<Video>`。
 
@@ -246,7 +246,7 @@ stateDiagram-v2
 | 开启“下载网页”但没有 MHTML | 检查 worker 是否为新打包版本、`save_webpage` 请求参数和 `Video.webpage` 返回字段 |
 | MHTML 存在但图片缺失 | 查看图片提取 RPC 错误，确认站点返回的图片 URL 已作为资源写入 MHTML |
 | 对话框显示 IO 失败但目录中已有部分文件 | 当前失败不回滚已完成子操作；检查聚合错误信息和 worker/UI 日志 |
-| 请求长时间无响应 | Sidecar 单请求 60 秒超时；结合 worker stderr 与网络状况排查 |
+| 请求长时间无响应 | Sidecar 单请求 60 秒超时；结合 worker stderr、镜像网址设置与网络状况排查 |
 
 ## 11. 维护要求
 

@@ -21,6 +21,7 @@ data class ScrapeOptions(
     val maxTitleLength: Int,
     val maxFilenameLength: Int,
     val suffixKeywords: List<String>,
+    val siteMirrorUrls: Map<String, String>,
     val enabledSites: Set<String>?
 ) {
     companion object {
@@ -38,6 +39,7 @@ data class ScrapeOptions(
             maxTitleLength = settings.maxTitleLength,
             maxFilenameLength = settings.maxFilenameLength,
             suffixKeywords = settings.suffixKeywords,
+            siteMirrorUrls = settings.siteMirrorUrls,
             enabledSites = settings.enabledSites.toSet()
         )
     }

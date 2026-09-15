@@ -17,6 +17,11 @@ from .javbus_parsing import (
 
 class JavBusScraper(BaseScraper):
     BASE_URL = "https://www.javbus.com"
+    MIRROR_URLS = (
+        "https://www.dmmsee.casa",
+        "https://www.buscdn.casa",
+        "https://www.seedmm.casa",
+    )
 
     def __init__(self, lang: str = "zh-tw"):
         self.lang = lang

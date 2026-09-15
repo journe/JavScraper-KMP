@@ -20,6 +20,7 @@ data class AppSettings(
     val lockData: Boolean = true,
     val language: String = "en",
     val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2", "fc2mirror","heyzo","mmtv"),
+    val siteMirrorUrls: Map<String, String> = emptyMap(),
     val folderLayers: List<String> = listOf("{num} {title}"),
     val filenameFormat: String = "{num} {title}",
     val maxTitleLength: Int = 50,

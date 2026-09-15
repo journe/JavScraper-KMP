@@ -84,10 +84,34 @@ class ModelsTest {
 
     @Test
     fun `SiteInfo data class`() {
-        val site = SiteInfo(id = "javbus", name = "JavBus", category = SiteCategory.CENSORED)
+        val site = SiteInfo(
+            id = "javbus",
+            name = "JavBus",
+            category = SiteCategory.CENSORED,
+            baseUrl = "https://www.javbus.com",
+            mirrorUrls = listOf("https://www.dmmsee.casa")
+        )
         assertEquals("javbus", site.id)
         assertEquals("JavBus", site.name)
         assertEquals(SiteCategory.CENSORED, site.category)
+        assertEquals("https://www.javbus.com", site.baseUrl)
+        assertEquals(listOf("https://www.dmmsee.casa"), site.mirrorUrls)
+    }
+
+    @Test
+    fun `SiteInfo decodes mirror metadata with defaults`() {
+        val withoutMetadata = json.decodeFromString<SiteInfo>(
+            """{"id":"javbus","name":"JavBus"}"""
+        )
+        val withMetadata = json.decodeFromString<SiteInfo>(
+            """{"id":"javbus","name":"JavBus","category":"censored","base_url":"https://www.javbus.com","mirror_urls":["https://www.dmmsee.casa"]}"""
+        )
+
+        assertEquals("", withoutMetadata.baseUrl)
+        assertEquals(emptyList(), withoutMetadata.mirrorUrls)
+        assertEquals(SiteCategory.CENSORED, withMetadata.category)
+        assertEquals("https://www.javbus.com", withMetadata.baseUrl)
+        assertEquals(listOf("https://www.dmmsee.casa"), withMetadata.mirrorUrls)
     }
 
     @Test

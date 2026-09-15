@@ -110,3 +110,37 @@ def test_smart_search_includes_enabled_fc2_mirror():
     results = search_candidates("FC2-PPV-1723984", enabled_sites=["fc2mirror"])
 
     assert [video.source for video in results] == ["fc2mirror"]
+
+class MirrorAwareScraper(BaseScraper):
+    searched_base_urls: list[str] = []
+
+    BASE_URL = "https://example.test"
+
+    @property
+    def site_id(self):
+        return "mirror-aware"
+
+    @property
+    def site_name(self):
+        return "Mirror Aware"
+
+    def _search_one(self, number):
+        return None
+
+    def search(self, number):
+        MirrorAwareScraper.searched_base_urls.append(self.BASE_URL)
+        return [Video(number=number, title="Mirrored", source="mirror-aware")]
+
+
+def test_smart_search_applies_site_mirror_to_scraper_instance():
+    ScraperRegistry.clear()
+    ScraperRegistry.register(MirrorAwareScraper)
+
+    result = smart_search(
+        "SONE-001",
+        site="mirror-aware",
+        site_mirrors={"mirror-aware": "https://mirror.example"},
+    )
+
+    assert result is not None
+    assert MirrorAwareScraper.searched_base_urls == ["https://mirror.example"]

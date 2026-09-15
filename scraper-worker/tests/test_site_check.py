@@ -139,6 +139,14 @@ def test_check_sites_no_filter_returns_all(monkeypatch):
     assert len(results) == 2
 
 
+def test_check_sites_applies_site_mirror(monkeypatch):
+    _register(monkeypatch, _FakeScraper)
+    calls = _patch_get(monkeypatch, _DummyResponse(200, "https://mirror.example/"))
+
+    results = check_sites(site_mirrors={"fake": "https://mirror.example"})
+
+    assert results[0]["ok"] is True
+    assert calls["url"] == "https://mirror.example"
 def test_check_sites_parallel_order(monkeypatch):
     _register(monkeypatch, _FakeScraper)
 

@@ -7,6 +7,8 @@ import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.io.pickDirectory
 import javscraper.settings.ScanDirectoryHistory
+import javscraper.settings.isValidSiteMirrorUrl
+import javscraper.settings.normalizeSiteMirrorUrl
 import javscraper.settings.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var currentLanguage by mutableStateOf(SettingsManager.get().language)
     var showRestartHint by mutableStateOf(false)
     var enabledSites by mutableStateOf(SettingsManager.get().enabledSites)
+    var siteMirrorUrls by mutableStateOf(SettingsManager.get().siteMirrorUrls)
     var scanRecursive by mutableStateOf(SettingsManager.get().scanRecursive)
     var createMovieFolders by mutableStateOf(SettingsManager.get().createMovieFolders)
     var moveInsteadOfCopy by mutableStateOf(SettingsManager.get().moveInsteadOfCopy)
@@ -131,6 +134,19 @@ class SettingsController(private val scope: CoroutineScope) {
         onScrapeSettingsChanged()
     }
 
+    fun updateSiteMirror(siteId: String, url: String) {
+        val normalized = normalizeSiteMirrorUrl(url)
+        require(siteId.isNotBlank()) { "Site id is required" }
+        require(normalized.isEmpty() || isValidSiteMirrorUrl(normalized)) { "Invalid mirror URL" }
+
+        siteMirrorUrls = if (normalized.isEmpty()) {
+            siteMirrorUrls - siteId
+        } else {
+            siteMirrorUrls + (siteId to normalized)
+        }
+        SettingsManager.update { it.copy(siteMirrorUrls = siteMirrorUrls) }
+        onScrapeSettingsChanged()
+    }
     fun updateMoveInsteadOfCopy(v: Boolean) {
         moveInsteadOfCopy = v
         SettingsManager.update { it.copy(moveInsteadOfCopy = v) }
@@ -242,6 +258,7 @@ class SettingsController(private val scope: CoroutineScope) {
         autoScrape = fresh.autoScrape
         fileLoggingEnabled = fresh.fileLoggingEnabled
         enabledSites = fresh.enabledSites
+        siteMirrorUrls = fresh.siteMirrorUrls
         currentLanguage = fresh.language
         folderLayers = fresh.folderLayers
         filenameFormat = fresh.filenameFormat

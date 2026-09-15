@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,7 @@ import javscraper.ui.components.SiteSelector
 @Composable
 fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
+    var mirrorDialogVisible by remember { mutableStateOf(false) }
     var checkDialogVisible by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text(t.commonScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -40,6 +42,17 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
             },
             onToggle = actions.onToggleSite
         )
+        if (mirrorSettingsAvailable(state.sites)) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { mirrorDialogVisible = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Edit, null)
+                Spacer(Modifier.width(8.dp))
+                Text(t.settingsMirrorUrls)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         OutlinedButton(
             onClick = { checkDialogVisible = true },
@@ -80,6 +93,28 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
         }
         Spacer(Modifier.height(32.dp))
     }
+    if (mirrorDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { mirrorDialogVisible = false },
+            title = { Text(t.settingsMirrorUrls) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    SiteMirrorSettings(
+                        sites = state.sites,
+                        siteMirrorUrls = state.siteMirrorUrls,
+                        onSiteMirrorChange = actions.onSiteMirrorChange,
+                        showTitle = false
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mirrorDialogVisible = false }) {
+                    Text(t.settingsTestSitesClose)
+                }
+            }
+        )
+    }
+
     if (checkDialogVisible) {
         SiteCheckDialog(
             running = state.siteCheckRunning,

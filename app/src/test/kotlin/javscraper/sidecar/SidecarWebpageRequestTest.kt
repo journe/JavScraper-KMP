@@ -31,6 +31,7 @@ class SidecarWebpageRequestTest {
                 result = (
                     {"success": True, "data": {"number": "ABC-123"}}
                     if request["method"] == "scrape"
+                    else [] if request["method"] == "check_sites"
                     else [{"number": "ABC-123"}]
                 )
                 response = {"jsonrpc": "2.0", "id": request["id"], "result": result}
@@ -43,11 +44,15 @@ class SidecarWebpageRequestTest {
 
         try {
             assertTrue(manager.start(), "Fake worker should start")
-            manager.scrape("ABC-123", saveWebpage = true)
-            manager.searchCandidates("ABC-123", saveWebpage = true)
+            val mirrors = mapOf("javbus" to "https://www.dmmsee.casa")
+            manager.scrape("ABC-123", saveWebpage = true, siteMirrors = mirrors)
+            manager.searchCandidates("ABC-123", saveWebpage = true, siteMirrors = mirrors)
+            manager.checkSites(listOf("javbus"), siteMirrors = mirrors)
 
             val requests = requestPath.toFile().readText()
             assertTrue(requests.contains("\"save_webpage\":true"), requests)
+            assertTrue(requests.contains("\"site_mirrors\":{\"javbus\":\"https://www.dmmsee.casa\"}"), requests)
+            assertTrue(requests.lines().count { it.contains("\"site_mirrors\"") } == 3, requests)
             assertTrue(requests.lines().count { it.contains("\"method\":\"scrape\"") } == 1, requests)
             assertTrue(requests.lines().count { it.contains("\"method\":\"search\"") } == 1, requests)
         } finally {

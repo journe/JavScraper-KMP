@@ -18,6 +18,7 @@ class SettingsManagerTest {
         assertEquals(emptyList(), settings.scanDirHistory)
         assertEquals(true, settings.createMovieFolders)
         assertEquals(true, settings.moveInsteadOfCopy)
+        assertEquals(emptyMap(), settings.siteMirrorUrls)
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.downloadPreviewImages)
         assertEquals(false, settings.downloadWebPages)
@@ -51,6 +52,7 @@ class SettingsManagerTest {
             scanRecursive = false,
             createMovieFolders = false,
             moveInsteadOfCopy = false,
+            siteMirrorUrls = mapOf("javbus" to "https://www.dmmsee.casa/"),
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
@@ -71,6 +73,7 @@ class SettingsManagerTest {
         assertEquals(false, decoded.scanRecursive)
         assertEquals(false, decoded.createMovieFolders)
         assertEquals(false, decoded.moveInsteadOfCopy)
+        assertEquals(mapOf("javbus" to "https://www.dmmsee.casa/"), decoded.siteMirrorUrls)
         assertEquals(false, decoded.downloadImages)
         assertEquals(true, decoded.downloadPreviewImages)
         assertEquals(true, decoded.downloadWebPages)

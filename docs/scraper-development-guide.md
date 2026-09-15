@@ -35,6 +35,8 @@ from scrapers.registry import ScraperRegistry
 
 class XxxScraper(BaseScraper):
     BASE_URL = "https://example.com"
+    # 可选：声明可替换的镜像站，设置页会展示这些候选。
+    MIRROR_URLS = ("https://mirror.example.com",)
 
     @property
     def site_id(self) -> str:
@@ -67,7 +69,7 @@ ScraperRegistry.register(XxxScraper)
 要求：
 - 文件不超过 300 行；网络请求统一用 `requests.Session`（超时 15s），`_search_one` 失败返回 `None`；基类 `search()` 会把结果包装为空列表或单元素列表；
 - 字段通过 `Video(...)` 填充，`source` 填 `site_id`，`detail_url` 填详情页地址；
-- 文件末尾必须 `ScraperRegistry.register(XxxScraper)`。
+- 文件末尾必须 `ScraperRegistry.register(XxxScraper)`；如站点存在镜像，通过 `MIRROR_URLS` 声明，应用只会在请求实例上覆盖 `BASE_URL`，不会修改类默认值；
 
 ### 2. 触发注册
 

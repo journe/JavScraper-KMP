@@ -28,13 +28,17 @@ class ScrapeOrchestrator(
     suspend fun fetch(sf: ScannedFile, site: String? = null): ScrapeResult {
         if (sf.number.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "No number"))
-        return sidecar.scrape(sf.number, site, options.enabledSites?.toList(), options.downloadWebPages)
+        return sidecar.scrape(
+            sf.number, site, options.enabledSites?.toList(), options.siteMirrorUrls, options.downloadWebPages
+        )
     }
 
     /** Fetch all metadata candidates without any file IO. */
     suspend fun fetchCandidates(sf: ScannedFile, site: String? = null): List<Video> {
         if (sf.number.isBlank()) return emptyList()
-        return sidecar.searchCandidates(sf.number, site, options.enabledSites?.toList(), options.downloadWebPages)
+        return sidecar.searchCandidates(
+            sf.number, site, options.enabledSites?.toList(), options.siteMirrorUrls, options.downloadWebPages
+        )
     }
     /** Write scraped metadata (NFO/images) and organize files to the output directory. */
     suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {

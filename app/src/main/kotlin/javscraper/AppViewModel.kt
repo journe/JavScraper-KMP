@@ -107,6 +107,7 @@ class AppViewModel(
     var currentLanguage by settings::currentLanguage
     var showRestartHint by settings::showRestartHint
     var enabledSites by settings::enabledSites
+    var siteMirrorUrls by settings::siteMirrorUrls
     var fileLoggingEnabled by settings::fileLoggingEnabled
     var scanRecursive by settings::scanRecursive
     var createMovieFolders by settings::createMovieFolders
@@ -183,6 +184,7 @@ class AppViewModel(
     fun updateAutoScrape(v: Boolean) = settings.updateAutoScrape(v)
     fun updateFileLogging(v: Boolean) = settings.updateFileLogging(v)
     fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
+    fun updateSiteMirror(siteId: String, url: String) = settings.updateSiteMirror(siteId, url)
     fun resetSettings() = settings.resetSettings()
     fun updateFolderLayer(index: Int, value: String) = settings.updateFolderLayer(index, value)
     fun addLayer() = settings.addLayer()
@@ -348,6 +350,7 @@ class AppViewModel(
             workerPath, outputDir, scanDir, scanDirHistory, scanRecursive, createMovieFolders,
             moveInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
+            siteMirrorUrls,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
             maxTitleLength, maxFilenameLength, suffixKeywords, requestTimeoutMs,
             siteCheckRunning, siteCheckResults
@@ -357,7 +360,7 @@ class AppViewModel(
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
         ::updateMoveInsteadOfCopy, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateAutoScrape,
         ::updateFileLogging,
-        ::toggleSite, ::resetSettings, ::updateFolderLayer, ::addLayer,
+        ::toggleSite, ::updateSiteMirror, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,
         ::updateMaxFilenameLength, ::updateSuffixKeywords, ::updateRequestTimeoutMs, ::checkSites
     )

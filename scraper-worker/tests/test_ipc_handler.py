@@ -31,9 +31,11 @@ class SecondSearchScraper(MockScraper):
 
 @pytest.fixture(autouse=True)
 def clean_registry():
+    original_scrapers = ScraperRegistry._scrapers.copy()
     ScraperRegistry.clear()
     yield
     ScraperRegistry.clear()
+    ScraperRegistry._scrapers.update(original_scrapers)
 
 
 def test_unknown_method():
@@ -57,7 +59,7 @@ def test_list_sites_with_registered():
     ScraperRegistry.register(MockScraper)
     result = handle_request({"id": "1", "method": "list_sites", "params": {}})
     assert result["result"] == [
-        {"id": "mock", "name": "Mock Site", "category": "unknown"}
+        {"id": "mock", "name": "Mock Site", "category": "unknown", "base_url": "", "mirror_urls": []}
     ]
 
 
@@ -67,7 +69,7 @@ def test_get_capabilities():
     assert result["result"]["version"] == "0.1.0"
     assert "probe_file" in result["result"]["features"]
     assert result["result"]["sites"] == [
-        {"id": "mock", "name": "Mock Site", "category": "unknown"}
+        {"id": "mock", "name": "Mock Site", "category": "unknown", "base_url": "", "mirror_urls": []}
     ]
 
 
@@ -124,6 +126,47 @@ def test_search_with_explicit_site():
     })
 
     assert [video["title"] for video in result["result"]] == ["First", "Second"]
+
+def test_handlers_pass_site_mirrors(monkeypatch):
+    mirrors = {"mock": "https://mirror.example"}
+    captured = {}
+
+    monkeypatch.setattr(
+        "ipc_handler.smart_search",
+        lambda number, **kwargs: captured.setdefault("scrape", kwargs) or None,
+    )
+    monkeypatch.setattr(
+        "ipc_handler.search_candidates",
+        lambda number, **kwargs: captured.setdefault("search", kwargs) or [],
+    )
+    from scrapers import site_check
+    monkeypatch.setattr(
+        site_check,
+        "check_sites",
+        lambda **kwargs: captured.setdefault("check", kwargs) or [],
+    )
+
+    handle_request({
+        "id": "scrape-mirror",
+        "method": "scrape",
+        "params": {"number": "ABC-123", "site": "mock", "site_mirrors": mirrors},
+    })
+    handle_request({
+        "id": "search-mirror",
+        "method": "search",
+        "params": {"number": "ABC-123", "site": "mock", "site_mirrors": mirrors},
+    })
+    handle_request({
+        "id": "check-mirror",
+        "method": "check_sites",
+        "params": {"sites": ["mock"], "site_mirrors": mirrors},
+    })
+
+    assert captured["scrape"]["site_mirrors"] == mirrors
+    assert captured["search"]["site_mirrors"] == mirrors
+    assert captured["check"]["site_mirrors"] == mirrors
+
+
 def test_jsonrpc_protocol():
     result = handle_request({"id": "99", "method": "list_sites", "params": {}})
     assert result["jsonrpc"] == "2.0"

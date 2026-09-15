@@ -12,6 +12,7 @@ class ScrapeOptionsTest {
             outputDir = "D:/Media",
             createMovieFolders = false,
             moveInsteadOfCopy = false,
+            siteMirrorUrls = mapOf("javbus" to "https://www.dmmsee.casa"),
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
@@ -29,6 +30,7 @@ class ScrapeOptionsTest {
         assertEquals("D:/Media", options.outputDir)
         assertEquals(false, options.createMovieFolders)
         assertEquals(false, options.moveInsteadOfCopy)
+        assertEquals(mapOf("javbus" to "https://www.dmmsee.casa"), options.siteMirrorUrls)
         assertEquals(false, options.downloadImages)
         assertEquals(true, options.downloadPreviewImages)
         assertEquals(true, options.downloadWebPages)
@@ -53,6 +55,7 @@ class ScrapeOptionsTest {
         assertEquals(defaults.maxFilenameLength, options.maxFilenameLength)
         assertEquals(defaults.suffixKeywords, options.suffixKeywords)
         assertEquals(defaults.lockData, options.lockData)
+        assertEquals(defaults.siteMirrorUrls, options.siteMirrorUrls)
         assertEquals(defaults.enabledSites.toSet(), options.enabledSites)
     }
 }

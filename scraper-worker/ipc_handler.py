@@ -101,6 +101,7 @@ def _scrape(
     number: str = "",
     site: str = None,
     sites: list[str] = None,
+    site_mirrors: dict[str, str] = None,
     save_webpage: bool = False,
 ) -> dict:
     if not number and file_path:
@@ -111,6 +112,7 @@ def _scrape(
         number,
         site=site,
         enabled_sites=sites,
+        site_mirrors=site_mirrors,
         save_webpage=save_webpage,
     )
     if not result:
@@ -119,9 +121,11 @@ def _scrape(
 
 
 @register_handler("check_sites")
-def _check_sites(sites: list[str] = None) -> list[dict]:
+def _check_sites(
+    sites: list[str] = None, site_mirrors: dict[str, str] = None
+) -> list[dict]:
     from scrapers.site_check import check_sites
-    return check_sites(site_ids=sites)
+    return check_sites(site_ids=sites, site_mirrors=site_mirrors)
 
 
 @register_handler("search")
@@ -129,6 +133,7 @@ def _search(
     number: str,
     sites: list[str] = None,
     site: str = None,
+    site_mirrors: dict[str, str] = None,
     save_webpage: bool = False,
 ) -> list[dict]:
     if site is not None:
@@ -136,12 +141,17 @@ def _search(
             number,
             site=site,
             enabled_sites=sites,
+            site_mirrors=site_mirrors,
             save_webpage=save_webpage,
         )
     elif sites is not None:
-        candidates = search_multi(number, sites=sites, save_webpage=save_webpage)
+        candidates = search_multi(
+            number, sites=sites, site_mirrors=site_mirrors, save_webpage=save_webpage
+        )
     else:
-        candidates = search_candidates(number, save_webpage=save_webpage)
+        candidates = search_candidates(
+            number, site_mirrors=site_mirrors, save_webpage=save_webpage
+        )
     return [video.to_dict() for video in candidates]
 
 

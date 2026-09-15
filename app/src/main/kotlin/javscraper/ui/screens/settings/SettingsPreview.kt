@@ -33,11 +33,18 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     autoScrape = false,
     fileLoggingEnabled = true,
     sites = listOf(
-        SiteInfo("javbus", "JavBus", SiteCategory.CENSORED),
+        SiteInfo(
+            "javbus",
+            "JavBus",
+            SiteCategory.CENSORED,
+            "https://www.javbus.com",
+            listOf("https://www.dmmsee.casa", "https://www.buscdn.casa")
+        ),
         SiteInfo("javdb", "JavDB", SiteCategory.CENSORED),
         SiteInfo("dmm", "DMM", SiteCategory.CENSORED)
     ),
     enabledSiteIds = listOf("javbus", "javdb"),
+    siteMirrorUrls = mapOf("javbus" to "https://www.dmmsee.casa"),
     language = "zh",
     showRestartHint = false,
     folderLayers = listOf("{num}", "{title}"),
@@ -68,6 +75,7 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onAutoScrapeChange = {},
     onFileLoggingChange = {},
     onToggleSite = { _, _ -> },
+    onSiteMirrorChange = { _, _ -> },
     onReset = {},
     onFolderLayerChange = { _, _ -> },
     onAddLayer = {},

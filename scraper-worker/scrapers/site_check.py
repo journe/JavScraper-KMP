@@ -1,5 +1,6 @@
 """Test connectivity of scraper sites (optionally filtered by site id)."""
 import time
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -15,23 +16,27 @@ _USER_AGENT = (
 
 
 def check_sites(
-    site_ids: list[str] | None = None, max_workers: int = 8
+    site_ids: list[str] | None = None,
+    site_mirrors: Mapping[str, str] | None = None,
+    max_workers: int = 8,
 ) -> list[dict[str, Any]]:
-    """Concurrently probe site base URLs, optionally filtered by *site_ids*."""
+    """Concurrently probe configured site base URLs, optionally filtered by *site_ids*."""
     infos = ScraperRegistry.list_sites()
     if site_ids:
         infos = [info for info in infos if info["id"] in site_ids]
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        return list(pool.map(_check_site, infos))
+        return list(pool.map(lambda info: _check_site(info, site_mirrors), infos))
 
 
-def _check_site(info: dict[str, Any]) -> dict[str, Any]:
+def _check_site(
+    info: dict[str, Any], site_mirrors: Mapping[str, str] | None = None
+) -> dict[str, Any]:
     sid = info["id"]
-    scraper_cls = ScraperRegistry.get(sid)
-    if scraper_cls is None:
+    scraper = ScraperRegistry.create(sid, (site_mirrors or {}).get(sid))
+    if scraper is None:
         return {"id": sid, "ok": False, "error": "scraper not registered"}
 
-    base_url = getattr(scraper_cls(), "BASE_URL", "") or ""
+    base_url = getattr(scraper, "BASE_URL", "") or ""
     if not base_url:
         return {"id": sid, "ok": False, "error": "no base url"}
 

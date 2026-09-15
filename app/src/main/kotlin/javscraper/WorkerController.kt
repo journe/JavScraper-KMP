@@ -121,7 +121,9 @@ class WorkerController(
             siteCheckRunning = true
             siteCheckResults = null
             try {
-                siteCheckResults = withContext(Dispatchers.IO) { m.checkSites(settings.enabledSites) }
+                siteCheckResults = withContext(Dispatchers.IO) {
+                    m.checkSites(settings.enabledSites, settings.siteMirrorUrls)
+                }
             } catch (e: Exception) {
                 siteCheckResults = emptyList()
                 onStatusChange(settings.strings.statusError(e.message ?: "check failed"))
