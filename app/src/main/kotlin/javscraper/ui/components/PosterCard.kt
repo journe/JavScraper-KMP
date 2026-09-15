@@ -131,11 +131,11 @@ fun PosterCard(
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.tertiary
                     )
-//                    Text(
-//                        video.maker,
-//                        style = MaterialTheme.typography.labelSmall,
-//                        color = MaterialTheme.colorScheme.secondary
-//                    )
+                    Text(
+                        video.maker,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
                 PosterSource.FANART -> {}
             }

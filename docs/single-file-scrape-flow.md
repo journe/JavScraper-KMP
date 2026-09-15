@@ -56,8 +56,8 @@ sequenceDiagram
 2. `AppViewModel` 负责把任务列表、单刮削状态、可用站点、输出目录和错误信息组装进 `ScrapeProgressState`。
 3. 点击任务列表中的单刮削按钮后，UI 调用 `actions.onSingleScrapeClick(task)`。
 4. `AppViewModel` 转发给 `SingleScrapeController.openSingleScrapeFromTask(task, scannedFiles)`：
-   - 优先按 `fileName` 从已扫描文件中找回原始 `ScannedFile`；
-   - 找不到时，用任务中的 `path`、`fileName`、`number` 构造兜底 `ScannedFile`；
+   - 按 `number` 找回该任务下所有尚未刮削的 `ScannedFile`，保留多文件分组；
+   - 找不到分组时，用任务中的 `path`、`fileName`、`number` 构造兜底 `ScannedFile`；
    - 打开对话框并进入 `Input` 状态。
 
 站点下拉框的数据来源是 `AppViewModel.enabledSiteInfos`：先取 worker 返回的已注册站点，再按设置中的 `enabledSites` 过滤。因此显式可选站点与设置页的启用状态同步。
@@ -154,7 +154,7 @@ stateDiagram-v2
 
 ## 6. 确认后的磁盘写入
 
-用户确认后，控制器重新进入 `Scraping`，并在 `Dispatchers.IO` 中调用 `ScrapeOrchestrator.writeToDisk(listOf(file), video)`。写入配置集中放在 `ScrapeOptions`（由 `AppSettings` 投影而来），设置变化时由 `WorkerController.rebuildOrchestrator()` 重建。
+用户确认后，控制器重新进入 `Scraping`，并在 `Dispatchers.IO` 中调用 `ScrapeOrchestrator.writeToDisk(taskFiles, video)`。`taskFiles` 包含该番号分组下的全部待处理文件；`taskFiles` 为空时才回退到当前单文件。写入配置集中放在 `ScrapeOptions`（由 `AppSettings` 投影而来），设置变化时由 `WorkerController.rebuildOrchestrator()` 重建。
 
 写入流程：
 
@@ -167,6 +167,28 @@ stateDiagram-v2
 7. 关闭“移动原视频”时改为复制，保留源文件；
 8. 若目标文件已存在，则跳过该文件；
 9. 所有 IO 子操作均无错误时返回成功结果，单刮削进入 `Result`，任务状态置为 `SUCCESS`；任一子操作失败则聚合错误并返回失败。
+
+### 多文件分组与 Jellyfin 多文件命名
+
+扫描阶段会把常见 FC2 写法统一为同一个番号，例如以下文件都会归组到 `FC2-4694056`：
+
+```text
+FC2-4694056.mp4
+FC2-4694056-2.mp4
+FC2-4694056-3.mp4
+FC2-PPV 4694056-4.mp4
+```
+
+写盘阶段检测到同一番号有多个文件时，会使用纯番号作为文件夹和视频文件的基础名，并复用同一套 Jellyfin 多文件规则：
+
+1. 文件夹名与每个视频文件的基础名保持一致，统一使用番号，例如 `FC2-4694056`；
+2. 无后缀或纯数字后缀会被识别为多分片，生成 `FC2-4694056 - part1.mp4`、`FC2-4694056 - part2.mp4`；
+3. 原文件名已有 `-cd1`、`-cd2` 等分片标签时会原样保留；
+4. `1080p`、`4K`、`Director's Cut` 等标签会被识别为多版本，生成 `FC2-4694056 - 1080p.mp4`、`FC2-4694056 - 4K.mp4`；
+5. `-C`、`-c` 表示中文字幕，`-U`、`-u` 表示无码泄露；两者不参与番号识别，会在输出文件名末尾保留，并写入 `Video.version`，取值规范化为 `C`、`U` 或 `CU`；
+6. NFO、图片和 MHTML 继续使用不带文件标签的基础名，与 Jellyfin 的共享元数据规则保持一致。
+
+单文件刮削与批量刮削共用同一套写盘计划，因此从任务列表执行“单独刮削”时也会一次处理该番号下的全部文件。
 
 ### 当前注意点
 

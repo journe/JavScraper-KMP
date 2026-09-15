@@ -5,6 +5,7 @@ import javscraper.models.SingleScrapeDialogState
 import javscraper.models.Video
 import kotlin.test.Test
 import kotlinx.coroutines.test.TestScope
+import javscraper.ui.screens.ScrapeTask
 import kotlin.test.assertEquals
 
 class SingleScrapeControllerTest {
@@ -43,6 +44,26 @@ class SingleScrapeControllerTest {
         controller.updateSingleScrapeNumber("NEW-001")
 
         assertEquals("NEW-001", controller.singleScrapeTask?.number)
+    }
+
+    @Test
+    fun `opening a grouped task keeps its part count`() {
+        val controller = SingleScrapeController(
+            scope = TestScope(),
+            orch = { null },
+            outputDir = { "output" }
+        )
+        val task = ScrapeTask(number = "FC2-4694056", fileName = "FC2-4694056.mp4", partCount = 4)
+        val files = listOf(
+            ScannedFile("one.mp4", "FC2-4694056.mp4", task.number),
+            ScannedFile("two.mp4", "FC2-4694056-2.mp4", task.number),
+            ScannedFile("three.mp4", "FC2-4694056-3.mp4", task.number),
+            ScannedFile("four.mp4", "FC2-PPV 4694056-4.mp4", task.number)
+        )
+
+        controller.openSingleScrapeFromTask(task, files)
+
+        assertEquals(4, controller.singleScrapeTask?.partCount)
     }
 
     @Test

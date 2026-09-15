@@ -43,13 +43,15 @@ class ModelsTest {
         assertEquals(null, video.duration)
         assertEquals(null, video.rating)
         assertEquals("", video.webpage)
+        assertEquals("", video.version)
     }
 
     @Test
     fun `Video webpage content round-trip`() {
-        val video = Video(number = "FC2-PPV-1723984", webpage = "bWFodG1s")
+        val video = Video(number = "FC2-PPV-1723984", webpage = "bWFodG1s", version = "C")
         val decoded = json.decodeFromString(Video.serializer(), json.encodeToString(Video.serializer(), video))
         assertEquals("bWFodG1s", decoded.webpage)
+        assertEquals("C", decoded.version)
     }
     @Test
     fun `ScrapeResult success variant`() {

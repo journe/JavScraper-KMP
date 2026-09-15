@@ -73,6 +73,119 @@ class ScrapeOrchestratorTest {
             assertFalse(output.resolve(".nfo").isFile)
         }
     }
+
+    @Test
+    fun `writeToDisk groups multiple files into one Jellyfin multi-part folder`() {
+        val sourceDir = createTempDirectory("javscraper-multi-source").toFile()
+        val output = createTempDirectory("javscraper-multi-output").toFile()
+        val files = listOf(
+            "FC2-4694056.mp4",
+            "FC2-4694056-2.mp4",
+            "FC2-4694056-3.mp4",
+            "FC2-PPV 4694056-4.mp4"
+        ).map { name ->
+            sourceDir.resolve(name).apply { writeText(name) }
+        }
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = true,
+                moveInsteadOfCopy = true,
+                downloadImages = false,
+                folderLayers = listOf("{num} {title}"),
+                filenameFormat = "{num} {title}"
+            )),
+        )
+
+        runTest {
+            val result = orchestrator.writeToDisk(
+                files.map { ScannedFile(it.absolutePath, it.name, "FC2-4694056") },
+                Video(number = "FC2-4694056", title = "Test")
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val folder = output.resolve("FC2-4694056")
+            assertTrue(folder.resolve("FC2-4694056.nfo").isFile)
+            listOf(
+                "FC2-4694056 - part1.mp4",
+                "FC2-4694056 - part2.mp4",
+                "FC2-4694056 - part3.mp4",
+                "FC2-4694056 - part4.mp4"
+            ).forEach { name ->
+                assertTrue(folder.resolve(name).isFile, "missing $name")
+            }
+            assertTrue(files.none { it.exists() })
+        }
+    }
+
+    @Test
+    fun `writeToDisk reuses one folder for resolution versions`() {
+        val sourceDir = createTempDirectory("javscraper-versions-source").toFile()
+        val output = createTempDirectory("javscraper-versions-output").toFile()
+        val files = listOf("FC2-4694056-1080p.mp4", "FC2-4694056-4K.mp4").map { name ->
+            sourceDir.resolve(name).apply { writeText(name) }
+        }
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = true,
+                moveInsteadOfCopy = true,
+                downloadImages = false,
+                folderLayers = listOf("{num} {title}"),
+                filenameFormat = "{num} {title}"
+            )),
+        )
+
+        runTest {
+            val result = orchestrator.writeToDisk(
+                files.map { ScannedFile(it.absolutePath, it.name, "FC2-4694056") },
+                Video(number = "FC2-4694056", title = "Test")
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val folder = output.resolve("FC2-4694056")
+            assertTrue(folder.resolve("FC2-4694056.nfo").isFile)
+            assertTrue(folder.resolve("FC2-4694056 - 1080p.mp4").isFile)
+            assertTrue(folder.resolve("FC2-4694056 - 4K.mp4").isFile)
+            assertTrue(files.none { it.exists() })
+        }
+    }
+
+    @Test
+    fun `writeToDisk preserves special version suffix and fills video version`() {
+        val sourceDir = createTempDirectory("javscraper-special-source").toFile()
+        val output = createTempDirectory("javscraper-special-output").toFile()
+        val files = listOf("ABC-123-2-C.mp4", "ABC-123-3-C.mp4").map { name ->
+            sourceDir.resolve(name).apply { writeText(name) }
+        }
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = true,
+                moveInsteadOfCopy = true,
+                downloadImages = false,
+                folderLayers = listOf("{num} {title}"),
+                filenameFormat = "{num} {title}"
+            )),
+        )
+
+        runTest {
+            val result = orchestrator.writeToDisk(
+                files.map { ScannedFile(it.absolutePath, it.name, "ABC-123") },
+                Video(number = "ABC-123", title = "Test")
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            assertEquals("C", result.data?.version)
+            val folder = output.resolve("ABC-123")
+            assertTrue(folder.resolve("ABC-123 - part2-C.mp4").isFile)
+            assertTrue(folder.resolve("ABC-123 - part3-C.mp4").isFile)
+        }
+    }
+
     @Test
     fun `writeToDisk moves source video to output`() {
         val sourceDir = createTempDirectory("javscraper-move-source").toFile()

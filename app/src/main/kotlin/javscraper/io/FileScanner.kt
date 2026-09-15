@@ -7,6 +7,12 @@ import java.nio.file.Path
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
+data class FileNameInfo(
+    val number: String,
+    val versionLabel: String = "",
+    val version: String = ""
+)
+
 object FileScanner {
     private val log = KotlinLogging.logger {}
     private val VIDEO_EXTS = setOf(
@@ -20,32 +26,38 @@ object FileScanner {
         "mukd", "paco", "toky", "gano"
     )
 
-    // Build RX1 dynamically: prefix, optional dash (+ "ppv-" for fc2), then digits only
-    private val SPECIAL_ALTERNATION = SPECIAL_PREFIXES.joinToString("|") { pfx ->
-        if (pfx == "fc2") "(?:${pfx}-?(?:ppv-?)?\\d+)"
-        else "(?:${pfx}-?\\d+)"
-    }
+    // Build RX1 dynamically for special prefixes other than FC2.
+    private val SPECIAL_ALTERNATION = SPECIAL_PREFIXES
+        .filterNot { it == "fc2" }
+        .joinToString("|") { pfx -> "(?:${pfx}-?\\d+)" }
+
+    // FC2 numbering commonly appears as FC2-123, FC2-PPV-123 or FC2-PPV 123.
+    // The optional trailing group is a multi-file label, such as -2 or -4k.
+    private val RX_FC2 = Regex(
+        """(?:^|[\s\-_\[\(.,])FC2(?:[-_ ]?PPV)?[-_ ]?(\d+)(?:[-_. ]+(.+))?(?=$|[\s\-_\[\]().,])""",
+        RegexOption.IGNORE_CASE
+    )
+
     private val RX1 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])((?:$SPECIAL_ALTERNATION))",
+        "(?:^|[\\s\\-_\\[\\(.,])((?:$SPECIAL_ALTERNATION))(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,])",
         RegexOption.IGNORE_CASE
     )
 
     // Standard JAV: 2-6 letters, separator, 2-5 digits
     private val RX2 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])([A-Za-z]{2,6}[-–]\\d{2,5})",
+        "(?:^|[\\s\\-_\\[\\(.,])([A-Za-z]{2,6}[-–]\\d{2,5})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,])",
         RegexOption.IGNORE_CASE
     )
 
     // Numeric codes: 6 digits, separator (dash/en-dash/underscore), 2-4 digits
     // Covers both 123456-789 and 011225_01 / 031226_001 formats
     private val RX3 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])(\\d{6}[-–_]\\d{2,4})"
+        "(?:^|[\\s\\-_\\[\\(.,])(\\d{6}[-–_]\\d{2,4})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,])"
     )
 
     private val EXCLUDE = setOf(
         "sample", "trailer", "screenshot", "thumb", "cover",
-        "poster", "fanart", "extra", "sub", "subtitle",
-        "1080p", "720p", "4k", "h264", "h265", "x264", "x265"
+        "poster", "fanart", "extra", "sub", "subtitle"
     )
 
     fun scanDirectory(dir: Path, recursive: Boolean = true): List<ScannedFile> {
@@ -121,13 +133,56 @@ object FileScanner {
         EXCLUDE.any { n.lowercase().contains(it) }
 
     fun extractNumber(fileName: String): String {
-        val n = fileName.substringBeforeLast(".")
-        if (isSample(fileName)) return ""
+        return parseFileName(fileName).number
+    }
 
+    fun parseFileName(fileName: String): FileNameInfo {
+        val n = fileName.substringBeforeLast(".")
+        if (isSample(fileName)) return FileNameInfo("")
+
+        RX_FC2.find(n)?.let { m ->
+            val trailing = parseTrailingTokens(m.groupValues[2])
+            return FileNameInfo(
+                number = "FC2-${m.groupValues[1]}",
+                versionLabel = trailing.label,
+                version = trailing.version
+            )
+        }
         for (r in listOf(RX1, RX2, RX3)) {
             val m = r.find(n)
-            if (m != null) return m.groupValues[1].replace("–", "-").uppercase()
+            if (m != null) {
+                val trailing = parseTrailingTokens(m.groupValues[2])
+                return FileNameInfo(
+                    number = m.groupValues[1].replace("–", "-").uppercase(),
+                    versionLabel = trailing.label,
+                    version = trailing.version
+                )
+            }
         }
-        return ""
+        return FileNameInfo("")
     }
+
+    private fun parseTrailingTokens(value: String): TrailingTokens {
+        val tokens = value.split(trailingSeparatorRegex)
+            .map(String::trim)
+            .filter { it.isNotBlank() }
+        val version = buildString {
+            if (tokens.any { isSpecialVersionToken(it, "C") }) append('C')
+            if (tokens.any { isSpecialVersionToken(it, "U") }) append('U')
+        }
+        val label = tokens
+            .filterNot { isSpecialVersionToken(it, "C") || isSpecialVersionToken(it, "U") }
+            .joinToString(" ")
+        return TrailingTokens(label, version)
+    }
+
+    private fun isSpecialVersionToken(token: String, expected: String): Boolean =
+        token.length == 1 && token.equals(expected, ignoreCase = true)
+
+    private data class TrailingTokens(
+        val label: String,
+        val version: String
+    )
 }
+
+private val trailingSeparatorRegex = Regex("""[-_.\s]+""")

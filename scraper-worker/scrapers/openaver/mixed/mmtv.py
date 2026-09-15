@@ -72,16 +72,19 @@ class MmtvScraper(BaseScraper):
     def _match_detail_urls(self, html, number: str) -> list[str]:
         cap_number = number.upper()
         matched_urls: list[str] = []
-        for link in html.xpath('//figure[@class="video-preview"]/a'):
+        for link in html.xpath('//figure[contains(concat(" ", normalize-space(@class), " "), " video-preview ")]/a'):
             temp_url = link.get("href")
             alts = link.xpath("img/@alt")
             if not temp_url or not alts:
                 continue
             temp_title = alts[0]
             temp_number = temp_title.split(" ")[0]
-            if cap_number.startswith("FC2"):
-                head = cap_number.replace("FC2-", "FC2-PPV ")
+            fc2_match = re.match(r"^FC2(?:-PPV)?[- ]?(\d+)$", cap_number)
+            if fc2_match:
+                head = f"FC2-PPV {fc2_match.group(1)}"
                 matched = temp_title.upper().startswith(head)
+            elif cap_number.isdigit():
+                matched = temp_title.upper().startswith(f"FC2-PPV {cap_number}")
             else:
                 matched = (
                     temp_number.upper().startswith(cap_number)
@@ -102,7 +105,7 @@ class MmtvScraper(BaseScraper):
         if not title:
             return None
 
-        number = web_number.replace("FC2-PPV ", "FC2-")
+        number = re.sub(r"^FC2[- ]?PPV[ -]", "FC2-", web_number.strip(), flags=re.IGNORECASE)
         actor_text = self._extract_actor(html_info)
         tags = self._extract_tags(html_info)
         mosaic = self._extract_mosaic(html_info, number)

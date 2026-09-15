@@ -23,7 +23,59 @@ class FileScannerTest {
 
     @Test
     fun `extractNumber FC2 pattern direct concatenation`() {
-        assertEquals("FC21234567", FileScanner.extractNumber("FC21234567.mp4"))
+        assertEquals("FC2-1234567", FileScanner.extractNumber("FC21234567.mp4"))
+    }
+
+    @Test
+    fun `extractNumber FC2 variants share the same canonical number`() {
+        assertEquals("FC2-4694056", FileScanner.extractNumber("FC2-4694056.mp4"))
+        assertEquals("FC2-4694056", FileScanner.extractNumber("FC2-4694056-2.mp4"))
+        assertEquals("FC2-4694056", FileScanner.extractNumber("FC2-4694056-3.mp4"))
+        assertEquals("FC2-4694056", FileScanner.extractNumber("FC2-PPV 4694056-4.mp4"))
+    }
+
+    @Test
+    fun `parseFileName keeps FC2 part suffix as version label`() {
+        assertEquals(
+            FileNameInfo(number = "FC2-4694056", versionLabel = ""),
+            FileScanner.parseFileName("FC2-4694056.mp4")
+        )
+        assertEquals(
+            FileNameInfo(number = "FC2-4694056", versionLabel = "2"),
+            FileScanner.parseFileName("FC2-4694056-2.mp4")
+        )
+        assertEquals(
+            FileNameInfo(number = "FC2-4694056", versionLabel = "4"),
+            FileScanner.parseFileName("FC2-PPV 4694056-4.mp4")
+        )
+    }
+
+    @Test
+    fun `parseFileName treats resolution as a version label instead of a sample`() {
+        assertEquals(
+            FileNameInfo(number = "FC2-4694056", versionLabel = "4K"),
+            FileScanner.parseFileName("FC2-4694056-4K.mp4")
+        )
+    }
+
+    @Test
+    fun `parseFileName extracts special version suffix without changing number`() {
+        assertEquals(
+            FileNameInfo(number = "ABC-123", versionLabel = "", version = "C"),
+            FileScanner.parseFileName("ABC-123-C.mp4")
+        )
+        assertEquals(
+            FileNameInfo(number = "ABC-123", versionLabel = "", version = "U"),
+            FileScanner.parseFileName("ABC-123-u.mp4")
+        )
+        assertEquals(
+            FileNameInfo(number = "ABC-123", versionLabel = "2", version = "C"),
+            FileScanner.parseFileName("ABC-123-2-c.mp4")
+        )
+        assertEquals(
+            FileNameInfo(number = "FC2-4694056", versionLabel = "3", version = "CU"),
+            FileScanner.parseFileName("FC2-4694056-3-U-C.mp4")
+        )
     }
 
     @Test

@@ -1,5 +1,6 @@
 package javscraper.scrape
 
+import javscraper.io.FileScanner
 import javscraper.io.ImageSaver
 import javscraper.io.NfoWriter
 import javscraper.io.RenameFormatter
@@ -28,17 +29,19 @@ class ScrapeOrchestrator(
     suspend fun fetch(sf: ScannedFile, site: String? = null): ScrapeResult {
         if (sf.number.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "No number"))
-        return sidecar.scrape(
+        val result = sidecar.scrape(
             sf.number, site, options.enabledSites?.toList(), options.siteMirrorUrls, options.downloadWebPages
         )
+        return result.copy(data = result.data?.copy(version = FileScanner.parseFileName(sf.fileName).version))
     }
 
     /** Fetch all metadata candidates without any file IO. */
     suspend fun fetchCandidates(sf: ScannedFile, site: String? = null): List<Video> {
         if (sf.number.isBlank()) return emptyList()
+        val version = FileScanner.parseFileName(sf.fileName).version
         return sidecar.searchCandidates(
             sf.number, site, options.enabledSites?.toList(), options.siteMirrorUrls, options.downloadWebPages
-        )
+        ).map { it.copy(version = version) }
     }
     /** Write scraped metadata (NFO/images) and organize files to the output directory. */
     suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {
@@ -47,18 +50,19 @@ class ScrapeOrchestrator(
         if (options.outputDir.isBlank())
             return ScrapeResult(false, error = ScrapeError(-1, "Output directory is empty"))
 
+        val outputVideo = video.withFileVersion(files)
         val ioErrors = mutableListOf<String>()
-        val firstPaths = resolveOutputPaths(files.first(), video)
+        val writePlan = resolveWritePlan(files, video)
         try {
-            Files.createDirectories(firstPaths.folder)
+            Files.createDirectories(writePlan.folder)
         } catch (e: Exception) {
             log.error(e) { "Directory creation failed" }
             ioErrors += "Directory creation failed: ${e.message}"
         }
         try {
             Files.writeString(
-                firstPaths.folder.resolve(firstPaths.nfoBase + ".nfo"),
-                NfoWriter.generate(video, options.lockData)
+                writePlan.folder.resolve(writePlan.nfoBase + ".nfo"),
+                NfoWriter.generate(outputVideo, options.lockData)
             )
         } catch (e: Exception) {
             log.error(e) { "NFO failed" }
@@ -67,7 +71,7 @@ class ScrapeOrchestrator(
         var mhtmlPath: Path? = null
         if (options.downloadWebPages) {
             try {
-                mhtmlPath = writeWebpage(firstPaths.folder, video)
+                mhtmlPath = writeWebpage(writePlan.folder, outputVideo)
                 if (mhtmlPath == null) ioErrors += "Webpage content missing"
             } catch (e: Exception) {
                 log.error(e) { "Webpage failed" }
@@ -81,8 +85,8 @@ class ScrapeOrchestrator(
                     try {
                         val imageResult = activeWebpageArchiver.extractImages(
                             path,
-                            firstPaths.folder,
-                            video.copy(sampleImages = emptyList())
+                            writePlan.folder,
+                            outputVideo.copy(sampleImages = emptyList())
                         )
                         if (!imageResult.success) ioErrors += "Images failed: ${imageResult.message}"
                     } catch (e: Exception) {
@@ -92,26 +96,25 @@ class ScrapeOrchestrator(
                 }
                 if (options.downloadPreviewImages) {
                     try {
-                        ImageSaver.download(firstPaths.folder, sampleImages = video.sampleImages)
+                        ImageSaver.download(writePlan.folder, sampleImages = outputVideo.sampleImages)
                     } catch (e: Exception) {
                         log.warn(e) { "Preview images failed" }
                         ioErrors += "Preview images failed: ${e.message}"
                     }
                 }
             } else try {
-                val previewImages = if (options.downloadPreviewImages) video.sampleImages else emptyList()
-                ImageSaver.download(firstPaths.folder, video.coverUrl, video.posterUrl, previewImages)
+                val previewImages = if (options.downloadPreviewImages) outputVideo.sampleImages else emptyList()
+                ImageSaver.download(writePlan.folder, outputVideo.coverUrl, outputVideo.posterUrl, previewImages)
             } catch (e: Exception) {
                 log.warn(e) { "Images failed" }
                 ioErrors += "Images failed: ${e.message}"
             }
         }
 
-        files.forEach { sf ->
+        writePlan.files.forEach { planned ->
             try {
-                val paths = resolveOutputPaths(sf, video)
-                val src = Path.of(sf.path)
-                val tgt = paths.fullPath
+                val src = Path.of(planned.source.path)
+                val tgt = planned.target
                 if (!Files.exists(tgt)) {
                     if (options.moveInsteadOfCopy) {
                         Files.move(src, tgt, StandardCopyOption.REPLACE_EXISTING)
@@ -120,13 +123,13 @@ class ScrapeOrchestrator(
                     }
                 }
             } catch (e: Exception) {
-                log.warn(e) { "File move failed for ${sf.fileName}" }
-                ioErrors += "File move failed for ${sf.fileName}: ${e.message}"
+                log.warn(e) { "File move failed for ${planned.source.fileName}" }
+                ioErrors += "File move failed for ${planned.source.fileName}: ${e.message}"
             }
         }
 
         return if (ioErrors.isEmpty()) {
-            ScrapeResult(true, data = video.copy(path = firstPaths.fullPath.toString()))
+            ScrapeResult(true, data = outputVideo.copy(path = writePlan.files.first().target.toString()))
         } else {
             ScrapeResult(false, error = ScrapeError(-20, ioErrors.joinToString("; ")))
         }
@@ -156,6 +159,103 @@ class ScrapeOrchestrator(
         val safeSite = site.ifBlank { "SITE" }
         return "$safeNumber-$safeSite.mhtml"
     }
+
+    private fun resolveWritePlan(files: List<ScannedFile>, video: Video): FileWritePlan {
+        if (files.size == 1) {
+            val paths = resolveOutputPaths(files.first(), video)
+            return FileWritePlan(
+                folder = paths.folder,
+                nfoBase = paths.nfoBase,
+                files = listOf(PlannedFile(files.first(), paths.fullPath))
+            )
+        }
+
+        val ordered = files.sortedWith(
+            compareBy<ScannedFile> {
+                val label = FileScanner.parseFileName(it.fileName).versionLabel
+                when {
+                    label.isBlank() -> 0
+                    label.toIntOrNull() != null -> 1
+                    else -> 2
+                }
+            }.thenBy {
+                FileScanner.parseFileName(it.fileName).versionLabel.toIntOrNull() ?: Int.MAX_VALUE
+            }.thenBy { it.fileName.lowercase() }
+        )
+        val kind = detectMultiFileKind(ordered)
+        val labels = buildMultiFileLabels(ordered, kind)
+        val labelSuffixes = labels.map { " - $it" }
+        val layers = RenameFormatter.formatFolder(video, options.folderLayers, "")
+        val baseName = RenameFormatter.sanitize(video.number).ifBlank { "UNKNOWN" }
+
+        val base = Path.of(options.outputDir)
+        val parentLayers = if (options.createMovieFolders && layers.size > 1) {
+            layers.dropLast(1)
+        } else {
+            emptyList()
+        }
+        val layeredFolder = parentLayers.fold(base) { path, layer -> path.resolve(layer) }
+        val folder = if (options.createMovieFolders) layeredFolder.resolve(baseName) else base
+        val plannedFiles = ordered.mapIndexed { index, source ->
+            val ext = source.fileName.substringAfterLast('.', "")
+            val namedBase = appendVersionSuffix(
+                baseName + labelSuffixes[index],
+                FileScanner.parseFileName(source.fileName).version
+            )
+            val filename = buildString {
+                append(namedBase)
+                if (ext.isNotBlank()) append('.').append(ext)
+            }
+            PlannedFile(source, folder.resolve(filename))
+        }
+        return FileWritePlan(folder = folder, nfoBase = baseName, files = plannedFiles)
+    }
+
+    private fun detectMultiFileKind(files: List<ScannedFile>): MultiFileKind {
+        val labels = files.map { FileScanner.parseFileName(it.fileName).versionLabel }
+        if (labels.any(::isPartLabel)) return MultiFileKind.PARTS
+        if (labels.any { it.toIntOrNull() != null }) return MultiFileKind.PARTS
+        return MultiFileKind.VERSIONS
+    }
+
+    private fun buildMultiFileLabels(
+        files: List<ScannedFile>,
+        kind: MultiFileKind
+    ): List<String> {
+        val used = mutableSetOf<String>()
+        return files.mapIndexed { index, file ->
+            val fileInfo = FileScanner.parseFileName(file.fileName)
+            val label = when (kind) {
+                MultiFileKind.PARTS -> partLabel(fileInfo.versionLabel, index)
+                MultiFileKind.VERSIONS -> versionLabel(fileInfo.versionLabel, index, fileInfo.version)
+            }
+            var candidate = label
+            var duplicateIndex = 2
+            while (!used.add(candidate.lowercase())) {
+                candidate = "$label $duplicateIndex"
+                duplicateIndex++
+            }
+            candidate
+        }
+    }
+
+    private fun partLabel(rawLabel: String, index: Int): String = when {
+        rawLabel.isBlank() -> "part${index + 1}"
+        rawLabel.toIntOrNull() != null -> "part${rawLabel.toInt()}"
+        isPartLabel(rawLabel) -> RenameFormatter.sanitize(rawLabel)
+        else -> RenameFormatter.sanitize(rawLabel).ifBlank { "part${index + 1}" }
+    }
+
+    private fun versionLabel(rawLabel: String, index: Int, version: String): String = when {
+        rawLabel.isBlank() && version.isNotBlank() -> version
+        rawLabel.isBlank() -> "version${index + 1}"
+        rawLabel.toIntOrNull() != null -> "v${rawLabel.toInt()}"
+        else -> RenameFormatter.sanitize(rawLabel).ifBlank { "version${index + 1}" }
+    }
+
+    private fun isPartLabel(value: String): Boolean =
+        value.replace(" ", "").matches(partLabelRegex)
+
     private fun resolveOutputPaths(sf: ScannedFile, video: Video): OutputPaths {
         val ext = sf.fileName.substringAfterLast('.')
         if (options.outputDir.isBlank()) return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName), sf.fileName.substringBeforeLast("."))
@@ -164,17 +264,51 @@ class ScrapeOrchestrator(
         if (!options.createMovieFolders) return OutputPaths(base, sf.fileName, base.resolve(sf.fileName), sf.fileName.substringBeforeLast("."))
 
         val suffix = RenameFormatter.detectSuffix(sf.fileName, options.suffixKeywords)
+        val fileInfo = FileScanner.parseFileName(sf.fileName)
         val layers = RenameFormatter.formatFolder(video, options.folderLayers, suffix)
         val folder = layers.fold(base) { acc, layer -> acc.resolve(layer) }
         val rawFilename = RenameFormatter.formatFilename(
             video, options.filenameFormat, suffix, options.maxFilenameLength, options.maxTitleLength
         )
         val nfoBase = RenameFormatter.stripPartSuffix(rawFilename, suffix)
-        val filename = "$rawFilename.$ext"
+        val filename = "${appendVersionSuffix(rawFilename, fileInfo.version)}.$ext"
         return OutputPaths(folder, filename, folder.resolve(filename), nfoBase)
+    }
+
+    private fun Video.withFileVersion(files: List<ScannedFile>): Video {
+        val versions = listOf(version) + files.map { FileScanner.parseFileName(it.fileName).version }
+        return copy(version = mergeVersions(versions))
+    }
+
+    private fun mergeVersions(values: List<String>): String {
+        val chars = values.flatMap { it.uppercase().asSequence() }.toSet()
+        return buildString {
+            if ('C' in chars) append('C')
+            if ('U' in chars) append('U')
+        }
+    }
+
+    private fun appendVersionSuffix(name: String, version: String): String {
+        if (version.isBlank() || name.endsWith("-$version", ignoreCase = true)) return name
+        return "$name-$version"
     }
 
     private data class OutputPaths(
         val folder: Path, val filename: String, val fullPath: Path, val nfoBase: String
     )
+
+    private data class PlannedFile(val source: ScannedFile, val target: Path)
+
+    private data class FileWritePlan(
+        val folder: Path,
+        val nfoBase: String,
+        val files: List<PlannedFile>
+    )
+
+    private enum class MultiFileKind {
+        PARTS,
+        VERSIONS
+    }
 }
+
+private val partLabelRegex = Regex("""(?i)^(?:cd|dvd|part|pt|disc|disk)\d+$""")

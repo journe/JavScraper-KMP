@@ -11,6 +11,7 @@ import javscraper.sidecar.SidecarTimeoutException
 import javscraper.scrape.ScrapeOrchestrator
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
+import javscraper.ui.screens.filesForScrapeTask
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,7 @@ class SingleScrapeController(
 
     var singleScrapeDialogState by mutableStateOf<SingleScrapeDialogState>(SingleScrapeDialogState.Closed)
     var singleScrapeFile by mutableStateOf<ScannedFile?>(null)
+    private var singleScrapeFiles = emptyList<ScannedFile>()
     var singleScrapeNumber by mutableStateOf("")
     var singleScrapeSite by mutableStateOf<String?>(null)
     var singleScrapeTask by mutableStateOf<ScrapeTask?>(null)
@@ -54,24 +56,35 @@ class SingleScrapeController(
     }
 
     fun openSingleScrape(file: ScannedFile) {
+        openSingleScrapeGroup(listOf(file), null)
+    }
+
+    private fun openSingleScrapeGroup(files: List<ScannedFile>, task: ScrapeTask?) {
+        val file = files.firstOrNull() ?: return
         singleScrapeFile = file
+        singleScrapeFiles = files
         singleScrapeNumber = file.number
         singleScrapeSite = null
-        singleScrapeTask = ScrapeTask(file.number, file.fileName, status = ScrapeTaskStatus.PENDING)
+        singleScrapeTask = task?.copy(status = ScrapeTaskStatus.PENDING)
+            ?: ScrapeTask(
+                number = file.number,
+                fileName = file.fileName,
+                partCount = files.size,
+                status = ScrapeTaskStatus.PENDING
+            )
         singleScrapeError = null
         singleScrapeErrorStage = null
         singleScrapeDialogState = SingleScrapeDialogState.Input
     }
 
     fun openSingleScrapeFromTask(task: ScrapeTask, scannedFiles: List<ScannedFile>) {
-        val sf = scannedFiles.find { it.fileName == task.fileName }
-            ?: ScannedFile(path = task.path, fileName = task.fileName, number = task.number)
-        openSingleScrape(sf)
+        openSingleScrapeGroup(filesForScrapeTask(task, scannedFiles), task)
     }
 
     fun closeSingleScrape() {
         singleScrapeDialogState = SingleScrapeDialogState.Closed
         singleScrapeFile = null
+        singleScrapeFiles = emptyList()
         singleScrapeTask = null
     }
 
@@ -115,7 +128,9 @@ class SingleScrapeController(
                     ?: candidates[selectedIndex]
                 // 确认写入 → 建目录/写 NFO/下载图片/移动或复制文件
                 singleScrapeDialogState = SingleScrapeDialogState.Scraping
-                val writeResult = withContext(Dispatchers.IO) { orch()?.writeToDisk(listOf(sf), video) }
+                val writeFiles = singleScrapeFiles.ifEmpty { listOf(sf) }
+                    .map { it.copy(number = number) }
+                val writeResult = withContext(Dispatchers.IO) { orch()?.writeToDisk(writeFiles, video) }
                 if (writeResult == null || !writeResult.success) {
                     failSingleScrape(writeResult?.error?.message ?: "Write failed")
                     return@launch

@@ -14,7 +14,8 @@ data class Video(
     val tags: List<String> = emptyList(), val coverUrl: String = "", val posterUrl: String = "",
     val sampleImages: List<String> = emptyList(), val summary: String = "",
     val source: String = "", val detailUrl: String = "", val webpage: String = "",
-    val path: String = ""
+    val path: String = "",
+    val version: String = ""
 )
 
 @Serializable
