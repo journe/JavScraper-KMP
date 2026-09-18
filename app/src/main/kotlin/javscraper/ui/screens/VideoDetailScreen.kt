@@ -185,7 +185,7 @@ fun VideoDetailScreen(
                 VideoInfoCard(
                     video = video,
                     // FlowRow 中 weight 表示占满该行剩余宽度(实验 API)
-                    modifier = Modifier.weight(1f, fill = false).widthIn(min = 360.dp)
+                    modifier = Modifier.weight(1f, fill = false).widthIn(min = 160.dp,max = 360.dp)
                 )
                 // extrafanart 预览图 Carousel:占满一整行,无图时不渲染。
                 // selectedIndex 驱动选中卡片"退出",为 SharedTransition 提供

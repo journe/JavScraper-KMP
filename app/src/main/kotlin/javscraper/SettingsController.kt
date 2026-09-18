@@ -40,6 +40,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var downloadPreviewImages by mutableStateOf(SettingsManager.get().downloadPreviewImages)
     var downloadWebPages by mutableStateOf(SettingsManager.get().downloadWebPages)
     var lockData by mutableStateOf(SettingsManager.get().lockData)
+    var updateMode by mutableStateOf(SettingsManager.get().updateMode)
     var autoScrape by mutableStateOf(SettingsManager.get().autoScrape)
     var fileLoggingEnabled by mutableStateOf(SettingsManager.get().fileLoggingEnabled)
     var folderLayers by mutableStateOf(SettingsManager.get().folderLayers)
@@ -70,6 +71,7 @@ class SettingsController(private val scope: CoroutineScope) {
                         scanDir = dir
                         rememberScanDir(dir)
                         saveBothDirs()
+                        onScrapeSettingsChanged()
                     }
                 }
             } catch (e: Exception) {
@@ -106,6 +108,7 @@ class SettingsController(private val scope: CoroutineScope) {
         scanDir = selected
         rememberScanDir(selected)
         saveBothDirs()
+        onScrapeSettingsChanged()
     }
 
     private fun rememberScanDir(directory: String) {
@@ -174,6 +177,12 @@ class SettingsController(private val scope: CoroutineScope) {
     fun updateLockData(v: Boolean) {
         lockData = v
         SettingsManager.update { it.copy(lockData = v) }
+        onScrapeSettingsChanged()
+    }
+
+    fun updateUpdateMode(v: Boolean) {
+        updateMode = v
+        SettingsManager.update { it.copy(updateMode = v) }
         onScrapeSettingsChanged()
     }
 
@@ -255,6 +264,7 @@ class SettingsController(private val scope: CoroutineScope) {
         downloadPreviewImages = fresh.downloadPreviewImages
         downloadWebPages = fresh.downloadWebPages
         lockData = fresh.lockData
+        updateMode = fresh.updateMode
         autoScrape = fresh.autoScrape
         fileLoggingEnabled = fresh.fileLoggingEnabled
         enabledSites = fresh.enabledSites

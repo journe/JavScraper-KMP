@@ -1,5 +1,7 @@
 package javscraper.settings
 
+import javscraper.SettingsController
+import kotlinx.coroutines.test.TestScope
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,6 +24,7 @@ class SettingsManagerTest {
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.downloadPreviewImages)
         assertEquals(false, settings.downloadWebPages)
+        assertEquals(false, settings.updateMode)
         assertEquals(false, settings.autoScrape)
         assertEquals(false, settings.fileLoggingEnabled)
         assertEquals("en", settings.language)
@@ -56,6 +59,7 @@ class SettingsManagerTest {
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
+            updateMode = true,
             autoScrape = true,
             fileLoggingEnabled = true,
             language = "zh",
@@ -77,6 +81,7 @@ class SettingsManagerTest {
         assertEquals(false, decoded.downloadImages)
         assertEquals(true, decoded.downloadPreviewImages)
         assertEquals(true, decoded.downloadWebPages)
+        assertEquals(true, decoded.updateMode)
         assertEquals(true, decoded.autoScrape)
         assertEquals(true, decoded.fileLoggingEnabled)
         assertEquals("zh", decoded.language)
@@ -124,6 +129,23 @@ class SettingsManagerTest {
         val jsonStr = """{"unknown_key": "value", "workerPath": "custom.exe"}"""
         val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
         assertEquals("custom.exe", settings.workerPath)
+    }
+
+    @Test
+    fun `scan directory history change rebuilds scrape options`() {
+        val original = SettingsManager.get()
+        var rebuilds = 0
+        try {
+            val controller = SettingsController(TestScope())
+            controller.onScrapeSettingsChanged = { rebuilds++ }
+            val before = rebuilds
+
+            controller.selectScanDirFromHistory("D:/JavScraper-Test")
+
+            assertEquals(before + 1, rebuilds)
+        } finally {
+            SettingsManager.update { original }
+        }
     }
 
     @Test

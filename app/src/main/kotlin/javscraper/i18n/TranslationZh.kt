@@ -68,6 +68,7 @@ class TranslationZh : TranslationEn() {
     override val settingsDownloadPreviewImages: String = "下载预览图"
     override val settingsDownloadWebPages: String = "下载网页"
     override val settingsNfoLockData: String = "锁定 NFO 元数据（lockdata）"
+    override val settingsUpdateMode: String = "更新模式"
     override val settingsRequestTimeout: String = "请求超时时间"
     override val settingsRequestTimeoutHint: String = "等待刮削 worker 响应的最长时间"
     override fun settingsRequestTimeoutOption(seconds: Int): String = "${seconds}秒"

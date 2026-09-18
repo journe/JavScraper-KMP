@@ -50,7 +50,7 @@ fun PosterCard(
     video: Video,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    cardWidth: Dp = 180.dp,
+    cardWidth: Dp = 190.dp,
     posterRefreshKey: Any? = null,
     source: PosterSource = PosterSource.POSTER
 ) {
@@ -69,7 +69,11 @@ fun PosterCard(
             if (dimension != null) value = dimension.second.toFloat() / dimension.first
         }
     }
-    val imageHeight = posterHeight(cardWidth)
+    val imageHeight =
+        when (source) {
+            PosterSource.POSTER -> 270.dp
+            PosterSource.FANART -> 452.dp
+        }
     val imageWidth = when (source) {
         PosterSource.POSTER -> cardWidth
         PosterSource.FANART -> imageHeight / fanartAspect
@@ -165,7 +169,6 @@ private fun PosterCardPreview() {
     }
 }
 
-internal fun posterHeight(cardWidth: Dp): Dp = cardWidth * 1.42F
 
 private val posterFileNames = listOf("poster.jpg", "poster.png")
 

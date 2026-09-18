@@ -255,6 +255,32 @@ class FileScannerTest {
     }
 
     @Test
+    fun `scanDirectory uses shared folder nfo for multi-part videos`() {
+        val tmpDir = Files.createTempDirectory("javscanner-test-")
+        try {
+            val movieDir = tmpDir.resolve("[ABC-001] Test")
+            Files.createDirectories(movieDir)
+            val firstPart = movieDir.resolve("[ABC-001] Test - part1.mp4")
+            val secondPart = movieDir.resolve("[ABC-001] Test - part2.mp4")
+            Files.createFile(firstPart)
+            Files.createFile(secondPart)
+            Files.writeString(
+                movieDir.resolve("[ABC-001] Test.nfo"),
+                "<movie><title>Shared Title</title><num>ABC-001</num></movie>"
+            )
+
+            val result = FileScanner.scanDirectory(tmpDir, recursive = true)
+            val parts = result.filter { it.fileName.contains("part") }
+
+            assertEquals(2, parts.size)
+            assertTrue(parts.all { it.isScraped })
+            assertTrue(parts.all { it.metadata?.title == "Shared Title" })
+        } finally {
+            Files.walk(tmpDir).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
     fun `scanDirectory recursive finds nested videos`() {
         val tmpDir = Files.createTempDirectory("javscanner-test-")
         try {

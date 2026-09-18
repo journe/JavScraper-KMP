@@ -116,6 +116,7 @@ class AppViewModel(
     var downloadPreviewImages by settings::downloadPreviewImages
     var downloadWebPages by settings::downloadWebPages
     var lockData by settings::lockData
+    var updateMode by settings::updateMode
     var autoScrape by settings::autoScrape
     var folderLayers by settings::folderLayers
     var filenameFormat by settings::filenameFormat
@@ -181,6 +182,7 @@ class AppViewModel(
     fun updateDownloadPreviewImages(v: Boolean) = settings.updateDownloadPreviewImages(v)
     fun updateDownloadWebPages(v: Boolean) = settings.updateDownloadWebPages(v)
     fun updateLockData(v: Boolean) = settings.updateLockData(v)
+    fun updateUpdateMode(v: Boolean) = settings.updateUpdateMode(v)
     fun updateAutoScrape(v: Boolean) = settings.updateAutoScrape(v)
     fun updateFileLogging(v: Boolean) = settings.updateFileLogging(v)
     fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
@@ -348,7 +350,7 @@ class AppViewModel(
     val settingsState: SettingsState
         get() = SettingsState(
             workerPath, outputDir, scanDir, scanDirHistory, scanRecursive, createMovieFolders,
-            moveInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, autoScrape,
+            moveInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, updateMode, autoScrape,
             fileLoggingEnabled, sites, enabledSites,
             siteMirrorUrls,
             currentLanguage, showRestartHint, folderLayers, filenameFormat,
@@ -358,7 +360,7 @@ class AppViewModel(
     val settingsActions: SettingsActions = SettingsActions(
         ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectScanDirFromHistory, ::selectWorkerPath,
         ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
-        ::updateMoveInsteadOfCopy, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateAutoScrape,
+        ::updateMoveInsteadOfCopy, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateUpdateMode, ::updateAutoScrape,
         ::updateFileLogging,
         ::toggleSite, ::updateSiteMirror, ::resetSettings, ::updateFolderLayer, ::addLayer,
         ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,

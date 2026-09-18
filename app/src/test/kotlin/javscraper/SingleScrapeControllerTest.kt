@@ -11,6 +11,26 @@ import kotlin.test.assertEquals
 class SingleScrapeControllerTest {
 
     @Test
+    fun `opening a new scrape defaults to last selected site`() {
+        val controller = SingleScrapeController(
+            scope = TestScope(),
+            orch = { null },
+            outputDir = { "output" }
+        )
+        val file = ScannedFile(path = "video.mp4", fileName = "video.mp4", number = "ABC-001")
+
+        assertEquals(null, controller.singleScrapeSite)
+        controller.updateSingleScrapeSite("javbus")
+        controller.openSingleScrape(file)
+        assertEquals("javbus", controller.singleScrapeSite)
+
+        controller.closeSingleScrape()
+        controller.openSingleScrape(file)
+
+        assertEquals("javbus", controller.singleScrapeSite)
+    }
+
+    @Test
     fun `showing preview publishes network candidates`() {
         val controller = SingleScrapeController(
             scope = TestScope(),

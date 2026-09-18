@@ -9,6 +9,7 @@ class ScrapeOptionsTest {
     @Test
     fun `from projects every settings field`() {
         val settings = AppSettings(
+            scanDir = "D:/Scan",
             outputDir = "D:/Media",
             createMovieFolders = false,
             moveInsteadOfCopy = false,
@@ -16,6 +17,7 @@ class ScrapeOptionsTest {
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
+            updateMode = true,
             lockData = false,
             folderLayers = listOf("{num}"),
             filenameFormat = "{num}",
@@ -27,6 +29,7 @@ class ScrapeOptionsTest {
 
         val options = ScrapeOptions.from(settings)
 
+        assertEquals("D:/Scan", options.scanDir)
         assertEquals("D:/Media", options.outputDir)
         assertEquals(false, options.createMovieFolders)
         assertEquals(false, options.moveInsteadOfCopy)
@@ -34,6 +37,7 @@ class ScrapeOptionsTest {
         assertEquals(false, options.downloadImages)
         assertEquals(true, options.downloadPreviewImages)
         assertEquals(true, options.downloadWebPages)
+        assertEquals(true, options.updateMode)
         assertEquals(false, options.lockData)
         assertEquals(listOf("{num}"), options.folderLayers)
         assertEquals("{num}", options.filenameFormat)

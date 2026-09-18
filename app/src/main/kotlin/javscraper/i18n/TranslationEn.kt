@@ -76,6 +76,7 @@ open class TranslationEn {
     open val settingsDownloadPreviewImages: String = "Download preview images"
     open val settingsDownloadWebPages: String = "Download webpage"
     open val settingsNfoLockData: String = "Lock NFO metadata (lockdata)"
+    open val settingsUpdateMode: String = "Update mode"
     open val settingsRequestTimeout: String = "Request Timeout"
     open val settingsRequestTimeoutHint: String = "Max time to wait for the scraper worker response"
     open fun settingsRequestTimeoutOption(seconds: Int): String = "${seconds}s"

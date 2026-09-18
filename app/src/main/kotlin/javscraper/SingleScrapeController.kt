@@ -32,6 +32,7 @@ class SingleScrapeController(
     private var singleScrapeFiles = emptyList<ScannedFile>()
     var singleScrapeNumber by mutableStateOf("")
     var singleScrapeSite by mutableStateOf<String?>(null)
+    private var lastSelectedSingleScrapeSite: String? = null
     var singleScrapeTask by mutableStateOf<ScrapeTask?>(null)
     var singleScrapeError by mutableStateOf<String?>(null)
     var singleScrapeErrorStage by mutableStateOf<String?>(null)
@@ -52,6 +53,7 @@ class SingleScrapeController(
     }
 
     fun updateSingleScrapeSite(value: String?) {
+        lastSelectedSingleScrapeSite = value
         singleScrapeSite = value
     }
 
@@ -64,7 +66,7 @@ class SingleScrapeController(
         singleScrapeFile = file
         singleScrapeFiles = files
         singleScrapeNumber = file.number
-        singleScrapeSite = null
+        singleScrapeSite = lastSelectedSingleScrapeSite
         singleScrapeTask = task?.copy(status = ScrapeTaskStatus.PENDING)
             ?: ScrapeTask(
                 number = file.number,
@@ -130,7 +132,7 @@ class SingleScrapeController(
                 singleScrapeDialogState = SingleScrapeDialogState.Scraping
                 val writeFiles = singleScrapeFiles.ifEmpty { listOf(sf) }
                     .map { it.copy(number = number) }
-                val writeResult = withContext(Dispatchers.IO) { orch()?.writeToDisk(writeFiles, video) }
+                val writeResult = withContext(Dispatchers.IO) { orch()?.writeSingleScrapeToDisk(writeFiles, video) }
                 if (writeResult == null || !writeResult.success) {
                     failSingleScrape(writeResult?.error?.message ?: "Write failed")
                     return@launch

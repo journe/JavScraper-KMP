@@ -123,7 +123,11 @@ object FileScanner {
         val videoName = video.fileName.toString()
         val nfoName = videoName.substringBeforeLast('.', videoName) + ".nfo"
         val nfo = video.resolveSibling(nfoName)
-        return nfo.takeIf { Files.isRegularFile(it) }
+        if (Files.isRegularFile(nfo)) return nfo
+
+        val parent = video.parent ?: return null
+        val sharedNfo = parent.resolve(parent.fileName.toString() + ".nfo")
+        return sharedNfo.takeIf { Files.isRegularFile(it) }
     }
 
     fun isVideo(p: Path): Boolean =

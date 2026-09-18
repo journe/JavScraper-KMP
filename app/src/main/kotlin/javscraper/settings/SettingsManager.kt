@@ -18,6 +18,8 @@ data class AppSettings(
     val downloadWebPages: Boolean = false, val autoScrape: Boolean = false, val fileLoggingEnabled: Boolean = false,
     /** NFO 中是否写入 `lockdata` 标记（媒体服务器据此锁定元数据）。 */
     val lockData: Boolean = true,
+    /** 更新模式：复用旧媒体目录资产，并字段级修改既有 NFO。 */
+    val updateMode: Boolean = false,
     val language: String = "en",
     val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2", "fc2mirror","heyzo","mmtv"),
     val siteMirrorUrls: Map<String, String> = emptyMap(),

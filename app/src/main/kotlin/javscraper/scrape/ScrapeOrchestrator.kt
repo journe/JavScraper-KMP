@@ -3,6 +3,7 @@ package javscraper.scrape
 import javscraper.io.FileScanner
 import javscraper.io.ImageSaver
 import javscraper.io.NfoWriter
+import javscraper.io.NfoUpdater
 import javscraper.io.RenameFormatter
 import javscraper.models.*
 import javscraper.sidecar.SidecarManager
@@ -19,6 +20,7 @@ class ScrapeOrchestrator(
     private val webpageArchiver: WebpageArchiver? = null
 ) {
     private val activeWebpageArchiver: WebpageArchiver by lazy { webpageArchiver ?: SidecarWebpageArchiver(sidecar) }
+    private val updateModeWriter = UpdateModeWriter(options)
     private val log = KotlinLogging.logger {}
 
     suspend fun process(sf: ScannedFile, site: String? = null): ScrapeResult {
@@ -43,27 +45,50 @@ class ScrapeOrchestrator(
             sf.number, site, options.enabledSites?.toList(), options.siteMirrorUrls, options.downloadWebPages
         ).map { it.copy(version = version) }
     }
-    /** Write scraped metadata (NFO/images) and organize files to the output directory. */
-    suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult {
+    /** Standard write path used by batch scraping; update mode never changes it. */
+    suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult =
+        writeToDiskInternal(files, video, allowUpdateMode = false)
+
+    /** Single-scrape write path; it honors the user update-mode setting. */
+    suspend fun writeSingleScrapeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult =
+        writeToDiskInternal(files, video, allowUpdateMode = true)
+
+    private suspend fun writeToDiskInternal(
+        files: List<ScannedFile>,
+        video: Video,
+        allowUpdateMode: Boolean
+    ): ScrapeResult {
         if (files.isEmpty())
             return ScrapeResult(false, error = ScrapeError(-1, "No files"))
-        if (options.outputDir.isBlank())
+        val updateRequested = options.updateMode && allowUpdateMode
+        if (options.outputDir.isBlank() && !updateRequested)
             return ScrapeResult(false, error = ScrapeError(-1, "Output directory is empty"))
 
         val outputVideo = video.withFileVersion(files)
         val ioErrors = mutableListOf<String>()
-        val writePlan = resolveWritePlan(files, video)
+        val updateResult = if (updateRequested) updateModeWriter.prepare(files, outputVideo) else null
+        if (updateResult is UpdateModeResult.Failed) {
+            return ScrapeResult(false, error = ScrapeError(-20, updateResult.errors.joinToString("; ")))
+        }
+        val updateReady = updateResult as? UpdateModeResult.Ready
+        val writePlan = if (updateReady == null) resolveWritePlan(files, video) else null
+        val targetFolder = updateReady?.folder ?: writePlan!!.folder
+
         try {
-            Files.createDirectories(writePlan.folder)
+            Files.createDirectories(targetFolder)
         } catch (e: Exception) {
             log.error(e) { "Directory creation failed" }
             ioErrors += "Directory creation failed: ${e.message}"
         }
         try {
-            Files.writeString(
-                writePlan.folder.resolve(writePlan.nfoBase + ".nfo"),
-                NfoWriter.generate(outputVideo, options.lockData)
-            )
+            if (writePlan != null) {
+                Files.writeString(
+                    targetFolder.resolve(writePlan.nfoBase + ".nfo"),
+                    NfoWriter.generate(outputVideo, options.lockData)
+                )
+            } else {
+                NfoUpdater.update(updateReady!!.nfoPath, outputVideo, options.lockData)
+            }
         } catch (e: Exception) {
             log.error(e) { "NFO failed" }
             ioErrors += "NFO failed: ${e.message}"
@@ -71,7 +96,7 @@ class ScrapeOrchestrator(
         var mhtmlPath: Path? = null
         if (options.downloadWebPages) {
             try {
-                mhtmlPath = writeWebpage(writePlan.folder, outputVideo)
+                mhtmlPath = writeWebpage(targetFolder, outputVideo)
                 if (mhtmlPath == null) ioErrors += "Webpage content missing"
             } catch (e: Exception) {
                 log.error(e) { "Webpage failed" }
@@ -79,59 +104,87 @@ class ScrapeOrchestrator(
             }
         }
         if (options.downloadImages) {
-            if (options.downloadWebPages) {
-                val path = mhtmlPath
-                if (path != null) {
-                    try {
-                        val imageResult = activeWebpageArchiver.extractImages(
-                            path,
-                            writePlan.folder,
-                            outputVideo.copy(sampleImages = emptyList())
-                        )
-                        if (!imageResult.success) ioErrors += "Images failed: ${imageResult.message}"
-                    } catch (e: Exception) {
-                        log.warn(e) { "Images failed" }
-                        ioErrors += "Images failed: ${e.message}"
-                    }
+            val downloadCoverArt = updateReady?.coverArtReusable != true
+            val downloadPreviews = options.downloadPreviewImages && updateReady?.previewsReusable != true
+            writeImages(targetFolder, outputVideo, mhtmlPath, ioErrors, downloadCoverArt, downloadPreviews)
+        }
+
+        if (writePlan != null) {
+            writePlan.files.forEach { planned -> writeSourceFile(planned, ioErrors) }
+        }
+
+        val resultPath = updateReady?.files?.firstOrNull()?.path
+            ?: writePlan!!.files.first().target.toString()
+        return if (ioErrors.isEmpty()) {
+            ScrapeResult(true, data = outputVideo.copy(path = resultPath))
+        } else {
+            ScrapeResult(false, error = ScrapeError(-20, ioErrors.joinToString("; ")))
+        }
+    }
+
+    private suspend fun writeImages(
+        folder: Path,
+        video: Video,
+        mhtmlPath: Path?,
+        ioErrors: MutableList<String>,
+        downloadCoverArt: Boolean,
+        downloadPreviewImages: Boolean
+    ) {
+        if (options.downloadWebPages) {
+            val path = mhtmlPath
+            if (downloadCoverArt && path != null) {
+                try {
+                    val imageResult = activeWebpageArchiver.extractImages(
+                        path,
+                        folder,
+                        video.copy(sampleImages = emptyList())
+                    )
+                    if (!imageResult.success) ioErrors += "Images failed: ${imageResult.message}"
+                } catch (e: Exception) {
+                    log.warn(e) { "Images failed" }
+                    ioErrors += "Images failed: ${e.message}"
                 }
-                if (options.downloadPreviewImages) {
-                    try {
-                        ImageSaver.download(writePlan.folder, sampleImages = outputVideo.sampleImages)
-                    } catch (e: Exception) {
-                        log.warn(e) { "Preview images failed" }
-                        ioErrors += "Preview images failed: ${e.message}"
-                    }
+            }
+            if (downloadPreviewImages) {
+                try {
+                    ImageSaver.download(folder, sampleImages = video.sampleImages)
+                } catch (e: Exception) {
+                    log.warn(e) { "Preview images failed" }
+                    ioErrors += "Preview images failed: ${e.message}"
                 }
-            } else try {
-                val previewImages = if (options.downloadPreviewImages) outputVideo.sampleImages else emptyList()
-                ImageSaver.download(writePlan.folder, outputVideo.coverUrl, outputVideo.posterUrl, previewImages)
+            }
+        } else if (downloadCoverArt) {
+            try {
+                val previewImages = if (downloadPreviewImages) video.sampleImages else emptyList()
+                ImageSaver.download(folder, video.coverUrl, video.posterUrl, previewImages)
             } catch (e: Exception) {
                 log.warn(e) { "Images failed" }
                 ioErrors += "Images failed: ${e.message}"
             }
-        }
-
-        writePlan.files.forEach { planned ->
+        } else if (downloadPreviewImages) {
             try {
-                val src = Path.of(planned.source.path)
-                val tgt = planned.target
-                if (!Files.exists(tgt)) {
-                    if (options.moveInsteadOfCopy) {
-                        Files.move(src, tgt, StandardCopyOption.REPLACE_EXISTING)
-                    } else {
-                        Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
-                    }
-                }
+                ImageSaver.download(folder, sampleImages = video.sampleImages)
             } catch (e: Exception) {
-                log.warn(e) { "File move failed for ${planned.source.fileName}" }
-                ioErrors += "File move failed for ${planned.source.fileName}: ${e.message}"
+                log.warn(e) { "Preview images failed" }
+                ioErrors += "Preview images failed: ${e.message}"
             }
         }
+    }
 
-        return if (ioErrors.isEmpty()) {
-            ScrapeResult(true, data = outputVideo.copy(path = writePlan.files.first().target.toString()))
-        } else {
-            ScrapeResult(false, error = ScrapeError(-20, ioErrors.joinToString("; ")))
+    private fun writeSourceFile(planned: PlannedFile, ioErrors: MutableList<String>) {
+        try {
+            val src = Path.of(planned.source.path)
+            val tgt = planned.target
+            if (!Files.exists(tgt)) {
+                if (options.moveInsteadOfCopy) {
+                    Files.move(src, tgt, StandardCopyOption.REPLACE_EXISTING)
+                } else {
+                    Files.copy(src, tgt, StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+        } catch (e: Exception) {
+            log.warn(e) { "File move failed for ${planned.source.fileName}" }
+            ioErrors += "File move failed for ${planned.source.fileName}: ${e.message}"
         }
     }
 

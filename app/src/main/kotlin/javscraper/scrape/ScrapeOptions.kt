@@ -9,6 +9,7 @@ import javscraper.settings.AppSettings
  * 避免构造参数随设置项增长而膨胀；默认值统一由 [AppSettings] 提供，避免两处维护。
  */
 data class ScrapeOptions(
+    val scanDir: String,
     val outputDir: String,
     val createMovieFolders: Boolean,
     val moveInsteadOfCopy: Boolean,
@@ -16,6 +17,7 @@ data class ScrapeOptions(
     val downloadPreviewImages: Boolean,
     val downloadWebPages: Boolean,
     val lockData: Boolean,
+    val updateMode: Boolean,
     val folderLayers: List<String>,
     val filenameFormat: String,
     val maxTitleLength: Int,
@@ -27,6 +29,7 @@ data class ScrapeOptions(
     companion object {
         /** 将用户设置投影为刮削选项，是本仓库中这些配置的默认值来源。 */
         fun from(settings: AppSettings): ScrapeOptions = ScrapeOptions(
+            scanDir = settings.scanDir,
             outputDir = settings.outputDir,
             createMovieFolders = settings.createMovieFolders,
             moveInsteadOfCopy = settings.moveInsteadOfCopy,
@@ -34,6 +37,7 @@ data class ScrapeOptions(
             downloadPreviewImages = settings.downloadPreviewImages,
             downloadWebPages = settings.downloadWebPages,
             lockData = settings.lockData,
+            updateMode = settings.updateMode,
             folderLayers = settings.folderLayers,
             filenameFormat = settings.filenameFormat,
             maxTitleLength = settings.maxTitleLength,

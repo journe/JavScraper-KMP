@@ -74,6 +74,7 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
         }
         SettingsSwitchRow(t.settingsDownloadWebPages, state.downloadWebPages, actions.onDownloadWebPagesChange)
         SettingsSwitchRow(t.settingsNfoLockData, state.lockData, actions.onLockDataChange)
+        SettingsSwitchRow(t.settingsUpdateMode, state.updateMode, actions.onUpdateModeChange)
         Spacer(Modifier.height(16.dp))
         Text(t.settingsRequestTimeout, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Text(
