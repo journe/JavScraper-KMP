@@ -53,6 +53,9 @@ class TranslationZh : TranslationEn() {
     override val galleryEmptyHint: String = "暂无结果"
     override val metadataEditNfoMissing: String = "未找到匹配的 NFO 文件"
     override val metadataEditInvalidFields: String = "请检查番号、时长和评分"
+    override val metadataEditAddTagTitle: String = "新增类别"
+    override val metadataEditAddTagPlaceholder: String = "输入新类别"
+    override val metadataEditAddTagAction: String = "添加"
 
     override fun metadataEditSaveFailed(message: String): String =
         "保存元数据失败：$message"

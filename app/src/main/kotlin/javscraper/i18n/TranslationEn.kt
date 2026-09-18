@@ -59,6 +59,9 @@ open class TranslationEn {
     open val galleryEmptyHint: String = "No results yet"
     open val metadataEditNfoMissing: String = "No matching NFO file was found"
     open val metadataEditInvalidFields: String = "Check number, duration, and rating"
+    open val metadataEditAddTagTitle: String = "Add Tag"
+    open val metadataEditAddTagPlaceholder: String = "New tag"
+    open val metadataEditAddTagAction: String = "Add"
 
     open fun metadataEditSaveFailed(message: String): String =
         "Failed to save metadata: $message"

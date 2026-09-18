@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,13 +24,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
+import javscraper.i18n.TranslationZh
 import javscraper.io.metadata.VideoMetadataEditResult
 import javscraper.models.Video
 import javscraper.ui.VideoFieldValue
+import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.videoFieldEditValues
+import javscraper.ui.theme.JavScraperTheme
 import kotlinx.coroutines.launch
 
 @Composable
@@ -70,7 +75,27 @@ fun VideoEditDialog(
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (index == VIDEO_EDIT_RATING_FIELD_INDEX) {
+                        val items = field.items
+                        if (items != null) {
+                            EditableChipField(
+                                items = items,
+                                onItemSelectionChange = { itemIndex, selected ->
+                                    fields = updateVideoEditItemSelection(
+                                        fields = fields,
+                                        fieldIndex = index,
+                                        itemIndex = itemIndex,
+                                        selected = selected
+                                    )
+                                },
+                                onItemAdd = { value ->
+                                    fields = addVideoEditItem(
+                                        fields = fields,
+                                        fieldIndex = index,
+                                        value = value
+                                    )
+                                }
+                            )
+                        } else if (index == VIDEO_EDIT_RATING_FIELD_INDEX) {
                             RatingEditSlider(
                                 value = field.value,
                                 onValueChange = { value ->
@@ -166,4 +191,18 @@ private fun MetadataTextField(
         minLines = if (multiline) 2 else 1,
         textStyle = MaterialTheme.typography.bodySmall
     )
+}
+
+@Preview(widthDp = 520, heightDp = 720, name = "Video Edit Dialog")
+@Composable
+private fun VideoEditDialogPreview() {
+    CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
+        JavScraperTheme {
+            VideoEditDialog(
+                video = previewVideoWithAllFields(),
+                onSaveMetadata = { _ -> VideoMetadataEditResult.NfoMissing },
+                onDismiss = {}
+            )
+        }
+    }
 }

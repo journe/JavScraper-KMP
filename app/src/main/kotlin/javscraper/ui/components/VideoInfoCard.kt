@@ -1,15 +1,19 @@
 package javscraper.ui.components
 
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +27,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.models.Video
+import javscraper.ui.VideoFieldItem
 import javscraper.ui.videoFieldValues
 import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
@@ -30,9 +35,11 @@ import javscraper.ui.theme.JavScraperTheme
 internal data class VideoInfoRow(
     val label: String,
     val value: String,
-    val isEmpty: Boolean
+    val isEmpty: Boolean,
+    val items: List<VideoFieldItem>? = null
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VideoInfoCard(video: Video, modifier: Modifier = Modifier) {
     val translations = LocalTranslations.current
@@ -57,16 +64,37 @@ fun VideoInfoCard(video: Video, modifier: Modifier = Modifier) {
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = row.value,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (row.isEmpty) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
+                    if (row.items.isNullOrEmpty()) {
+                        Text(
+                            text = row.value,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (row.isEmpty) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                    } else {
+                        FlowRow(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            row.items.forEach { item ->
+                                AssistChip(
+                                    modifier = Modifier.height(24.dp),
+                                    onClick = {},
+                                    label = {
+                                        Text(
+                                            text = item.value,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                )
+                            }
                         }
-                    )
+                    }
                 }
             }
         }
@@ -80,7 +108,8 @@ internal fun videoInfoRows(video: Video, t: TranslationEn): List<VideoInfoRow> {
         VideoInfoRow(
             label = field.label,
             value = if (empty) t.commonNotSet else normalizedValue,
-            isEmpty = empty
+            isEmpty = empty,
+            items = field.items
         )
     }
 }

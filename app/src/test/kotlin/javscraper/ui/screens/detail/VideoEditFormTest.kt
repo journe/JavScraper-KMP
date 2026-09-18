@@ -5,6 +5,7 @@ import javscraper.models.Video
 import javscraper.ui.editRatingSliderValue
 import javscraper.ui.formatEditRating
 import javscraper.ui.videoFieldEditValues
+import javscraper.ui.VideoFieldItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -32,18 +33,95 @@ class VideoEditFormTest {
         assertEquals("SONE-001", fields[0].value)
         assertEquals("Old title", fields[1].value)
         assertEquals("Actor A, Actor B", fields[2].value)
+        assertNull(fields[2].items)
         assertEquals("Old summary", fields[3].value)
         assertEquals("9.5", fields[4].value)
         assertEquals("Tag A, Tag B", fields[9].value)
+        assertEquals(listOf(VideoFieldItem("Tag A"), VideoFieldItem("Tag B")), fields[9].items)
         assertEquals("Example", fields[10].value)
         assertEquals("https://example.com/movie", fields[11].value)
         assertTrue(fields.all { it.value.isEmpty() || it.value.isNotBlank() })
     }
 
     @Test
-    fun `edited fields convert back to video and parse list and numeric fields`() {
+    fun `actress edit field parses text input`() {
         val original = Video(
             number = "SONE-001",
+            actresses = listOf("Actor A", "Actor B", "Actor C"),
+            tags = listOf("Tag A", "Tag B")
+        )
+        val fields = videoFieldEditValues(original, TranslationEn())
+
+        val edited = videoFromEditFields(
+            original,
+            fields.mapIndexed { index, field ->
+                if (index == 2) field.copy(value = "Actor A, Actor C\nNew Actor") else field
+            }
+        )
+
+        assertEquals(listOf("Actor A", "Actor C", "New Actor"), edited?.actresses)
+    }
+
+    @Test
+    fun `tag edit field toggles selection and saves selected values only`() {
+        val original = Video(
+            number = "SONE-001",
+            actresses = listOf("Actor A", "Actor B", "Actor C"),
+            tags = listOf("Tag A", "Tag B")
+        )
+        val fields = videoFieldEditValues(original, TranslationEn())
+        val editedFields = updateVideoEditItemSelection(
+            fields,
+            fieldIndex = 9,
+            itemIndex = 0,
+            selected = false
+        )
+
+        assertNull(editedFields[2].items)
+        assertEquals(
+            listOf(VideoFieldItem("Tag A", selected = false), VideoFieldItem("Tag B")),
+            editedFields[9].items
+        )
+
+        val edited = videoFromEditFields(original, editedFields)
+        assertEquals(listOf("Actor A", "Actor B", "Actor C"), edited?.actresses)
+        assertEquals(listOf("Tag B"), edited?.tags)
+    }
+
+    @Test
+    fun `adding a tag selects it by default and blank input is ignored`() {
+        val original = Video(number = "SONE-001", tags = listOf("Tag A"))
+        val fields = videoFieldEditValues(original, TranslationEn())
+
+        val withTag = addVideoEditItem(fields, fieldIndex = 9, value = " New Tag ")
+        val withBlank = addVideoEditItem(withTag, fieldIndex = 9, value = "   ")
+
+        assertEquals(
+            listOf(VideoFieldItem("Tag A"), VideoFieldItem("New Tag")),
+            withBlank[9].items
+        )
+        assertEquals(listOf("Tag A", "New Tag"), videoFromEditFields(original, withBlank)?.tags)
+    }
+
+    @Test
+    fun `deselecting every tag saves an empty tag list`() {
+        val original = Video(number = "SONE-001", tags = listOf("Tag A", "Tag B"))
+        val fields = videoFieldEditValues(original, TranslationEn())
+        val noneSelected = fields.mapIndexed { index, field ->
+            if (index != 9) field else field.copy(
+                items = field.items?.map { it.copy(selected = false) }
+            )
+        }
+
+        assertEquals(emptyList(), videoFromEditFields(original, noneSelected)?.tags)
+    }
+
+    @Test
+    fun `edited fields convert back to video with list and numeric fields`() {
+        val original = Video(
+            number = "SONE-001",
+            actresses = listOf("Actor A", "Actor B", "Actor C"),
+            tags = listOf("Tag A", "Tag B"),
             date = "2026-01-01",
             duration = 125,
             coverUrl = "https://example.com/cover.jpg",
@@ -56,10 +134,8 @@ class VideoEditFormTest {
                 when (index) {
                     0 -> field.copy(value = "ABC-001")
                     1 -> field.copy(value = "New title")
-                    2 -> field.copy(value = "Actor A, Actor B\nActor C")
                     3 -> field.copy(value = "Updated summary")
                     4 -> field.copy(value = "9.5")
-                    9 -> field.copy(value = "Tag A, Tag B")
                     10 -> field.copy(value = "Updated source")
                     11 -> field.copy(value = "https://example.com/updated")
                     else -> field

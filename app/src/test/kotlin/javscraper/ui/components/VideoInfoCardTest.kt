@@ -2,6 +2,7 @@ package javscraper.ui.components
 
 import javscraper.i18n.TranslationEn
 import javscraper.models.Video
+import javscraper.ui.VideoFieldItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -39,6 +40,7 @@ class VideoInfoCardTest {
         assertEquals("Full metadata title", rows[1].value)
         assertEquals("Actresses", rows[2].label)
         assertEquals("Actor A, Actor B", rows[2].value)
+        assertEquals(listOf(VideoFieldItem("Actor A"), VideoFieldItem("Actor B")), rows[2].items)
         assertEquals("Date", rows[3].label)
         assertEquals("2026-08-26", rows[3].value)
         assertEquals("Summary", rows[4].label)
@@ -51,6 +53,7 @@ class VideoInfoCardTest {
         assertTrue(rows[10].value.contains("9.2"))
         assertEquals("Tags", rows[11].label)
         assertEquals("Tag A, Tag B", rows[11].value)
+        assertEquals(listOf(VideoFieldItem("Tag A"), VideoFieldItem("Tag B")), rows[11].items)
         assertEquals("Source", rows[12].label)
         assertEquals("JavBus", rows[12].value)
         assertEquals("Detail URL", rows[13].label)
@@ -75,5 +78,6 @@ class VideoInfoCardTest {
         assertEquals("SONE-002", rows[0].value)
         assertEquals(rows.drop(1).size, rows.drop(1).count { it.isEmpty })
         assertTrue(rows.drop(1).all { it.value == "Not set" })
+        assertTrue(rows.all { it.items.isNullOrEmpty() })
     }
 }
