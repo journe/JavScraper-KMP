@@ -52,6 +52,29 @@ class TranslationsTest {
         assertTrue(TranslationZh().cropAspectRatio(1.5f).endsWith("1.50"))
     }
 
+    @Test
+    fun `video metadata edit texts are localized`() {
+        assertEquals("Edit metadata", TranslationEn().galleryDetailEdit)
+        assertEquals("编辑元数据", TranslationZh().galleryDetailEdit)
+        assertEquals("Edit Video Metadata", TranslationEn().galleryEditTitle)
+        assertEquals("编辑视频元数据", TranslationZh().galleryEditTitle)
+        assertEquals("Save", TranslationEn().commonSave)
+        assertEquals("保存", TranslationZh().commonSave)
+        assertEquals("Saving...", TranslationEn().commonSaving)
+        assertEquals("保存中...", TranslationZh().commonSaving)
+        assertEquals("No matching NFO file was found", TranslationEn().metadataEditNfoMissing)
+        assertEquals("未找到匹配的 NFO 文件", TranslationZh().metadataEditNfoMissing)
+        assertEquals(
+            "Failed to save metadata: disk error",
+            TranslationEn().metadataEditSaveFailed("disk error")
+        )
+        assertEquals("保存元数据失败：disk error", TranslationZh().metadataEditSaveFailed("disk error"))
+        assertEquals("Check number, duration, and rating", TranslationEn().metadataEditInvalidFields)
+        assertEquals("请检查番号、时长和评分", TranslationZh().metadataEditInvalidFields)
+        assertEquals("Metadata saved", TranslationEn().statusMetadataSaved)
+        assertEquals("元数据已保存", TranslationZh().statusMetadataSaved)
+    }
+
     private fun stringFields(translation: TranslationEn): Map<String, String> =
         translation.javaClass.declaredFields
             .filter { field: Field -> field.type == String::class.java }

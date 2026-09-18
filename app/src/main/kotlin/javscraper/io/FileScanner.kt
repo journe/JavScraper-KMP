@@ -119,7 +119,7 @@ object FileScanner {
         )
     }
 
-    private fun findMatchingNfo(video: Path): Path? {
+    fun findMatchingNfo(video: Path): Path? {
         val videoName = video.fileName.toString()
         val nfoName = videoName.substringBeforeLast('.', videoName) + ".nfo"
         val nfo = video.resolveSibling(nfoName)

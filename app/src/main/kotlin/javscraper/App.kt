@@ -26,6 +26,7 @@ import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.LogsDialog
 import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.screens.*
+import javscraper.ui.screens.detail.VideoDetailActions
 import javscraper.ui.screens.settings.*
 
 import javscraper.ui.theme.JavScraperTheme
@@ -173,21 +174,24 @@ fun App() {
                                 } else {
                                     VideoDetailScreen(
                                         video = video,
-                                        onBack = { selectedVideoPath = null },
-                                        onRefresh = {
-                                            galleryState.fileByPath(video.path)
-                                                ?.let(viewModel::openSingleScrape)
-                                        },
-                                        onPlayVideo = {
-                                            scope.launch(Dispatchers.IO) {
-                                                systemFileLauncher.openVideo(video.path)
+                                        actions = VideoDetailActions(
+                                            onBack = { selectedVideoPath = null },
+                                            onRefresh = {
+                                                galleryState.fileByPath(video.path)
+                                                    ?.let(viewModel::openSingleScrape)
+                                            },
+                                            onSaveMetadata = viewModel::saveVideoMetadata,
+                                            onPlayVideo = {
+                                                scope.launch(Dispatchers.IO) {
+                                                    systemFileLauncher.openVideo(video.path)
+                                                }
+                                            },
+                                            onOpenFolder = {
+                                                scope.launch(Dispatchers.IO) {
+                                                    systemFileLauncher.openContainingDirectory(video.path)
+                                                }
                                             }
-                                        },
-                                        onOpenFolder = {
-                                            scope.launch(Dispatchers.IO) {
-                                                systemFileLauncher.openContainingDirectory(video.path)
-                                            }
-                                        },
+                                        ),
                                         animatedVisibilityScope = this@AnimatedContent,
                                         posterRefreshKey = posterRefreshVersion,
                                         onPosterCropped = { posterRefreshVersion++ }

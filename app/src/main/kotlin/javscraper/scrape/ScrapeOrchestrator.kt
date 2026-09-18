@@ -87,7 +87,12 @@ class ScrapeOrchestrator(
                     NfoWriter.generate(outputVideo, options.lockData)
                 )
             } else {
-                NfoUpdater.update(updateReady!!.nfoPath, outputVideo, options.lockData)
+                NfoUpdater.update(
+                    path = updateReady!!.nfoPath,
+                    video = outputVideo,
+                    lockData = options.lockData,
+                    insertMissingFields = true
+                )
             }
         } catch (e: Exception) {
             log.error(e) { "NFO failed" }

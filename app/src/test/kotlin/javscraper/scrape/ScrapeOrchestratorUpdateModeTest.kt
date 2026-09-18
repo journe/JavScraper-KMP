@@ -112,6 +112,8 @@ class ScrapeOrchestratorUpdateModeTest {
                 Video(
                     number = "NEW-001",
                     title = "New Title",
+                    source = "javdb",
+                    posterUrl = "https://example.invalid/poster.jpg",
                     sampleImages = listOf("$baseUrl/sample.jpg")
                 )
             )
@@ -126,6 +128,10 @@ class ScrapeOrchestratorUpdateModeTest {
                 "sample-bytes",
                 newFolder.resolve("extrafanart").resolve("fanart1.jpg").readText()
             )
+            val updatedNfo = newFolder.resolve("OLD-001.nfo").readText()
+            assertTrue(updatedNfo.contains("<source>javdb</source>"))
+            assertTrue(updatedNfo.contains("<fanart>"))
+            assertTrue(updatedNfo.contains("<thumb>$baseUrl/sample.jpg</thumb>"))
             assertEquals(0, outputDir.listFiles()?.size)
         } finally {
             server.stop(0)

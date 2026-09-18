@@ -12,6 +12,7 @@ open class TranslationEn {
     open val statusStarting: String = "Starting..."
     open val statusFailed: String = "Failed"
     open val statusFileNotFound: String = "File not found"
+    open val statusMetadataSaved: String = "Metadata saved"
 
     open fun statusReady(sites: Int): String = "Ready ($sites sites)"
     open fun statusError(msg: String): String = "Error: $msg"
@@ -49,10 +50,17 @@ open class TranslationEn {
     open val galleryDetailTitle: String = "Video Details"
     open val galleryDetailBack: String = "Back to results"
     open val galleryDetailRefresh: String = "Refresh metadata"
+    open val galleryDetailEdit: String = "Edit metadata"
+    open val galleryEditTitle: String = "Edit Video Metadata"
     open val galleryDetailPlay: String = "Play video"
     open val galleryDetailOpenFolder: String = "Open containing folder"
     open val galleryDetailExtraFanart: String = "Extra artwork"
     open val galleryEmptyHint: String = "No results yet"
+    open val metadataEditNfoMissing: String = "No matching NFO file was found"
+    open val metadataEditInvalidFields: String = "Check number, duration, and rating"
+
+    open fun metadataEditSaveFailed(message: String): String =
+        "Failed to save metadata: $message"
 
     open fun galleryCount(n: Int): String = "$n movies scraped"
 
@@ -127,6 +135,8 @@ open class TranslationEn {
     open val commonNamingExample: String = "e.g. {num} {title}"
     open val commonNotSet: String = "Not set"
     open val commonNumber: String = "Number"
+    open val commonSave: String = "Save"
+    open val commonSaving: String = "Saving..."
     open val commonScanDirectory: String = "Scan Directory"
     open val commonScraperSites: String = "Scraper Sites"
     open val commonSettings: String = "Settings"

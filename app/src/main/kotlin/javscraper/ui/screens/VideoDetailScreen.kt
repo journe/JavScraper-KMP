@@ -22,14 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,16 +60,17 @@ import javscraper.ui.components.listExtraFanartImages
 import javscraper.ui.components.localPosterPath
 import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
+import javscraper.ui.screens.detail.VideoDetailActions
+import javscraper.ui.screens.detail.VideoDetailHeader
+import javscraper.ui.screens.detail.VideoEditDialog
+import javscraper.io.metadata.VideoMetadataEditResult
 import java.io.File
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun VideoDetailScreen(
     video: Video,
-    onBack: () -> Unit,
-    onRefresh: () -> Unit,
-    onPlayVideo: () -> Unit = {},
-    onOpenFolder: () -> Unit = {},
+    actions: VideoDetailActions,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
     // 由 App 层持有并注入:与图库页共享同一裁剪版本号,两侧 PosterCard 同步刷新
@@ -86,6 +79,7 @@ fun VideoDetailScreen(
 ) {
     val translations = LocalTranslations.current
     var cropVisible by remember { mutableStateOf(false) }
+    var editVisible by remember { mutableStateOf(false) }
     // extrafanart 目录下的预览图:IO 读取后驱动 Carousel
     var extraFanartImages by remember(video.path) { mutableStateOf(listExtraFanartImages(video)) }
     // 当前展开的大图索引;null 表示未打开。点击 Carousel 卡片时设置,
@@ -110,7 +104,7 @@ fun VideoDetailScreen(
                 if ((event.type == KeyEventType.KeyDown) && (event.key == Key.Escape)) {
                     when {
                         viewerImageIndex != null -> viewerImageIndex = null
-                        else -> onBack()
+                        else -> actions.onBack()
                     }
                     true
                 } else {
@@ -120,45 +114,11 @@ fun VideoDetailScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = translations.galleryDetailTitle,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = video.number,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                DetailIconButton(
-                    onClick = onRefresh,
-                    icon = Icons.Filled.Refresh,
-                    contentDescription = translations.galleryDetailRefresh
-                )
-                DetailIconButton(
-                    onClick = onOpenFolder,
-                    icon = Icons.Filled.FolderOpen,
-                    contentDescription = translations.galleryDetailOpenFolder
-                )
-                DetailIconButton(
-                    onClick = onPlayVideo,
-                    icon = Icons.Filled.PlayArrow,
-                    contentDescription = translations.galleryDetailPlay
-                )
-                DetailIconButton(
-                    onClick = onBack,
-                    icon = Icons.Filled.Close,
-                    contentDescription = translations.galleryDetailBack
-                )
-            }
+            VideoDetailHeader(
+                video = video,
+                actions = actions,
+                onEdit = { editVisible = true }
+            )
             Spacer(Modifier.height(16.dp))
             // Flow 自适应布局:宽度足够时封面与信息卡同一行,不够时自动换行,
             // 无需手动阈值切换,任意窗口宽度下 VideoInfoCard 都可见
@@ -225,6 +185,14 @@ fun VideoDetailScreen(
         }
     }
 
+    if (editVisible) {
+        VideoEditDialog(
+            video = video,
+            onSaveMetadata = actions.onSaveMetadata,
+            onDismiss = { editVisible = false }
+        )
+    }
+
     if (cropVisible) {
         val source = remember(video.path) { cropSourceModel(video) }
         if (source != null) {
@@ -242,23 +210,6 @@ fun VideoDetailScreen(
     }
 }
 
-@Composable
-private fun DetailIconButton(
-    onClick: () -> Unit,
-    icon: ImageVector,
-    contentDescription: String
-) {
-    FilledIconButton(
-        onClick = onClick,
-        colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-    ) {
-        Icon(icon, contentDescription = contentDescription)
-    }
-}
-
 @Preview(widthDp = 1280, heightDp = 720, name = "Wide")
 @Preview(widthDp = 600, heightDp = 800, name = "Narrow")
 @Composable
@@ -271,10 +222,11 @@ private fun VideoDetailScreenPreview() {
                     AnimatedContent(targetState = false, label = "video-detail-preview") { _ ->
                         VideoDetailScreen(
                             video = previewVideoWithAllFields(),
-                            onBack = {},
-                            onRefresh = {},
-                            onPlayVideo = {},
-                            onOpenFolder = {},
+                            actions = VideoDetailActions(
+                                onBack = {},
+                                onRefresh = {},
+                                onSaveMetadata = { VideoMetadataEditResult.NfoMissing }
+                            ),
                             animatedVisibilityScope = this@AnimatedContent
                         )
                     }

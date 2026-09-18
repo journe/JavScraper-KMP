@@ -8,6 +8,8 @@ import javscraper.i18n.TranslationEn
 import javscraper.io.logging.AppLogController
 import javscraper.io.logging.LogEntry
 import javscraper.io.FileScanner
+import javscraper.io.metadata.VideoMetadataEditor
+import javscraper.io.metadata.VideoMetadataEditResult
 import javscraper.models.ScannedFile
 import javscraper.models.SiteInfo
 import javscraper.models.Video
@@ -298,6 +300,31 @@ class AppViewModel(
         results = emptyList()
         scrapedFiles = emptyList()
         tasks = emptyList()
+    }
+
+    suspend fun saveVideoMetadata(video: Video): VideoMetadataEditResult {
+        val result = withContext(Dispatchers.IO) {
+            VideoMetadataEditor.update(video, lockData)
+        }
+        if (result is VideoMetadataEditResult.Success) {
+            applySavedMetadata(result.video)
+            status = strings.statusMetadataSaved
+        }
+        return result
+    }
+
+    private fun applySavedMetadata(video: Video) {
+        scannedFiles = scannedFiles.map { file ->
+            if (file.path == video.path) {
+                file.copy(number = video.number, isScraped = true, metadata = video)
+            } else {
+                file
+            }
+        }
+        scrapedFiles = scannedFiles.filter { it.isScraped }
+        results = results.map { current ->
+            if (current.path == video.path) video else current
+        }
     }
 
     // --- Single scrape dialog (forwarded to SingleScrapeController) ---

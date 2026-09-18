@@ -10,10 +10,15 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 /** Updates existing NFO fields with targeted text patches instead of re-serializing the document. */
 object NfoUpdater {
-    fun update(path: Path, video: Video, lockData: Boolean): Boolean {
+    fun update(
+        path: Path,
+        video: Video,
+        lockData: Boolean,
+        insertMissingFields: Boolean = false
+    ): Boolean {
         val original = Files.readString(path)
         newDocumentBuilder().parse(InputSource(StringReader(original)))
-        val patcher = TargetedNfoPatcher(original)
+        val patcher = TargetedNfoPatcher(original, insertMissingFields)
         writeFields(patcher, video, lockData)
         if (!patcher.changed) return false
 
@@ -78,14 +83,25 @@ object NfoUpdater {
 }
 
 /** Locates elements in the original text and records non-overlapping patches against it. */
-private class TargetedNfoPatcher(private val original: String) {
+private class TargetedNfoPatcher(
+    private val original: String,
+    private val insertMissingFields: Boolean
+) {
     private val spansByPath = scanElements(original).groupBy { it.path }
+    private val rootSpan = spansByPath["movie"]?.firstOrNull()
+        ?: throw IllegalArgumentException("NFO root element must be movie")
+    private val separator = if (original.contains("\r\n")) "\r\n" else "\n"
     private val patches = mutableListOf<TextPatch>()
+    private val rootInserts = StringBuilder()
     var changed = false
         private set
 
     fun set(name: String, value: String) {
         val spans = spans(name)
+        if (spans.isEmpty()) {
+            if (insertMissingFields && value.isNotBlank()) appendRootLine(name, value)
+            return
+        }
         spans.firstOrNull()?.let { replaceText(it, value) }
         removeLines(spans.drop(1))
     }
@@ -96,15 +112,20 @@ private class TargetedNfoPatcher(private val original: String) {
 
     fun remove(name: String) = removeLines(spans(name))
 
-    fun setRepeated(name: String, values: List<String>) = synchronizeLeaf(spans(name), values)
+    fun setRepeated(name: String, values: List<String>) =
+        synchronizeLeaf(name, spans(name), values)
 
     fun setFanart(images: List<String>) {
-        val fanart = spans("fanart").firstOrNull() ?: return
+        val fanart = spans("fanart").firstOrNull()
+        if (fanart == null) {
+            if (insertMissingFields && images.isNotEmpty()) appendFanart(images)
+            return
+        }
         if (images.isEmpty()) {
             removeLines(listOf(fanart))
             return
         }
-        synchronizeLeaf((spans("thumb", "fanart") + spans("thumb")).sortedBy { it.start }, images)
+        synchronizeLeaf("thumb", (spans("thumb", "fanart") + spans("thumb")).sortedBy { it.start }, images)
     }
 
     fun setActors(actresses: List<String>) {
@@ -113,7 +134,10 @@ private class TargetedNfoPatcher(private val original: String) {
             removeLines(actors)
             return
         }
-        if (actors.isEmpty()) return
+        if (actors.isEmpty()) {
+            if (insertMissingFields) appendActors(actresses)
+            return
+        }
 
         val names = spans("name", "actor")
         val roles = spans("role", "actor")
@@ -134,18 +158,90 @@ private class TargetedNfoPatcher(private val original: String) {
         }
     }
 
-    fun setUniqueIds(number: String) = spans("uniqueid").forEach { replaceText(it, number) }
-
+    fun setUniqueIds(number: String) {
+        val spans = spans("uniqueid")
+        if (spans.isEmpty()) {
+            if (insertMissingFields) appendUniqueIds(number)
+            return
+        }
+        spans.forEach { replaceText(it, number) }
+    }
 
     fun apply(): String {
         val output = StringBuilder(original)
-        patches.sortedWith(compareByDescending<TextPatch> { it.start }.thenByDescending { it.end })
+        val allPatches = if (rootInserts.isEmpty()) {
+            patches
+        } else {
+            patches + TextPatch(rootSpan.contentEnd, rootSpan.contentEnd, rootInserts.toString())
+        }
+        allPatches.sortedWith(compareByDescending<TextPatch> { it.start }.thenByDescending { it.end })
             .forEach { patch -> output.replace(patch.start, patch.end, patch.text) }
         return output.toString()
     }
 
-    private fun synchronizeLeaf(spans: List<ElementSpan>, values: List<String>) {
-        if (spans.isEmpty()) return
+    private fun appendRootLine(name: String, value: String) {
+        appendRootText(
+            rootIndent() + "<$name>" + escapeXmlText(value) + "</$name>" + separator
+        )
+    }
+
+    private fun appendFanart(images: List<String>) {
+        val indent = rootIndent()
+        val childIndent = indent + "  "
+        val text = buildString {
+            append(indent + "<fanart>" + separator)
+            images.forEach { image ->
+                append(childIndent + "<thumb>" + escapeXmlText(image) + "</thumb>" + separator)
+            }
+            append(indent + "</fanart>" + separator)
+        }
+        appendRootText(text)
+    }
+
+    private fun appendActors(actresses: List<String>) {
+        val indent = rootIndent()
+        val childIndent = indent + "  "
+        val text = buildString {
+            actresses.forEachIndexed { index, actress ->
+                append(indent + "<actor>" + separator)
+                append(childIndent + "<name>" + escapeXmlText(actress) + "</name>" + separator)
+                append(childIndent + "<role>" + escapeXmlText(actress) + "</role>" + separator)
+                append(childIndent + "<order>" + (index + 1) + "</order>" + separator)
+                append(indent + "</actor>" + separator)
+            }
+        }
+        appendRootText(text)
+    }
+
+    private fun appendUniqueIds(number: String) {
+        val indent = rootIndent()
+        appendRootText(
+            indent + "<uniqueid type=\"num\" default=\"true\">" +
+                escapeXmlText(number) + "</uniqueid>" + separator +
+                indent + "<uniqueid type=\"home\">" +
+                escapeXmlText(number) + "</uniqueid>" + separator
+        )
+    }
+
+    private fun appendRootText(text: String) {
+        rootInserts.append(text)
+        changed = true
+    }
+
+    private fun rootIndent(): String {
+        val child = spansByPath.filterKeys { it != "movie" }.values.flatten()
+            .minByOrNull { it.start } ?: return "  "
+        val lineStart = original.lastIndexOf('\n', maxOf(0, child.start - 1)) + 1
+        return original.substring(lineStart, child.start).takeIf { it.isBlank() } ?: "  "
+    }
+
+    private fun synchronizeLeaf(name: String, spans: List<ElementSpan>, values: List<String>) {
+        if (spans.isEmpty()) {
+            if (insertMissingFields && values.isNotEmpty()) {
+                values.forEach { value -> appendRootLine(name, value) }
+            }
+            return
+        }
         if (spans.map { decodeXmlText(it.text) } == values) return
 
         val common = minOf(spans.size, values.size)

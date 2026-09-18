@@ -23,6 +23,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
 import javscraper.models.Video
+import javscraper.ui.videoFieldValues
 import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
 
@@ -73,30 +74,11 @@ fun VideoInfoCard(video: Video, modifier: Modifier = Modifier) {
 }
 
 internal fun videoInfoRows(video: Video, t: TranslationEn): List<VideoInfoRow> {
-    val fields: List<Pair<String, String?>> = listOf(
-        t.commonNumber to video.number,
-        t.videoFieldTitle to video.title,
-        t.videoFieldActresses to video.actresses.joinToString(", "),
-        t.videoFieldDate to video.date,
-        t.videoFieldSummary to video.summary,
-        t.videoFieldMaker to video.maker,
-        t.videoFieldLabel to video.label,
-        t.videoFieldSeries to video.series,
-        t.videoFieldDirector to video.director,
-        t.videoFieldDuration to video.duration?.toString(),
-        t.videoFieldRating to video.rating?.toString(),
-        t.videoFieldTags to video.tags.joinToString(", "),
-        t.videoFieldSource to video.source,
-        t.videoFieldDetailUrl to video.detailUrl,
-        t.videoFieldCoverUrl to video.coverUrl,
-        t.videoFieldPosterUrl to video.posterUrl,
-        t.videoFieldSampleImages to video.sampleImages.joinToString("\n"),
-    )
-    return fields.map { (label, value) ->
-        val normalizedValue = value.orEmpty()
+    return videoFieldValues(video, t).map { field ->
+        val normalizedValue = field.value
         val empty = normalizedValue.isBlank()
         VideoInfoRow(
-            label = label,
+            label = field.label,
             value = if (empty) t.commonNotSet else normalizedValue,
             isEmpty = empty
         )

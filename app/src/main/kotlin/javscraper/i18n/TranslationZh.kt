@@ -10,6 +10,7 @@ class TranslationZh : TranslationEn() {
     override val statusStarting: String = "启动中..."
     override val statusFailed: String = "启动失败"
     override val statusFileNotFound: String = "文件未找到"
+    override val statusMetadataSaved: String = "元数据已保存"
 
     override fun statusReady(sites: Int): String = "就绪（$sites 个站点）"
     override fun statusError(msg: String): String = "错误：$msg"
@@ -43,10 +44,17 @@ class TranslationZh : TranslationEn() {
     override val galleryDetailTitle: String = "视频详情"
     override val galleryDetailBack: String = "返回结果列表"
     override val galleryDetailRefresh: String = "重新刮削"
+    override val galleryDetailEdit: String = "编辑元数据"
+    override val galleryEditTitle: String = "编辑视频元数据"
     override val galleryDetailPlay: String = "播放视频"
     override val galleryDetailOpenFolder: String = "打开所在目录"
     override val galleryDetailExtraFanart: String = "额外图集"
     override val galleryEmptyHint: String = "暂无结果"
+    override val metadataEditNfoMissing: String = "未找到匹配的 NFO 文件"
+    override val metadataEditInvalidFields: String = "请检查番号、时长和评分"
+
+    override fun metadataEditSaveFailed(message: String): String =
+        "保存元数据失败：$message"
 
     override fun galleryCount(n: Int): String = "$n 部影片已刮削"
 
@@ -116,6 +124,8 @@ class TranslationZh : TranslationEn() {
     override val commonNamingExample: String = "例如 {num} {title}"
     override val commonNotSet: String = "未设置"
     override val commonNumber: String = "番号"
+    override val commonSave: String = "保存"
+    override val commonSaving: String = "保存中..."
     override val commonScanDirectory: String = "扫描目录"
     override val commonScraperSites: String = "刮削站点"
     override val commonSettings: String = "设置"
