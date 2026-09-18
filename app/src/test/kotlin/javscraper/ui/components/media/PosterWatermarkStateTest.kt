@@ -93,4 +93,11 @@ class PosterWatermarkStateTest {
             state.toOptions(5)?.marks
         )
     }
+    @Test
+    fun `mark chip selection toggles selected mark to null`() {
+        assertEquals(null, toggleMarkSelection(WatermarkMark.HD_8K, WatermarkMark.HD_8K))
+        assertEquals(null, toggleMarkSelection(WatermarkMark.LEAK, WatermarkMark.LEAK))
+        assertEquals(WatermarkMark.HD_4K, toggleMarkSelection(WatermarkMark.HD_4K, WatermarkMark.HD_8K))
+        assertEquals(WatermarkMark.UMR, toggleMarkSelection(WatermarkMark.UMR, null))
+    }
 }

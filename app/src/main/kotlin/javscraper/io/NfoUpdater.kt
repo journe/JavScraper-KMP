@@ -1,12 +1,12 @@
 package javscraper.io
 
+import javscraper.io.metadata.NfoTagMerger
+import javscraper.io.metadata.SecureDocumentBuilderFactory
 import javscraper.models.Video
 import org.xml.sax.InputSource
 import java.io.StringReader
 import java.nio.file.Files
 import java.nio.file.Path
-import javax.xml.XMLConstants
-import javax.xml.parsers.DocumentBuilderFactory
 
 /** Updates existing NFO fields with targeted text patches instead of re-serializing the document. */
 object NfoUpdater {
@@ -14,19 +14,25 @@ object NfoUpdater {
         path: Path,
         video: Video,
         lockData: Boolean,
-        insertMissingFields: Boolean = false
+        insertMissingFields: Boolean = false,
+        mergeTags: Boolean = false
     ): Boolean {
         val original = Files.readString(path)
-        newDocumentBuilder().parse(InputSource(StringReader(original)))
+        SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
         val patcher = TargetedNfoPatcher(original, insertMissingFields)
-        writeFields(patcher, video, lockData)
+        writeFields(patcher, video, lockData, mergeTags)
         if (!patcher.changed) return false
 
         Files.writeString(path, patcher.apply())
         return true
     }
 
-    private fun writeFields(patcher: TargetedNfoPatcher, video: Video, lockData: Boolean) {
+    private fun writeFields(
+        patcher: TargetedNfoPatcher,
+        video: Video,
+        lockData: Boolean,
+        mergeTags: Boolean
+    ) {
         val title = video.title.ifBlank { video.number }
         patcher.set("title", title)
         patcher.set("originaltitle", video.number)
@@ -63,23 +69,19 @@ object NfoUpdater {
         patcher.setOrRemove("rating", rating)
         patcher.set("lockdata", lockData.toString())
 
-        patcher.setRepeated("genre", video.tags)
-        patcher.setRepeated("tag", video.tags)
+        val genreTags = tagsToUpdate(patcher, "genre", video.tags, mergeTags)
+        val tagTags = tagsToUpdate(patcher, "tag", video.tags, mergeTags)
+        patcher.setRepeated("genre", genreTags)
+        patcher.setRepeated("tag", tagTags)
         patcher.setFanart(video.sampleImages)
         patcher.setActors(video.actresses)
         patcher.setUniqueIds(video.number)
     }
 
-    private fun newDocumentBuilder() =
-        DocumentBuilderFactory.newInstance().apply {
-            isNamespaceAware = false
-            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            isXIncludeAware = false
-            isExpandEntityReferences = false
-        }.newDocumentBuilder()
+    private fun tagsToUpdate(
+        patcher: TargetedNfoPatcher, field: String, incomingTags: List<String>, mergeTags: Boolean
+    ): List<String> =
+        if (mergeTags) NfoTagMerger.merge(patcher.existingValues(field), incomingTags) else incomingTags
 }
 
 /** Locates elements in the original text and records non-overlapping patches against it. */
@@ -114,6 +116,8 @@ private class TargetedNfoPatcher(
 
     fun setRepeated(name: String, values: List<String>) =
         synchronizeLeaf(name, spans(name), values)
+
+    fun existingValues(name: String): List<String> = spans(name).map { decodeXmlText(it.text) }
 
     fun setFanart(images: List<String>) {
         val fanart = spans("fanart").firstOrNull()

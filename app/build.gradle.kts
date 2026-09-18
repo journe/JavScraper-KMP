@@ -28,6 +28,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.6.3")
+    implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
 
     // FileKit - cross-platform native file/directory pickers
     implementation("io.github.vinceglb:filekit-core:0.15.0")

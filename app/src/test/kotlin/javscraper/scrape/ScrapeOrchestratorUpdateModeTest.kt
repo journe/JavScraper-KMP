@@ -22,6 +22,15 @@ class ScrapeOrchestratorUpdateModeTest {
         oldFolder.mkdirs()
         val source = oldFolder.resolve("OLD-001.mp4")
         source.writeText("video")
+        val oldTags = listOf(
+            "AVC1", "1080P", "IPZZ", "桃乃木香奈", "口交", "剧情", "窈窕",
+            "巨乳", "美少女", "中文字幕", "有码", "片商: S级素人", "发行: ティッシュ"
+        )
+        val newTags = listOf(
+            "高画质", "DMM独家", "口交", "美少女", "巨乳", "戏剧", "苗条", "单体作品", "有码"
+        )
+        val expectedTags = (oldTags + newTags).distinct()
+        val oldTagLines = oldTags.joinToString("\n") { "  <tag>$it</tag>" }
         oldFolder.resolve("OLD-001.nfo").writeText(
             """
                 <?xml version="1.0" encoding="UTF-8"?>
@@ -29,9 +38,11 @@ class ScrapeOrchestratorUpdateModeTest {
                   <title>Old Title</title>
                   <num>OLD-001</num>
                   <plot>Keep summary</plot>
+                  <genre>Old Genre</genre>
+                  OLD_TAG_LINES
                   <customfield>custom</customfield>
                 </movie>
-            """.trimIndent()
+            """.trimIndent().replace("OLD_TAG_LINES", oldTagLines)
         )
         oldFolder.resolve("fanart.jpg").writeText("old-fanart")
         oldFolder.resolve("poster.jpg").writeText("old-poster")
@@ -58,6 +69,7 @@ class ScrapeOrchestratorUpdateModeTest {
                 number = "NEW-001",
                 title = "New Title",
                 summary = "Keep summary",
+                tags = newTags,
                 coverUrl = "https://example.invalid/cover.jpg"
             )
         )
@@ -74,6 +86,9 @@ class ScrapeOrchestratorUpdateModeTest {
         assertTrue(updatedNfo.contains("<title>New Title</title>"))
         assertTrue(updatedNfo.contains("<num>NEW-001</num>"))
         assertTrue(updatedNfo.contains("<plot>Keep summary</plot>"))
+        assertTrue(updatedNfo.contains("<genre>Old Genre</genre>"))
+        expectedTags.forEach { tag -> assertTrue(updatedNfo.contains("<tag>$tag</tag>"), tag) }
+        assertEquals(expectedTags.size, Regex("<tag>[^<]+</tag>").findAll(updatedNfo).count())
         assertTrue(updatedNfo.contains("<customfield>custom</customfield>"))
     }
 

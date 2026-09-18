@@ -6,6 +6,7 @@ import java.nio.file.Files
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -39,11 +40,106 @@ class VideoMetadataEditorTest {
         val success = assertIs<VideoMetadataEditResult.Success>(result)
         assertEquals("New title", success.video.title)
         assertEquals(listOf("New actor"), success.video.actresses)
+        assertEquals(listOf("New tag"), success.video.tags)
         assertEquals(videoPath.toString(), success.video.path)
         val savedNfo = Files.readString(nfoPath)
         assertTrue(savedNfo.contains("<title>New title</title>"))
         assertTrue(savedNfo.contains("<name>New actor</name>"))
         assertTrue(savedNfo.contains("<genre>New tag</genre>"))
+        assertTrue(!savedNfo.contains("<genre>Old tag</genre>"))
+    }
+
+    @Test
+    fun `update renames movie folder from edited number and title`() {
+        val scanDirectory = Files.createTempDirectory("javscraper-metadata-rename")
+        try {
+            val oldFolder = scanDirectory.resolve("[ABC-001] Old title")
+            Files.createDirectory(oldFolder)
+            val videoPath = oldFolder.resolve("ABC-001.mp4")
+            Files.writeString(videoPath, "video")
+            Files.writeString(oldFolder.resolve("ABC-001.nfo"), "<movie><num>ABC-001</num><title>Old title</title></movie>")
+            val edited = Video(
+                number = "ABC-002",
+                title = "New title",
+                path = videoPath.toString()
+            )
+
+            val result = VideoMetadataEditor.update(
+                video = edited,
+                lockData = false,
+                folderLayers = listOf("[{num}] {title}"),
+                scanDir = scanDirectory.toString()
+            )
+
+            val newFolder = scanDirectory.resolve("[ABC-002] New title")
+            val success = assertIs<VideoMetadataEditResult.Success>(result)
+            assertEquals(newFolder.resolve("ABC-001.mp4").toString(), success.video.path)
+            assertEquals(videoPath.toString(), success.previousPath)
+            assertFalse(Files.exists(oldFolder))
+            assertTrue(Files.exists(newFolder.resolve("ABC-001.mp4")))
+            assertTrue(Files.readString(newFolder.resolve("ABC-001.nfo")).contains("<title>New title</title>"))
+        } finally {
+            Files.walk(scanDirectory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
+    fun `update keeps original folder when target folder already exists`() {
+        val scanDirectory = Files.createTempDirectory("javscraper-metadata-rename-conflict")
+        try {
+            val oldFolder = scanDirectory.resolve("[ABC-001] Old title")
+            val targetFolder = scanDirectory.resolve("[ABC-002] New title")
+            Files.createDirectory(oldFolder)
+            Files.createDirectory(targetFolder)
+            val videoPath = oldFolder.resolve("ABC-001.mp4")
+            val nfoPath = oldFolder.resolve("ABC-001.nfo")
+            Files.writeString(videoPath, "video")
+            Files.writeString(nfoPath, "<movie><num>ABC-001</num><title>Old title</title></movie>")
+            Files.writeString(targetFolder.resolve("existing.txt"), "keep")
+
+            val result = VideoMetadataEditor.update(
+                video = Video(number = "ABC-002", title = "New title", path = videoPath.toString()),
+                lockData = false,
+                folderLayers = listOf("[{num}] {title}"),
+                scanDir = scanDirectory.toString()
+            )
+
+            val failed = assertIs<VideoMetadataEditResult.Failed>(result)
+            assertTrue(failed.message.contains("Target folder already exists"))
+            assertTrue(Files.exists(nfoPath))
+            assertTrue(Files.exists(oldFolder.resolve("ABC-001.mp4")))
+            assertEquals("keep", Files.readString(targetFolder.resolve("existing.txt")))
+        } finally {
+            Files.walk(scanDirectory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
+    fun `update rolls back renamed folder when nfo update fails`() {
+        val scanDirectory = Files.createTempDirectory("javscraper-metadata-rename-rollback")
+        try {
+            val oldFolder = scanDirectory.resolve("[ABC-001] Old title")
+            Files.createDirectory(oldFolder)
+            val videoPath = oldFolder.resolve("ABC-001.mp4")
+            val nfoPath = oldFolder.resolve("ABC-001.nfo")
+            val invalidNfo = "<movie><num>ABC-001</num>"
+            Files.writeString(videoPath, "video")
+            Files.writeString(nfoPath, invalidNfo)
+
+            val result = VideoMetadataEditor.update(
+                video = Video(number = "ABC-002", title = "New title", path = videoPath.toString()),
+                lockData = false,
+                folderLayers = listOf("[{num}] {title}"),
+                scanDir = scanDirectory.toString()
+            )
+
+            assertIs<VideoMetadataEditResult.Failed>(result)
+            assertTrue(Files.exists(videoPath))
+            assertFalse(Files.exists(scanDirectory.resolve("[ABC-002] New title")))
+            assertEquals(invalidNfo, Files.readString(nfoPath))
+        } finally {
+            Files.walk(scanDirectory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
     }
 
     @Test

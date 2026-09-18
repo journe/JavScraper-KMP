@@ -304,27 +304,26 @@ class AppViewModel(
 
     suspend fun saveVideoMetadata(video: Video): VideoMetadataEditResult {
         val result = withContext(Dispatchers.IO) {
-            VideoMetadataEditor.update(video, lockData)
+            VideoMetadataEditor.update(
+                video = video,
+                lockData = lockData,
+                folderLayers = folderLayers,
+                scanDir = scanDir
+            )
         }
         if (result is VideoMetadataEditResult.Success) {
-            applySavedMetadata(result.video)
+            val state = SavedMetadataStateUpdater.apply(
+                scannedFiles = scannedFiles,
+                results = results,
+                savedVideo = result.video,
+                previousPath = result.previousPath
+            )
+            scannedFiles = state.scannedFiles
+            scrapedFiles = scannedFiles.filter { it.isScraped }
+            results = state.results
             status = strings.statusMetadataSaved
         }
         return result
-    }
-
-    private fun applySavedMetadata(video: Video) {
-        scannedFiles = scannedFiles.map { file ->
-            if (file.path == video.path) {
-                file.copy(number = video.number, isScraped = true, metadata = video)
-            } else {
-                file
-            }
-        }
-        scrapedFiles = scannedFiles.filter { it.isScraped }
-        results = results.map { current ->
-            if (current.path == video.path) video else current
-        }
     }
 
     // --- Single scrape dialog (forwarded to SingleScrapeController) ---

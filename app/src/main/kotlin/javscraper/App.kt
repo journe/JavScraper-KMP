@@ -20,11 +20,15 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
+import javscraper.models.Video
 import javscraper.ui.LocalSharedTransitionScope
 import javscraper.io.external.SystemFileLauncher
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.LogsDialog
 import javscraper.ui.components.WorkerSetupDialog
+import javscraper.ui.components.media.PosterCropDialog
+import javscraper.ui.components.media.cropSourceModel
+import javscraper.ui.components.media.localPosterPath
 import javscraper.ui.screens.*
 import javscraper.ui.screens.detail.VideoDetailActions
 import javscraper.ui.screens.settings.*
@@ -33,7 +37,14 @@ import javscraper.ui.theme.JavScraperTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import java.io.File
+
 enum class Screen { SCAN, PROGRESS, GALLERY, NETWORK_PREVIEW, SETTINGS }
+
+private data class PosterCropRequest(
+    val video: Video,
+    val sourceFile: File
+)
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -61,6 +72,7 @@ fun App() {
             // 裁剪成功后自增:提升到详情/图库共同父级,两侧 PosterCard 共用同一
             // refreshKey 绕过 Coil 缓存重读,返回图库也能看到裁剪后的 poster
             var posterRefreshVersion by remember { mutableLongStateOf(0L) }
+            var cropRequest by remember { mutableStateOf<PosterCropRequest?>(null) }
             LaunchedEffect(viewModel.currentScreen) {
                 if (viewModel.currentScreen != Screen.GALLERY) selectedVideoPath = null
             }
@@ -172,6 +184,7 @@ fun App() {
                                         )
                                     }
                                 } else {
+                                    val cropSource = remember(video.path) { cropSourceModel(video) }
                                     VideoDetailScreen(
                                         video = video,
                                         actions = VideoDetailActions(
@@ -181,6 +194,12 @@ fun App() {
                                                     ?.let(viewModel::openSingleScrape)
                                             },
                                             onSaveMetadata = viewModel::saveVideoMetadata,
+                                            onMetadataSaved = { saved -> selectedVideoPath = saved.path },
+                                            onCropPoster = cropSource?.let { source ->
+                                                {
+                                                    cropRequest = PosterCropRequest(video, source)
+                                                }
+                                            },
                                             onPlayVideo = {
                                                 scope.launch(Dispatchers.IO) {
                                                     systemFileLauncher.openVideo(video.path)
@@ -193,8 +212,7 @@ fun App() {
                                             }
                                         ),
                                         animatedVisibilityScope = this@AnimatedContent,
-                                        posterRefreshKey = posterRefreshVersion,
-                                        onPosterCropped = { posterRefreshVersion++ }
+                                        posterRefreshKey = posterRefreshVersion
                                     )
                                 }
                             }
@@ -207,6 +225,19 @@ fun App() {
                 SingleScrapeDialog(
                     state = viewModel.scrapeProgressState,
                     actions = viewModel.scrapeProgressActions
+                )
+            }
+
+            cropRequest?.let { request ->
+                PosterCropDialog(
+                    video = request.video,
+                    sourceFile = request.sourceFile,
+                    posterFile = File(localPosterPath(request.video)),
+                    onCropped = {
+                        posterRefreshVersion++
+                        cropRequest = null
+                    },
+                    onDismiss = { cropRequest = null }
                 )
             }
 
@@ -228,5 +259,4 @@ fun App() {
         }
     }
 }
-
 

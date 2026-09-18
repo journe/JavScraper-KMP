@@ -12,20 +12,24 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
+import javscraper.i18n.TranslationZh
 import javscraper.io.image.WatermarkRenderer
 import javscraper.models.Video
 import javscraper.models.WatermarkMark
 import javscraper.models.WatermarkOptions
 import javscraper.models.inferWatermarkMarks
+import javscraper.ui.theme.JavScraperTheme
 import org.jetbrains.skia.Image as SkiaImage
 
 /** 对话框内可编辑的水印状态:清晰度、字幕、马赛克三组互斥/独立选择。 */
@@ -72,7 +76,7 @@ internal fun PosterWatermarkControls(
     onSizeChangeFinished: () -> Unit = {}
 ) {
     val translations = LocalTranslations.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -81,7 +85,7 @@ internal fun PosterWatermarkControls(
             Text(
                 text = translations.cropWatermarkSectionTitle,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -90,15 +94,10 @@ internal fun PosterWatermarkControls(
                 onCheckedChange = { checked -> onStateChange(state.copy(enabled = checked)) }
             )
         }
-        if (state.enabled) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = translations.cropWatermarkHdLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MarkChipRow(
-                    options = listOf(WatermarkMark.HD_4K, WatermarkMark.HD_8K, null),
+                    options = listOf(WatermarkMark.HD_4K, WatermarkMark.HD_8K),
                     selected = state.hdMark,
                     onSelect = { mark -> onStateChange(state.copy(hdMark = mark)) }
                 )
@@ -112,35 +111,29 @@ internal fun PosterWatermarkControls(
                         )
                     }
                 )
-                Text(
-                    text = translations.cropWatermarkMosaicLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 MarkChipRow(
                     options = listOf(
                         WatermarkMark.CENSORED,
                         WatermarkMark.UMR,
                         WatermarkMark.LEAK,
-                        WatermarkMark.UNCENSORED,
-                        null
+                        WatermarkMark.UNCENSORED
                     ),
                     selected = state.mosaicMark,
                     onSelect = { mark -> onStateChange(state.copy(mosaicMark = mark)) }
                 )
-                Text(
-                    text = translations.cropWatermarkSize(size),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Slider(
-                    value = size.toFloat(),
-                    onValueChange = { value -> onSizeChange(value.toInt()) },
-                    onValueChangeFinished = onSizeChangeFinished,
-                    valueRange = 1f..10f,
-                    steps = 8
-                )
             }
+
+            Text(
+                text = translations.cropWatermarkSize(size),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Slider(
+                value = size.toFloat(),
+                onValueChange = { value -> onSizeChange(value.toInt()) },
+                onValueChangeFinished = onSizeChangeFinished,
+                valueRange = 1f..10f,
+                steps = 8
+            )
         }
     }
 }
@@ -157,7 +150,7 @@ private fun MarkChipRow(
         options.forEach { option ->
             FilterChip(
                 selected = option == selected,
-                onClick = { onSelect(option) },
+                onClick = { onSelect(toggleMarkSelection(option, selected)) },
                 label = {
                     Text(
                         text = markLabel(translations, option),
@@ -168,6 +161,10 @@ private fun MarkChipRow(
         }
     }
 }
+
+/** FilterChip 点击规则:已选中时取消选择,未选中时保持单选。 */
+internal fun toggleMarkSelection(option: WatermarkMark?, selected: WatermarkMark?): WatermarkMark? =
+    option?.takeIf { it != selected }
 
 private fun markLabel(translations: TranslationEn, mark: WatermarkMark?): String = when (mark) {
     WatermarkMark.HD_4K -> translations.cropWatermarkHd4k
@@ -195,3 +192,31 @@ internal fun rememberWatermarkBitmaps(marks: List<WatermarkMark>): Map<Watermark
             }.getOrNull()
         }.toMap()
     }
+
+@Composable
+private fun PosterWatermarkControlsPreview(content: @Composable () -> Unit) {
+    JavScraperTheme {
+        CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
+            content()
+        }
+    }
+}
+
+@Preview(widthDp = 360, heightDp = 480, name = "Enabled")
+@Composable
+private fun PosterWatermarkControlsEnabledPreview() {
+    PosterWatermarkControlsPreview {
+        PosterWatermarkControls(
+            state = PosterWatermarkState(
+                enabled = true,
+                hdMark = WatermarkMark.HD_8K,
+                subtitle = true,
+                mosaicMark = WatermarkMark.UNCENSORED
+            ),
+            size = 7,
+            onStateChange = {},
+            onSizeChange = {},
+            onSizeChangeFinished = {}
+        )
+    }
+}

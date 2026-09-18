@@ -64,6 +64,49 @@ class WatermarkTest {
     }
 
     @Test
+    fun `infer subtitle and leak marks from video version field`() {
+        assertEquals(
+            setOf(WatermarkMark.SUB),
+            inferWatermarkMarks(Video(number = "ABP-123", version = "C"))
+        )
+        assertEquals(
+            setOf(WatermarkMark.LEAK),
+            inferWatermarkMarks(Video(number = "ABP-123", version = "U"))
+        )
+        assertEquals(
+            setOf(WatermarkMark.SUB, WatermarkMark.LEAK),
+            inferWatermarkMarks(Video(number = "ABP-123", version = "CU"))
+        )
+    }
+
+    @Test
+    fun `infer version marks case insensitively and ignores unknown version chars`() {
+        assertEquals(
+            setOf(WatermarkMark.SUB, WatermarkMark.LEAK),
+            inferWatermarkMarks(Video(number = "ABP-123", version = "uc"))
+        )
+        assertEquals(
+            emptySet(),
+            inferWatermarkMarks(Video(number = "ABP-123", version = "2"))
+        )
+    }
+
+    @Test
+    fun `version marks combine with tag and filename hints`() {
+        val video = Video(
+            number = "ABP-123",
+            path = "F:/Videos/ABP-123-4k.mp4",
+            tags = listOf("无码"),
+            version = "U"
+        )
+
+        assertEquals(
+            setOf(WatermarkMark.HD_4K, WatermarkMark.LEAK, WatermarkMark.UNCENSORED),
+            inferWatermarkMarks(video)
+        )
+    }
+
+    @Test
     fun `watermark options normalize size`() {
         assertEquals(5, WatermarkOptions.DEFAULT_SIZE)
         assertEquals(1, WatermarkOptions.normalizedSize(0))

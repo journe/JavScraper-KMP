@@ -83,6 +83,50 @@ class NfoUpdaterTest {
     }
 
     @Test
+    fun `update merges old and new tags without duplicates`() {
+        val directory = createTempDirectory("javscraper-nfo-tags")
+        try {
+            val nfo = directory.resolve("old.nfo")
+            val original = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <movie>
+                  <title>Old Title</title>
+                  <num>OLD-001</num>
+                  <genre>Old Genre</genre>
+                  <genre>Shared</genre>
+                  <tag>Old Tag</tag>
+                  <tag>Shared</tag>
+                </movie>
+            """.trimIndent()
+            Files.writeString(nfo, original)
+            val video = Video(
+                number = "NEW-001",
+                title = "New Title",
+                tags = listOf("New Tag", "Shared")
+            )
+
+            val changed = NfoUpdater.update(nfo, video, lockData = false, mergeTags = true)
+
+            assertTrue(changed)
+            val updated = Files.readString(nfo)
+            assertContains(updated, "<genre>Old Genre</genre>")
+            assertContains(updated, "<genre>Shared</genre>")
+            assertContains(updated, "<genre>New Tag</genre>")
+            assertContains(updated, "<tag>Old Tag</tag>")
+            assertContains(updated, "<tag>Shared</tag>")
+            assertContains(updated, "<tag>New Tag</tag>")
+            assertEquals(3, Regex("<genre>[^<]+</genre>").findAll(updated).count())
+            assertEquals(3, Regex("<tag>[^<]+</tag>").findAll(updated).count())
+
+            val changedAgain = NfoUpdater.update(nfo, video, lockData = false, mergeTags = true)
+            assertFalse(changedAgain)
+            assertEquals(updated, Files.readString(nfo))
+        } finally {
+            Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
     fun `targeted updates patch nested fields without changing formatting`() {
         val directory = createTempDirectory("javscraper-nfo-nested")
         try {

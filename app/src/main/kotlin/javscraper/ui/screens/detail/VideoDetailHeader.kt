@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,6 +30,8 @@ data class VideoDetailActions(
     val onBack: () -> Unit,
     val onRefresh: () -> Unit,
     val onSaveMetadata: suspend (Video) -> VideoMetadataEditResult,
+    val onMetadataSaved: (Video) -> Unit = {},
+    val onCropPoster: (() -> Unit)? = null,
     val onPlayVideo: () -> Unit = {},
     val onOpenFolder: () -> Unit = {}
 )
@@ -59,6 +62,13 @@ fun VideoDetailHeader(
         }
 
         DetailIconButton(actions.onRefresh, Icons.Filled.Refresh, translations.galleryDetailRefresh)
+        actions.onCropPoster?.let { onCropPoster ->
+            DetailIconButton(
+                onClick = onCropPoster,
+                icon = Icons.Filled.Crop,
+                contentDescription = translations.galleryDetailCropPoster
+            )
+        }
         DetailIconButton(onEdit, Icons.Filled.Edit, translations.galleryDetailEdit)
         DetailIconButton(actions.onOpenFolder, Icons.Filled.FolderOpen, translations.galleryDetailOpenFolder)
         DetailIconButton(actions.onPlayVideo, Icons.Filled.PlayArrow, translations.galleryDetailPlay)

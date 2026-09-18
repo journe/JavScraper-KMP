@@ -21,8 +21,18 @@ class WatermarkRendererTest {
         assertEquals(1, placements.size)
         val rect = placements.first().rect
         assertEquals(100, rect.height)
-        val asset = ImageIO.read(javaClass.getResourceAsStream("/watermark/4k.png"))
+        val asset = ImageIO.read(javaClass.getResourceAsStream("/watermark/4k.webp"))
         assertEquals(100 * asset.width / asset.height, rect.width)
+    }
+
+    @Test
+    fun `image io decodes every bundled webp asset`() {
+        WatermarkMark.entries.forEach { mark ->
+            val asset = ImageIO.read(javaClass.getResourceAsStream("/watermark/${mark.assetName}"))
+
+            assertTrue(asset != null, "${mark.assetName} should be decodable")
+            assertTrue(asset.width > 0 && asset.height > 0, "${mark.assetName} should have dimensions")
+        }
     }
 
     @Test

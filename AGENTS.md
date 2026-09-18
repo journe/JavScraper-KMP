@@ -19,6 +19,10 @@
 
 测试源码与源码目录结构镜像：`app/src/test/kotlin/javscraper/` 与 `scraper-worker/tests/`。
 
+## 2026-09-15 以来功能演进
+
+详见 [docs/2026-09-15-project-evolution.md](docs/2026-09-15-project-evolution.md)。该文档梳理 2026-09-15 至 2026-09-19 的 7 个已提交功能及其维护入口。
+
 ## 构建、测试与开发命令
 
 Gradle wrapper 统一位于**项目根目录**（不在 app 下），请从根目录执行。

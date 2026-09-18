@@ -12,20 +12,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -33,45 +28,42 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
+import javscraper.io.metadata.VideoMetadataEditResult
 import javscraper.models.Video
 import javscraper.ui.LocalSharedTransitionScope
 import javscraper.ui.components.media.ExtraFanartCarousel
 import javscraper.ui.components.media.ExtraFanartViewer
 import javscraper.ui.components.media.PosterCard
 import javscraper.ui.components.media.PosterSource
-import javscraper.ui.components.VideoInfoCard
 import javscraper.ui.components.media.carouselImageBoundsModifier
 import javscraper.ui.components.media.listExtraFanartImages
 import javscraper.ui.components.media.localFanartModel
 import javscraper.ui.components.media.posterViewerKey
 import javscraper.ui.previewVideoWithAllFields
-import javscraper.ui.theme.JavScraperTheme
+import javscraper.ui.screens.detail.AdaptiveVideoInfoCard
+import javscraper.ui.screens.detail.DetailEscapeAction
+import javscraper.ui.screens.detail.PosterViewerState
 import javscraper.ui.screens.detail.VideoDetailActions
 import javscraper.ui.screens.detail.VideoDetailHeader
 import javscraper.ui.screens.detail.VideoEditDialog
-import javscraper.ui.screens.detail.PosterViewerState
-import javscraper.ui.screens.detail.DetailEscapeAction
 import javscraper.ui.screens.detail.detailEscapeAction
 import javscraper.ui.screens.detail.shouldRestoreDetailFocus
-import javscraper.io.metadata.VideoMetadataEditResult
+import javscraper.ui.theme.JavScraperTheme
 import java.io.File
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun VideoDetailScreen(
     video: Video,
@@ -80,7 +72,6 @@ fun VideoDetailScreen(
     modifier: Modifier = Modifier,
     // 由 App 层持有并注入:与图库页共享同一裁剪版本号,两侧 PosterCard 同步刷新
     posterRefreshKey: Any? = null,
-    onPosterCropped: () -> Unit = {}
 ) {
     var editVisible by remember { mutableStateOf(false) }
     // extrafanart 目录下的预览图:IO 读取后驱动 Carousel
@@ -131,6 +122,7 @@ fun VideoDetailScreen(
                         DetailEscapeAction.CLOSE_EXTRA_FANART_VIEWER -> viewerImageIndex = null
                         DetailEscapeAction.CLOSE_POSTER_VIEWER ->
                             posterViewerState = PosterViewerState.EXITING
+
                         DetailEscapeAction.IGNORE -> Unit
                         DetailEscapeAction.BACK -> actions.onBack()
                     }
@@ -148,12 +140,11 @@ fun VideoDetailScreen(
                 onEdit = { editVisible = true }
             )
             Spacer(Modifier.height(16.dp))
-            // Flow 自适应布局:宽度足够时封面与信息卡同一行,不够时自动换行,
-            // 无需手动阈值切换,任意窗口宽度下 VideoInfoCard 都可见
-            FlowRow(
+            // 先测量 Poster 的实际宽度，再决定信息卡同行还是换行；
+            // 信息卡同行时从最小宽度开始吃剩余宽度，最大不超过 360dp
+            Column(
                 modifier = Modifier.fillMaxWidth().weight(1f)
                     .verticalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 val posterModifier = galleryPosterModifier(
@@ -161,36 +152,36 @@ fun VideoDetailScreen(
                     sharedTransitionScope = LocalSharedTransitionScope.current,
                     animatedVisibilityScope = animatedVisibilityScope
                 )
-                AnimatedVisibility(
-                    visible = posterViewerState != PosterViewerState.VISIBLE,
-                    enter = fadeIn(tween(220)),
-                    exit = fadeOut(tween(220)),
-                ) {
-                    val image = posterImage
-                    val viewerBoundsModifier = image?.let {
-                        carouselImageBoundsModifier(
-                            image = image,
-                            sharedTransitionScope = LocalSharedTransitionScope.current,
-                            animatedVisibilityScope = this@AnimatedVisibility,
-                            sharedContentKey = posterViewerKey(image)
-                        )
-                    } ?: Modifier
-                    PosterCard(
-                        video = video,
-                        onClick = {
-                            if (image != null) posterViewerState = PosterViewerState.VISIBLE
-                        },
-                        modifier = posterModifier.then(viewerBoundsModifier),
-                        cardWidth = 320.dp,
-                        posterRefreshKey = posterRefreshKey,
-                        // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
-                        source = PosterSource.FANART
-                    )
-                }
-                VideoInfoCard(
+                AdaptiveVideoInfoCard(
                     video = video,
-                    // FlowRow 中 weight 表示占满该行剩余宽度(实验 API)
-                    modifier = Modifier.weight(1f, fill = false).widthIn(min = 160.dp,max = 360.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    poster = {
+                        AnimatedVisibility(
+                            visible = posterViewerState != PosterViewerState.VISIBLE,
+                            enter = fadeIn(tween(120)),
+                            exit = fadeOut(tween(120)),
+                        ) {
+                            val image = posterImage
+                            val viewerBoundsModifier = image?.let {
+                                carouselImageBoundsModifier(
+                                    image = image,
+                                    sharedTransitionScope = LocalSharedTransitionScope.current,
+                                    animatedVisibilityScope = this@AnimatedVisibility,
+                                    sharedContentKey = posterViewerKey(image)
+                                )
+                            } ?: Modifier
+                            PosterCard(
+                                video = video,
+                                onClick = {
+                                    if (image != null) posterViewerState = PosterViewerState.VISIBLE
+                                },
+                                modifier = posterModifier.then(viewerBoundsModifier),
+                                posterRefreshKey = posterRefreshKey,
+                                // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
+                                source = PosterSource.FANART
+                            )
+                        }
+                    }
                 )
                 // extrafanart 预览图 Carousel:占满一整行,无图时不渲染。
                 // selectedIndex 驱动选中卡片"退出",为 SharedTransition 提供
@@ -251,7 +242,7 @@ fun VideoDetailScreen(
         VideoEditDialog(
             video = video,
             onSaveMetadata = actions.onSaveMetadata,
-            onPosterCropped = onPosterCropped,
+            onMetadataSaved = actions.onMetadataSaved,
             onDismiss = { editVisible = false }
         )
     }

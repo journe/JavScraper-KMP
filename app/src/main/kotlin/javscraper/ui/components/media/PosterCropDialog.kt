@@ -1,17 +1,24 @@
 package javscraper.ui.components.media
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.requiredWidthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -33,14 +40,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
-import java.io.File
-import javax.imageio.ImageIO
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.io.image.PosterCropper
@@ -54,8 +60,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Image
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
 
 /**
  * 封面裁剪对话框:对齐 mdcx CutWindow 交互——
@@ -114,6 +121,7 @@ fun PosterCropDialog(
     var errorMessage by remember(sourceFile) { mutableStateOf<String?>(null) }
 
     AlertDialog(
+        modifier = Modifier.requiredWidthIn(min = 780.dp, max = 1080.dp),
         onDismissRequest = onDismiss,
         title = { Text(translations.cropTitle(video.number)) },
         text = {
@@ -122,76 +130,84 @@ fun PosterCropDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                CropCanvas(
-                    bitmap = bitmap,
-                    rectState = cropRectState,
-                )
-                Column {
-                    Text(
-                        text = translations.cropAspectRatio(aspect),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = aspect,
-                        onValueChange = { newAspect ->
-                            aspect = newAspect
-                            cropRectState.value = PosterCropper.resizeRectToAspect(
-                                cropRectState.value,
-                                newAspect,
-                                bitmap.width,
-                                bitmap.height
-                            )
-                        },
-                        onValueChangeFinished = {
-                            // 松手时才持久化,避免拖动过程中每帧写盘
-                            SettingsManager.update { it.copy(posterCropAspect = aspect) }
-                        },
-                        valueRange = PosterCropper.MIN_ASPECT..PosterCropper.MAX_ASPECT,
-                    )
-                }
-                PosterWatermarkControls(
-                    state = watermarkState,
-                    size = watermarkSize,
-                    onStateChange = { newState ->
-                        watermarkState = newState
-                        if (SettingsManager.get().posterWatermarkEnabled != newState.enabled) {
-                            SettingsManager.update {
-                                it.copy(posterWatermarkEnabled = newState.enabled)
-                            }
-                        }
-                    },
-                    onSizeChange = { watermarkSize = it },
-                    onSizeChangeFinished = {
-                        SettingsManager.update { it.copy(posterWatermarkSize = watermarkSize) }
-                    }
-                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    PreviewThumbnail(bitmap, cropRectState, aspect, watermarkState.toOptions(watermarkSize))
-                    Column {
-                        Text(
-                            text = translations.cropSourceSize(bitmap.width, bitmap.height),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = translations.cropOutputSize(
-                                cropRectState.value.width, cropRectState.value.height
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        errorMessage?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        CropCanvas(bitmap, cropRectState)
+                        Column {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = translations.cropAspectRatio(aspect),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.width(16.dp))
+                                Text(
+                                    text = translations.cropSourceSize(bitmap.width, bitmap.height),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = translations.cropOutputSize(
+                                        cropRectState.value.width, cropRectState.value.height
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            errorMessage?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Slider(
+                                value = aspect,
+                                onValueChange = { newAspect ->
+                                    aspect = newAspect
+                                    cropRectState.value = PosterCropper.resizeRectToAspect(
+                                        cropRectState.value,
+                                        newAspect,
+                                        bitmap.width,
+                                        bitmap.height
+                                    )
+                                },
+                                onValueChangeFinished = {
+                                    // 松手时才持久化,避免拖动过程中每帧写盘
+                                    SettingsManager.update { it.copy(posterCropAspect = aspect) }
+                                },
+                                valueRange = PosterCropper.MIN_ASPECT..PosterCropper.MAX_ASPECT,
                             )
                         }
+                        PosterWatermarkControls(
+                            state = watermarkState,
+                            size = watermarkSize,
+                            onStateChange = { newState ->
+                                watermarkState = newState
+                                if (SettingsManager.get().posterWatermarkEnabled != newState.enabled) {
+                                    SettingsManager.update {
+                                        it.copy(posterWatermarkEnabled = newState.enabled)
+                                    }
+                                }
+                            },
+                            onSizeChange = { watermarkSize = it },
+                            onSizeChangeFinished = {
+                                SettingsManager.update { it.copy(posterWatermarkSize = watermarkSize) }
+                            }
+                        )
                     }
+                    PreviewThumbnail(
+                        bitmap,
+                        cropRectState,
+                        aspect,
+                        watermarkState.toOptions(watermarkSize)
+                    )
                 }
             }
         },
@@ -225,7 +241,12 @@ fun PosterCropDialog(
 }
 
 /** 等比适配比例(letterbox):画布尺寸相对原图的缩放系数。 */
-private fun fitScale(canvasWidth: Float, canvasHeight: Float, imageWidth: Int, imageHeight: Int): Float {
+private fun fitScale(
+    canvasWidth: Float,
+    canvasHeight: Float,
+    imageWidth: Int,
+    imageHeight: Int
+): Float {
     if ((imageWidth == 0) || (imageHeight == 0)) return 1f
     return minOf(canvasWidth / imageWidth, canvasHeight / imageHeight)
 }
@@ -233,14 +254,15 @@ private fun fitScale(canvasWidth: Float, canvasHeight: Float, imageWidth: Int, i
 @Composable
 private fun CropCanvas(
     bitmap: ImageBitmap,
-    rectState: MutableState<PosterCropper.Rect>
+    rectState: MutableState<PosterCropper.Rect>,
+    modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
     val scrim = MaterialTheme.colorScheme.scrim
     val border = MaterialTheme.colorScheme.primary
 
     Canvas(
-        modifier = Modifier
+        modifier = modifier
             // 不用 fillMaxWidth:它会把宽度钉死为父宽,aspectRatio 只能靠高度满足比例,
             // 竖图(如 380x530)时所需高度 = 父宽/0.717 会突破 420 上限,约束冲突导致布局错乱。
             // 正确做法:aspectRatio 在「宽≤父宽、高≤420」双约束内自由取最大等比尺寸,
@@ -295,7 +317,11 @@ private fun CropCanvas(
 
         // 框外四侧遮罩
         val scrimColor = scrim.copy(alpha = 0.6f)
-        drawRect(color = scrimColor, topLeft = Offset.Zero, size = Size(rectLeft, canvasSize.height))
+        drawRect(
+            color = scrimColor,
+            topLeft = Offset.Zero,
+            size = Size(rectLeft, canvasSize.height)
+        )
         drawRect(
             color = scrimColor,
             topLeft = Offset(rectRight, 0f),
@@ -332,26 +358,32 @@ private fun PreviewThumbnail(
     val watermarkBitmaps = rememberWatermarkBitmaps(watermarkOptions?.marks.orEmpty())
     // 裁剪区域实时预览:按裁剪框原图坐标截取显示(在 draw 内读状态,仅重绘);
     // 高度固定,宽度随 aspect 变化(高/宽=aspect → 宽=高/aspect)
-    Canvas(modifier = Modifier.height(96.dp).aspectRatio(1f / aspect)) {
-        val cropRect = rectState.value
-        drawImage(
-            image = bitmap,
-            srcOffset = IntOffset(cropRect.x, cropRect.y),
-            srcSize = IntSize(cropRect.width, cropRect.height),
-            dstOffset = IntOffset.Zero,
-            dstSize = IntSize(size.width.toInt(), size.height.toInt())
-        )
-        watermarkOptions?.let { options ->
-            WatermarkRenderer
-                .layout(options, size.width.toInt(), size.height.toInt())
-                .forEach { placement ->
-                    val markBitmap = watermarkBitmaps[placement.mark] ?: return@forEach
-                    drawImage(
-                        image = markBitmap,
-                        dstOffset = IntOffset(placement.rect.x, placement.rect.y),
-                        dstSize = IntSize(placement.rect.width, placement.rect.height)
-                    )
-                }
+    Card(
+        modifier = Modifier.height(412.dp).aspectRatio(1f / aspect),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cropRect = rectState.value
+            drawImage(
+                image = bitmap,
+                srcOffset = IntOffset(cropRect.x, cropRect.y),
+                srcSize = IntSize(cropRect.width, cropRect.height),
+                dstOffset = IntOffset.Zero,
+                dstSize = IntSize(size.width.toInt(), size.height.toInt())
+            )
+            watermarkOptions?.let { options ->
+                WatermarkRenderer
+                    .layout(options, size.width.toInt(), size.height.toInt())
+                    .forEach { placement ->
+                        val markBitmap = watermarkBitmaps[placement.mark] ?: return@forEach
+                        drawImage(
+                            image = markBitmap,
+                            dstOffset = IntOffset(placement.rect.x, placement.rect.y),
+                            dstSize = IntSize(placement.rect.width, placement.rect.height)
+                        )
+                    }
+            }
         }
     }
 }

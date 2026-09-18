@@ -91,7 +91,8 @@ class ScrapeOrchestrator(
                     path = updateReady!!.nfoPath,
                     video = outputVideo,
                     lockData = options.lockData,
-                    insertMissingFields = true
+                    insertMissingFields = true,
+                    mergeTags = true
                 )
             }
         } catch (e: Exception) {
