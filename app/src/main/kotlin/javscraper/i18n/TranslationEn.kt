@@ -196,5 +196,20 @@ open class TranslationEn {
     open fun cropSourceSize(w: Int, h: Int): String = "Source: $w x $h"
     open fun cropOutputSize(w: Int, h: Int): String = "Output: $w x $h"
     open fun cropAspectRatio(aspect: Float): String = "Aspect ratio (H/W): " + String.format("%.2f", aspect)
+
+    // --- Poster watermark ---
+    open val cropWatermarkSectionTitle: String = "Watermark"
+    open val cropWatermarkEnabled: String = "Add watermark"
+    open val cropWatermarkHdLabel: String = "Definition"
+    open val cropWatermarkHd4k: String = "4K"
+    open val cropWatermarkHd8k: String = "8K"
+    open val cropWatermarkNone: String = "None"
+    open val cropWatermarkSub: String = "Subtitles"
+    open val cropWatermarkMosaicLabel: String = "Mosaic"
+    open val cropWatermarkCensored: String = "Censored"
+    open val cropWatermarkUmr: String = "Cracked"
+    open val cropWatermarkLeak: String = "Leaked"
+    open val cropWatermarkUncensored: String = "Uncensored"
+    open fun cropWatermarkSize(value: Int): String = "Watermark size: $value"
 }
 

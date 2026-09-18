@@ -1,4 +1,4 @@
-package javscraper.ui.components
+package javscraper.ui.components.media
 
 import java.io.File
 import kotlin.test.Test

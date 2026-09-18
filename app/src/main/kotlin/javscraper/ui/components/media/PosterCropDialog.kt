@@ -1,4 +1,4 @@
-package javscraper.ui.components
+package javscraper.ui.components.media
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
@@ -43,7 +43,11 @@ import java.io.File
 import javax.imageio.ImageIO
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
-import javscraper.io.PosterCropper
+import javscraper.io.image.PosterCropper
+import javscraper.io.image.WatermarkRenderer
+import javscraper.models.Video
+import javscraper.models.WatermarkOptions
+import javscraper.settings.AppSettings
 import javscraper.settings.SettingsManager
 import javscraper.ui.theme.JavScraperTheme
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +64,7 @@ import java.awt.image.BufferedImage
  */
 @Composable
 fun PosterCropDialog(
-    videoNumber: String,
+    video: Video,
     sourceFile: File,
     posterFile: File,
     onCropped: () -> Unit = {},
@@ -73,7 +77,7 @@ fun PosterCropDialog(
     if (bitmap == null) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text(translations.cropTitle(videoNumber)) },
+            title = { Text(translations.cropTitle(video.number)) },
             text = { Text(translations.cropLoadFailed) },
             confirmButton = {
                 TextButton(onClick = onDismiss) { Text(translations.commonConfirm) }
@@ -93,11 +97,25 @@ fun PosterCropDialog(
     }
     // 高宽比可调,变更时以框右缘为锚重算尺寸,松手后写回设置。
     var aspect by remember(sourceFile) { mutableFloatStateOf(savedAspect) }
+    val savedWatermarkEnabled = remember(sourceFile) {
+        SettingsManager.get().posterWatermarkEnabled
+    }
+    var watermarkSize by remember(sourceFile) {
+        mutableStateOf(
+            SettingsManager.get().posterWatermarkSize.coerceIn(
+                AppSettings.MIN_POSTER_WATERMARK_SIZE,
+                AppSettings.MAX_POSTER_WATERMARK_SIZE
+            )
+        )
+    }
+    var watermarkState by remember(sourceFile, video) {
+        mutableStateOf(defaultWatermarkState(video, savedWatermarkEnabled))
+    }
     var errorMessage by remember(sourceFile) { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(translations.cropTitle(videoNumber)) },
+        title = { Text(translations.cropTitle(video.number)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -132,11 +150,27 @@ fun PosterCropDialog(
                         valueRange = PosterCropper.MIN_ASPECT..PosterCropper.MAX_ASPECT,
                     )
                 }
+                PosterWatermarkControls(
+                    state = watermarkState,
+                    size = watermarkSize,
+                    onStateChange = { newState ->
+                        watermarkState = newState
+                        if (SettingsManager.get().posterWatermarkEnabled != newState.enabled) {
+                            SettingsManager.update {
+                                it.copy(posterWatermarkEnabled = newState.enabled)
+                            }
+                        }
+                    },
+                    onSizeChange = { watermarkSize = it },
+                    onSizeChangeFinished = {
+                        SettingsManager.update { it.copy(posterWatermarkSize = watermarkSize) }
+                    }
+                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PreviewThumbnail(bitmap, cropRectState, aspect)
+                    PreviewThumbnail(bitmap, cropRectState, aspect, watermarkState.toOptions(watermarkSize))
                     Column {
                         Text(
                             text = translations.cropSourceSize(bitmap.width, bitmap.height),
@@ -165,8 +199,14 @@ fun PosterCropDialog(
             TextButton(
                 onClick = {
                     scope.launch {
+                        val watermarkOptions = watermarkState.toOptions(watermarkSize)
                         val ok = withContext(Dispatchers.IO) {
-                            PosterCropper.cropToFile(sourceFile, posterFile, cropRectState.value)
+                            PosterCropper.cropToFile(
+                                sourceFile,
+                                posterFile,
+                                cropRectState.value,
+                                watermarkOptions
+                            )
                         }
                         if (ok) {
                             onCropped()
@@ -286,8 +326,10 @@ private fun CropCanvas(
 private fun PreviewThumbnail(
     bitmap: ImageBitmap,
     rectState: MutableState<PosterCropper.Rect>,
-    aspect: Float
+    aspect: Float,
+    watermarkOptions: WatermarkOptions?
 ) {
+    val watermarkBitmaps = rememberWatermarkBitmaps(watermarkOptions?.marks.orEmpty())
     // 裁剪区域实时预览:按裁剪框原图坐标截取显示(在 draw 内读状态,仅重绘);
     // 高度固定,宽度随 aspect 变化(高/宽=aspect → 宽=高/aspect)
     Canvas(modifier = Modifier.height(96.dp).aspectRatio(1f / aspect)) {
@@ -299,6 +341,18 @@ private fun PreviewThumbnail(
             dstOffset = IntOffset.Zero,
             dstSize = IntSize(size.width.toInt(), size.height.toInt())
         )
+        watermarkOptions?.let { options ->
+            WatermarkRenderer
+                .layout(options, size.width.toInt(), size.height.toInt())
+                .forEach { placement ->
+                    val markBitmap = watermarkBitmaps[placement.mark] ?: return@forEach
+                    drawImage(
+                        image = markBitmap,
+                        dstOffset = IntOffset(placement.rect.x, placement.rect.y),
+                        dstSize = IntSize(placement.rect.width, placement.rect.height)
+                    )
+                }
+        }
     }
 }
 
@@ -319,7 +373,7 @@ private fun PosterCropDialogPreview() {
     CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
         JavScraperTheme {
             PosterCropDialog(
-                videoNumber = "SONE-001",
+                video = Video(number = "SONE-001"),
                 sourceFile = tempFile,
                 posterFile = File(tempFile.parentFile, "poster.jpg"),
                 onDismiss = {}

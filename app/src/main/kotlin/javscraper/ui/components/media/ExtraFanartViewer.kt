@@ -1,4 +1,4 @@
-package javscraper.ui.components
+package javscraper.ui.components.media
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi

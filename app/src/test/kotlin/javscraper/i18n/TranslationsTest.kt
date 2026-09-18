@@ -76,6 +76,17 @@ class TranslationsTest {
     }
 
     @Test
+    fun `poster watermark texts are localized`() {
+        assertEquals("Add watermark", TranslationEn().cropWatermarkEnabled)
+        assertEquals("添加水印", TranslationZh().cropWatermarkEnabled)
+        assertEquals("Censored", TranslationEn().cropWatermarkCensored)
+        assertEquals("有码", TranslationZh().cropWatermarkCensored)
+        assertEquals("Watermark size: 5", TranslationEn().cropWatermarkSize(5))
+        assertEquals("水印大小：5", TranslationZh().cropWatermarkSize(5))
+        assertEquals("无", TranslationZh().cropWatermarkNone)
+    }
+
+    @Test
     fun `poster crop entry is localized`() {
         assertEquals("Crop Poster", TranslationEn().galleryDetailCropPoster)
         assertEquals("裁剪封面", TranslationZh().galleryDetailCropPoster)

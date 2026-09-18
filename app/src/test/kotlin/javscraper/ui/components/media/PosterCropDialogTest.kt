@@ -1,4 +1,4 @@
-package javscraper.ui.components
+package javscraper.ui.components.media
 
 import javscraper.models.Video
 import java.nio.file.Files

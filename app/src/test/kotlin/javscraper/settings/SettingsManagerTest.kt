@@ -31,6 +31,8 @@ class SettingsManagerTest {
         assertEquals(11, settings.enabledSites.size)
         assertTrue(settings.enabledSites.contains("mmtv"))
         assertEquals(1.5f, settings.posterCropAspect)
+        assertEquals(true, settings.posterWatermarkEnabled)
+        assertEquals(5, settings.posterWatermarkSize)
         assertEquals(true, settings.lockData)
         assertEquals(15_000, settings.requestTimeoutMs)
     }
@@ -64,6 +66,8 @@ class SettingsManagerTest {
             fileLoggingEnabled = true,
             language = "zh",
             enabledSites = listOf("javbus", "javdb"),
+            posterWatermarkEnabled = false,
+            posterWatermarkSize = 8,
             posterCropAspect = 1.8f,
             lockData = false,
             requestTimeoutMs = 60_000
@@ -87,6 +91,8 @@ class SettingsManagerTest {
         assertEquals("zh", decoded.language)
         assertEquals(2, decoded.enabledSites.size)
         assertEquals(1.8f, decoded.posterCropAspect)
+        assertEquals(false, decoded.posterWatermarkEnabled)
+        assertEquals(8, decoded.posterWatermarkSize)
         assertEquals(false, decoded.lockData)
         assertEquals(60_000, decoded.requestTimeoutMs)
     }
@@ -122,6 +128,22 @@ class SettingsManagerTest {
         val jsonStr = """{"workerPath": "custom.exe"}"""
         val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
         assertEquals(15_000, settings.requestTimeoutMs)
+    }
+
+    @Test
+    fun `AppSettings poster watermark falls back to defaults on missing keys`() {
+        val jsonStr = """{"workerPath": "custom.exe"}"""
+        val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
+
+        assertEquals(true, settings.posterWatermarkEnabled)
+        assertEquals(5, settings.posterWatermarkSize)
+    }
+
+    @Test
+    fun `AppSettings normalizes out of range watermark size`() {
+        assertEquals(1, AppSettings().copy(posterWatermarkSize = 0).withNormalizedWatermarkSize().posterWatermarkSize)
+        assertEquals(10, AppSettings().copy(posterWatermarkSize = 99).withNormalizedWatermarkSize().posterWatermarkSize)
+        assertEquals(7, AppSettings().copy(posterWatermarkSize = 7).withNormalizedWatermarkSize().posterWatermarkSize)
     }
 
     @Test

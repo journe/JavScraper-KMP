@@ -30,10 +30,17 @@ data class AppSettings(
     val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc"),
     /** 封面裁剪高宽比(高/宽),默认 1.5 = 2:3 海报标准,范围见 PosterCropper。 */
     val posterCropAspect: Float = 1.5f,
+    /** 裁剪海报时是否添加水印,对齐 mdcx poster_mark 默认开启。 */
+    val posterWatermarkEnabled: Boolean = true,
+    /** 水印大小:水印高度 = 海报高度 * size / 40。 */
+    val posterWatermarkSize: Int = DEFAULT_POSTER_WATERMARK_SIZE,
     /** 单次刮削请求等待 worker 响应的超时（毫秒），可选项见 [REQUEST_TIMEOUT_OPTIONS]。 */
     val requestTimeoutMs: Int = 15_000
 ) {
     companion object {
+        const val MIN_POSTER_WATERMARK_SIZE = 1
+        const val MAX_POSTER_WATERMARK_SIZE = 10
+        const val DEFAULT_POSTER_WATERMARK_SIZE = 5
         /** 设置页可选的超时时间（毫秒）。 */
         val REQUEST_TIMEOUT_OPTIONS: List<Int> = listOf(5_000, 15_000, 30_000, 60_000)
     }
@@ -50,3 +57,9 @@ object SettingsManager {
     private fun load(): AppSettings = try { if (Files.exists(configFile)) json.decodeFromString(Files.readString(configFile)) else AppSettings().also { save() } } catch (e: Exception) { AppSettings() }
     private fun save() { try { Files.writeString(configFile, json.encodeToString(cached)) } catch (e: Exception) {} }
 }
+internal fun AppSettings.withNormalizedWatermarkSize(): AppSettings = copy(
+    posterWatermarkSize = posterWatermarkSize.coerceIn(
+        AppSettings.MIN_POSTER_WATERMARK_SIZE,
+        AppSettings.MAX_POSTER_WATERMARK_SIZE
+    )
+)

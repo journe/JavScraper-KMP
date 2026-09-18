@@ -1,4 +1,4 @@
-package javscraper.ui.components
+package javscraper.ui.components.media
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

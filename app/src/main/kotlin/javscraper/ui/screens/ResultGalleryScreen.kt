@@ -29,7 +29,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.models.ScannedFile
 import javscraper.models.Video
-import javscraper.ui.components.PosterCard
+import javscraper.ui.components.media.PosterCard
 import javscraper.ui.theme.JavScraperTheme
 import java.io.File
 import io.github.oikvpqya.compose.fastscroller.VerticalScrollbar

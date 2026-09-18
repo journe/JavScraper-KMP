@@ -1,10 +1,13 @@
-package javscraper.io
+package javscraper.io.image
 
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
+import java.awt.Color
+import javscraper.models.WatermarkMark
+import javscraper.models.WatermarkOptions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -230,12 +233,79 @@ class PosterCropperTest {
         }
     }
 
+    @Test
+    fun `crop to file applies watermark to cropped poster`() {
+        val dir = Files.createTempDirectory("javscraper-crop-")
+        try {
+            val source = writeTestImage(dir.resolve("fanart.jpg").toFile(), 800, 533)
+            val dest = dir.resolve("poster.jpg").toFile()
+            val rect = PosterCropper.initialCropRect(800, 533)
+            val options = WatermarkOptions(listOf(WatermarkMark.HD_4K), size = 5)
+
+            val ok = PosterCropper.cropToFile(source, dest, rect, options)
+
+            assertTrue(ok, "watermarked crop should succeed")
+            val result = ImageIO.read(dest)
+            assertNotNull(result)
+            assertEquals(rect.width, result.width)
+            val placement = WatermarkRenderer.layout(options, rect.width, rect.height).first().rect
+            val hasMarkPixel = (placement.x until placement.x + placement.width).step(2).any { x ->
+                (placement.y until placement.y + placement.height).step(2).any { y ->
+                    result.getRGB(x, y) != Color.BLACK.rgb
+                }
+            }
+            assertTrue(hasMarkPixel, "watermark pixels should be drawn on the cropped poster")
+            assertFalse(File(dir.toFile(), "poster.jpg.tmp.jpg").isFile, "temp file should be cleaned")
+        } finally {
+            cleanup(dir)
+        }
+    }
+
+    @Test
+    fun `crop to file writes higher quality jpeg than imageio default`() {
+        val dir = Files.createTempDirectory("javscraper-crop-")
+        try {
+            val source = writeGradientImage(dir.resolve("fanart.jpg").toFile(), 400, 300)
+            val dest = dir.resolve("poster.jpg").toFile()
+            val plain = dir.resolve("plain.jpg").toFile()
+            assertTrue(ImageIO.write(gradientImage(400, 300), "jpg", plain), "plain jpeg write should succeed")
+
+            val ok = PosterCropper.cropToFile(source, dest, PosterCropper.Rect(0, 0, 400, 300))
+
+            assertTrue(ok, "crop should succeed")
+            assertTrue(
+                dest.length() > plain.length(),
+                "expected high-quality output (${dest.length()} B) to exceed default quality (${plain.length()} B)"
+            )
+        } finally {
+            cleanup(dir)
+        }
+    }
+
+    // --- helpers (appended) ---
     // --- helpers ---
 
     private fun writeTestImage(file: File, width: Int, height: Int): File {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
         assertTrue(ImageIO.write(image, "jpg", file), "test image write should succeed")
         return file
+    }
+
+    private fun writeGradientImage(file: File, width: Int, height: Int): File {
+        assertTrue(ImageIO.write(gradientImage(width, height), "jpg", file), "test image write should succeed")
+        return file
+    }
+
+    private fun gradientImage(width: Int, height: Int): BufferedImage {
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val red = x * 255 / width
+                val green = y * 255 / height
+                image.setRGB(x, y, (red shl 16) or (green shl 8) or 0x40)
+            }
+        }
+        return image
     }
 
     private fun cleanup(dir: Path) {

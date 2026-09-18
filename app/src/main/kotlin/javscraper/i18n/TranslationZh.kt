@@ -185,4 +185,19 @@ class TranslationZh : TranslationEn() {
     override fun cropSourceSize(w: Int, h: Int): String = "原图：$w × $h"
     override fun cropOutputSize(w: Int, h: Int): String = "输出：$w × $h"
     override fun cropAspectRatio(aspect: Float): String = "高宽比（高/宽）：" + String.format("%.2f", aspect)
+
+    // --- Poster watermark ---
+    override val cropWatermarkSectionTitle: String = "水印"
+    override val cropWatermarkEnabled: String = "添加水印"
+    override val cropWatermarkHdLabel: String = "清晰度"
+    override val cropWatermarkHd4k: String = "4K"
+    override val cropWatermarkHd8k: String = "8K"
+    override val cropWatermarkNone: String = "无"
+    override val cropWatermarkSub: String = "字幕"
+    override val cropWatermarkMosaicLabel: String = "马赛克"
+    override val cropWatermarkCensored: String = "有码"
+    override val cropWatermarkUmr: String = "破解"
+    override val cropWatermarkLeak: String = "流出"
+    override val cropWatermarkUncensored: String = "无码"
+    override fun cropWatermarkSize(value: Int): String = "水印大小：$value"
 }

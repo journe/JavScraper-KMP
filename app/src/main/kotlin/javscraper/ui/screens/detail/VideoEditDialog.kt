@@ -34,9 +34,9 @@ import javscraper.i18n.LocalTranslations
 import javscraper.io.metadata.VideoMetadataEditResult
 import javscraper.models.Video
 import javscraper.ui.VideoFieldValue
-import javscraper.ui.components.PosterCropDialog
-import javscraper.ui.components.cropSourceModel
-import javscraper.ui.components.localPosterPath
+import javscraper.ui.components.media.PosterCropDialog
+import javscraper.ui.components.media.cropSourceModel
+import javscraper.ui.components.media.localPosterPath
 import javscraper.ui.videoFieldEditValues
 import kotlinx.coroutines.launch
 import java.io.File
@@ -173,7 +173,7 @@ fun VideoEditDialog(
         val source = cropSource
         if (source != null) {
             PosterCropDialog(
-                videoNumber = video.number,
+                video = video,
                 sourceFile = source,
                 posterFile = File(localPosterPath(video)),
                 onCropped = onPosterCropped,

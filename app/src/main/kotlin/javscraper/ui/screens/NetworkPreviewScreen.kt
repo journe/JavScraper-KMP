@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.Video
-import javscraper.ui.components.PosterCard
+import javscraper.ui.components.media.PosterCard
 
 /** Bundled network-preview state to reduce parameter count on [NetworkPreviewScreen]. */
 data class NetworkPreviewState(

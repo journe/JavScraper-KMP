@@ -1,9 +1,15 @@
-package javscraper.io
+package javscraper.io.image
 
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
+import javscraper.models.WatermarkOptions
+import javax.imageio.IIOImage
 import javax.imageio.ImageIO
+import javax.imageio.ImageTypeSpecifier
+import javax.imageio.ImageWriteParam
+import javax.imageio.metadata.IIOMetadata
+import javax.imageio.stream.ImageOutputStream
 
 /**
  * 封面裁剪:从横版封面(fanart.jpg,缺省回退 poster.jpg)裁出竖版 poster。
@@ -99,7 +105,12 @@ object PosterCropper {
      * 执行裁剪并写入 [destFile](JPEG,quality 95,对齐 mdcx 的 quality=95)。
      * 返回写入是否成功;失败时 [destFile] 保持原状(先写临时文件再原子替换)。
      */
-    fun cropToFile(sourceFile: File, destFile: File, rect: Rect): Boolean {
+    fun cropToFile(
+        sourceFile: File,
+        destFile: File,
+        rect: Rect,
+        watermark: WatermarkOptions? = null
+    ): Boolean {
         val image = try {
             ImageIO.read(sourceFile) ?: return false
         } catch (_: Exception) {
@@ -118,9 +129,15 @@ object PosterCropper {
         } finally {
             graphics.dispose()
         }
+        val output = if ((watermark != null) && watermark.marks.isNotEmpty()) {
+            WatermarkRenderer.render(cropped, watermark)
+        } else {
+            cropped
+        }
+
         val tempFile = File(destFile.parentFile, destFile.name + ".tmp.jpg")
         return try {
-            val ok = ImageIO.write(cropped, "jpg", tempFile)
+            val ok = writeJpeg(output, tempFile)
             if (ok && (!destFile.exists() || destFile.delete())) {
                 Files.move(tempFile.toPath(), destFile.toPath())
                 true
@@ -131,6 +148,53 @@ object PosterCropper {
         } catch (_: Exception) {
             tempFile.delete()
             false
+        }
+    }
+
+    /** JPEG 输出参数对齐 mdcx:quality=95 且色度不二次抽样(4:4:4)。 */
+    private const val JPEG_QUALITY = 0.95f
+    private const val JPEG_NATIVE_METADATA = "javax_imageio_jpeg_image_1.0"
+
+    private fun writeJpeg(image: BufferedImage, file: File): Boolean {
+        val writerIterator = ImageIO.getImageWritersByFormatName("jpg")
+        if (!writerIterator.hasNext()) return false
+        val writer = writerIterator.next()
+        val stream = try {
+            ImageIO.createImageOutputStream(file)
+        } catch (_: Exception) {
+            null
+        } ?: return false
+        return try {
+            writer.output = stream
+            val param = writer.defaultWriteParam
+            param.compressionMode = ImageWriteParam.MODE_EXPLICIT
+            param.compressionQuality = JPEG_QUALITY
+            val metadata = writer.getDefaultImageMetadata(ImageTypeSpecifier(image), param)
+            disableChromaSubsampling(metadata)
+            writer.write(null, IIOImage(image, null, metadata), param)
+            true
+        } catch (_: Exception) {
+            false
+        } finally {
+            writer.dispose()
+            stream.close()
+        }
+    }
+
+    /** 标准 JPEG 元数据树没有直接 API,尝试把两个色度分量采样改为 1x1;失败时保持默认。 */
+    private fun disableChromaSubsampling(metadata: IIOMetadata) {
+        runCatching {
+            val tree = metadata.getAsTree(JPEG_NATIVE_METADATA) as? org.w3c.dom.Element ?: return@runCatching
+            val componentSpecs = tree.getElementsByTagName("componentSpec")
+            for (index in 0 until componentSpecs.length) {
+                val node = componentSpecs.item(index) as? org.w3c.dom.Element ?: continue
+                val componentId = node.getAttribute("componentId")
+                if (componentId == "2" || componentId == "3") {
+                    node.setAttribute("HsamplingFactor", "1")
+                    node.setAttribute("VsamplingFactor", "1")
+                }
+            }
+            metadata.setFromTree(JPEG_NATIVE_METADATA, tree)
         }
     }
 }

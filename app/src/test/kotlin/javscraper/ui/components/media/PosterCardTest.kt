@@ -1,4 +1,4 @@
-package javscraper.ui.components
+package javscraper.ui.components.media
 
 import coil3.ImageLoader
 import coil3.PlatformContext
