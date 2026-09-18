@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun VideoEditDialog(
     video: Video,
-    onSaveMetadata: suspend (Video) -> VideoMetadataEditResult,
+    onSaveMetadata: suspend (Video, Boolean) -> VideoMetadataEditResult,
     onMetadataSaved: (Video) -> Unit = {},
     onDismiss: () -> Unit
 ) {
@@ -50,6 +50,7 @@ fun VideoEditDialog(
     var saving by remember(video) { mutableStateOf(false) }
     var saveError by remember(video) { mutableStateOf<String?>(null) }
     val editedVideo = videoFromEditFields(video, fields)
+    val mergeTags = editedVideo?.tags == video.tags
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
@@ -149,7 +150,7 @@ fun VideoEditDialog(
                     saving = true
                     saveError = null
                     scope.launch {
-                        val result = onSaveMetadata(candidate)
+                        val result = onSaveMetadata(candidate, mergeTags)
                         saving = false
                         when (result) {
                             is VideoMetadataEditResult.Success -> {
@@ -200,7 +201,7 @@ private fun VideoEditDialogPreview() {
         JavScraperTheme {
             VideoEditDialog(
                 video = previewVideoWithAllFields(),
-                onSaveMetadata = { _ -> VideoMetadataEditResult.NfoMissing },
+                onSaveMetadata = { _, _ -> VideoMetadataEditResult.NfoMissing },
                 onDismiss = {}
             )
         }

@@ -9,7 +9,7 @@ import javscraper.models.Video
 internal fun previewVideoWithAllFields(): Video = Video(
     number = "IPZ-127",
     title = "包含完整字段的刮削结果标题,预览专用",
-    actresses = listOf("演员 A", "演员 B"),
+    actresses = listOf("演员 A", "演员 B", "演员 c", "演员 D"),
     date = "2026-08-26",
     maker = "片商",
     label = "发行标签",
@@ -17,7 +17,22 @@ internal fun previewVideoWithAllFields(): Video = Video(
     director = "导演",
     duration = 120,
     rating = 9.2,
-    tags = listOf("标签 A", "标签 B"),
+    tags = listOf(
+        "标签 A",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 B",
+        "标签 d",
+        "标签 c",
+        "标签asd",
+        "标签zzz"
+    ),
     coverUrl = "https://example.com/cover.jpg",
     posterUrl = "https://example.com/poster.jpg",
     sampleImages = listOf(

@@ -5,20 +5,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javscraper.controllers.NetworkPreviewController
 import javscraper.i18n.TranslationEn
+import javscraper.io.FileScanner
 import javscraper.io.logging.AppLogController
 import javscraper.io.logging.LogEntry
-import javscraper.io.FileScanner
-import javscraper.io.metadata.VideoMetadataEditor
 import javscraper.io.metadata.VideoMetadataEditResult
+import javscraper.io.metadata.VideoMetadataEditor
 import javscraper.models.ScannedFile
 import javscraper.models.SiteInfo
 import javscraper.models.Video
 import javscraper.ui.screens.FileScanActions
 import javscraper.ui.screens.FileScanState
 import javscraper.ui.screens.GalleryActions
+import javscraper.ui.screens.GalleryState
 import javscraper.ui.screens.NetworkPreviewActions
 import javscraper.ui.screens.NetworkPreviewState
-import javscraper.ui.screens.GalleryState
 import javscraper.ui.screens.ScrapeProgressActions
 import javscraper.ui.screens.ScrapeProgressState
 import javscraper.ui.screens.ScrapeTask
@@ -27,10 +27,10 @@ import javscraper.ui.screens.settings.SettingsActions
 import javscraper.ui.screens.settings.SettingsState
 import javscraper.ui.screens.upsertScrapeTask
 import javscraper.ui.screens.upsertVideo
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
@@ -250,7 +250,7 @@ class AppViewModel(
                     updated[i] = t.copy(status = ScrapeTaskStatus.SCRAPING)
                     tasks = updated
 
-                        val taskFiles = scannedFiles.filter { it.number == t.number && !it.isScraped }
+                    val taskFiles = scannedFiles.filter { it.number == t.number && !it.isScraped }
                     if (taskFiles.isNotEmpty()) {
                         try {
                             val r = withContext(Dispatchers.IO) { o.processParts(taskFiles) }
@@ -302,13 +302,14 @@ class AppViewModel(
         tasks = emptyList()
     }
 
-    suspend fun saveVideoMetadata(video: Video): VideoMetadataEditResult {
+    suspend fun saveVideoMetadata(video: Video, mergeTags: Boolean): VideoMetadataEditResult {
         val result = withContext(Dispatchers.IO) {
             VideoMetadataEditor.update(
                 video = video,
                 lockData = lockData,
                 folderLayers = folderLayers,
-                scanDir = scanDir
+                scanDir = scanDir,
+                mergeTags = mergeTags
             )
         }
         if (result is VideoMetadataEditResult.Success) {
@@ -357,10 +358,18 @@ class AppViewModel(
             outputDir, singleScrapeError, singleScrapeErrorStage, showMissingOutputDir
         )
     val scrapeProgressActions: ScrapeProgressActions = ScrapeProgressActions(
-        ::startAllScraping, ::cancelScraping, ::openSingleScrapeFromTask,
-        ::updateSingleScrapeNumber, ::updateSingleScrapeSite,
-        ::startSingleScrape, ::closeSingleScrape, ::cancelSingleScrape,
-        ::confirmPreviewWrite, ::selectPreviewCandidate, ::cancelPreviewWrite, ::dismissMissingOutputDir,
+        ::startAllScraping,
+        ::cancelScraping,
+        ::openSingleScrapeFromTask,
+        ::updateSingleScrapeNumber,
+        ::updateSingleScrapeSite,
+        ::startSingleScrape,
+        ::closeSingleScrape,
+        ::cancelSingleScrape,
+        ::confirmPreviewWrite,
+        ::selectPreviewCandidate,
+        ::cancelPreviewWrite,
+        ::dismissMissingOutputDir,
         ::confirmSingleScrape
     )
 
@@ -375,21 +384,62 @@ class AppViewModel(
     )
     val settingsState: SettingsState
         get() = SettingsState(
-            workerPath, outputDir, scanDir, scanDirHistory, scanRecursive, createMovieFolders,
-            moveInsteadOfCopy, downloadImages, downloadPreviewImages, downloadWebPages, lockData, updateMode, autoScrape,
-            fileLoggingEnabled, sites, enabledSites,
+            workerPath,
+            outputDir,
+            scanDir,
+            scanDirHistory,
+            scanRecursive,
+            createMovieFolders,
+            moveInsteadOfCopy,
+            downloadImages,
+            downloadPreviewImages,
+            downloadWebPages,
+            lockData,
+            updateMode,
+            autoScrape,
+            fileLoggingEnabled,
+            sites,
+            enabledSites,
             siteMirrorUrls,
-            currentLanguage, showRestartHint, folderLayers, filenameFormat,
-            maxTitleLength, maxFilenameLength, suffixKeywords, requestTimeoutMs,
-            siteCheckRunning, siteCheckResults
+            currentLanguage,
+            showRestartHint,
+            folderLayers,
+            filenameFormat,
+            maxTitleLength,
+            maxFilenameLength,
+            suffixKeywords,
+            requestTimeoutMs,
+            siteCheckRunning,
+            siteCheckResults
         )
     val settingsActions: SettingsActions = SettingsActions(
-        ::updateLanguage, ::selectOutputDir, ::selectScanDir, ::selectScanDirFromHistory, ::selectWorkerPath,
-        ::updateWorkerPath, ::updateScanRecursive, ::updateCreateMovieFolders,
-        ::updateMoveInsteadOfCopy, ::updateDownloadImages, ::updateDownloadPreviewImages, ::updateDownloadWebPages, ::updateLockData, ::updateUpdateMode, ::updateAutoScrape,
+        ::updateLanguage,
+        ::selectOutputDir,
+        ::selectScanDir,
+        ::selectScanDirFromHistory,
+        ::selectWorkerPath,
+        ::updateWorkerPath,
+        ::updateScanRecursive,
+        ::updateCreateMovieFolders,
+        ::updateMoveInsteadOfCopy,
+        ::updateDownloadImages,
+        ::updateDownloadPreviewImages,
+        ::updateDownloadWebPages,
+        ::updateLockData,
+        ::updateUpdateMode,
+        ::updateAutoScrape,
         ::updateFileLogging,
-        ::toggleSite, ::updateSiteMirror, ::resetSettings, ::updateFolderLayer, ::addLayer,
-        ::removeLayer, ::updateFilenameFormat, ::updateMaxTitleLength,
-        ::updateMaxFilenameLength, ::updateSuffixKeywords, ::updateRequestTimeoutMs, ::checkSites
+        ::toggleSite,
+        ::updateSiteMirror,
+        ::resetSettings,
+        ::updateFolderLayer,
+        ::addLayer,
+        ::removeLayer,
+        ::updateFilenameFormat,
+        ::updateMaxTitleLength,
+        ::updateMaxFilenameLength,
+        ::updateSuffixKeywords,
+        ::updateRequestTimeoutMs,
+        ::checkSites
     )
 }

@@ -29,7 +29,7 @@ import javscraper.models.Video
 data class VideoDetailActions(
     val onBack: () -> Unit,
     val onRefresh: () -> Unit,
-    val onSaveMetadata: suspend (Video) -> VideoMetadataEditResult,
+    val onSaveMetadata: suspend (Video, Boolean) -> VideoMetadataEditResult,
     val onMetadataSaved: (Video) -> Unit = {},
     val onCropPoster: (() -> Unit)? = null,
     val onPlayVideo: () -> Unit = {},

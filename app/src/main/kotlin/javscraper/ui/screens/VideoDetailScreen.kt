@@ -263,7 +263,7 @@ private fun VideoDetailScreenPreview() {
                             actions = VideoDetailActions(
                                 onBack = {},
                                 onRefresh = {},
-                                onSaveMetadata = { VideoMetadataEditResult.NfoMissing }
+                                onSaveMetadata = { _, _ -> VideoMetadataEditResult.NfoMissing }
                             ),
                             animatedVisibilityScope = this@AnimatedContent
                         )

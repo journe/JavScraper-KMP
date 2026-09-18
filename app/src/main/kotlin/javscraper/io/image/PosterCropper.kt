@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
 import javscraper.models.WatermarkOptions
+import mu.KotlinLogging
 import javax.imageio.IIOImage
 import javax.imageio.ImageIO
 import javax.imageio.ImageTypeSpecifier
@@ -17,6 +18,8 @@ import javax.imageio.stream.ImageOutputStream
  * pic_h_w_ratio 一致),横图上只允许水平平移,高图上只允许垂直平移。
  */
 object PosterCropper {
+//    private val log = KotlinLogging.logger {}
+    private val log =  mu.KotlinLogging.logger {}
 
     /** 竖版海报默认高宽比(高/宽),对应 2:3 海报标准,与 mdcx 默认一致。 */
     const val POSTER_ASPECT = 1.5f
@@ -111,10 +114,33 @@ object PosterCropper {
         rect: Rect,
         watermark: WatermarkOptions? = null
     ): Boolean {
+        val startedAt = System.currentTimeMillis()
+        log.info {
+            "Poster crop start: source=${sourceFile.absolutePath}, sourceBytes=${sourceFile.length()}, " +
+                "destination=${destFile.absolutePath}, rect=$rect, " +
+                "watermarkMarks=${watermark?.marks?.size ?: 0}"
+        }
+
         val image = try {
-            ImageIO.read(sourceFile) ?: return false
-        } catch (_: Exception) {
-            return false
+            val decoded = ImageIO.read(sourceFile)
+            if (decoded == null) {
+                log.warn {
+                    "Poster crop decode returned null: source=${sourceFile.absolutePath}, " +
+                        "sourceBytes=${sourceFile.length()}, readers=${imageReaderClasses(sourceFile)}"
+                }
+            }
+            decoded
+        } catch (e: Exception) {
+            log.warn(e) {
+                "Poster crop decode failed: source=${sourceFile.absolutePath}, " +
+                    "sourceBytes=${sourceFile.length()}, readers=${imageReaderClasses(sourceFile)}"
+            }
+            null
+        } ?: return false
+
+        log.info {
+            "Poster crop decoded: source=${sourceFile.absolutePath}, size=${image.width}x${image.height}, " +
+                "type=${image.type}, readers=${imageReaderClasses(sourceFile)}"
         }
         val clamped = clampRect(rect, image.width, image.height)
         val cropped = BufferedImage(clamped.width, clamped.height, BufferedImage.TYPE_INT_RGB)
@@ -138,18 +164,60 @@ object PosterCropper {
         val tempFile = File(destFile.parentFile, destFile.name + ".tmp.jpg")
         return try {
             val ok = writeJpeg(output, tempFile)
-            if (ok && (!destFile.exists() || destFile.delete())) {
-                Files.move(tempFile.toPath(), destFile.toPath())
-                true
-            } else {
+            if (!ok) {
+                log.warn {
+                    "Poster crop JPEG write failed: temp=${tempFile.absolutePath}, " +
+                        "outputSize=${output.width}x${output.height}"
+                }
                 tempFile.delete()
-                false
+                return false
             }
-        } catch (_: Exception) {
+            log.info {
+                "Poster crop JPEG written: file=${tempFile.absolutePath}, bytes=${tempFile.length()}, " +
+                    "size=${output.width}x${output.height}"
+            }
+
+            if (destFile.exists() && !destFile.delete()) {
+                log.warn {
+                    "Poster crop destination delete failed: destination=${destFile.absolutePath}, " +
+                        "destinationBytes=${destFile.length()}"
+                }
+                tempFile.delete()
+                return false
+            }
+            Files.move(tempFile.toPath(), destFile.toPath())
+            log.info {
+                "Poster crop completed: destination=${destFile.absolutePath}, bytes=${destFile.length()}, " +
+                    "elapsedMs=${System.currentTimeMillis() - startedAt}"
+            }
+            true
+        } catch (e: Exception) {
+            log.warn(e) {
+                "Poster crop failed: source=${sourceFile.absolutePath}, destination=${destFile.absolutePath}, " +
+                    "temp=${tempFile.absolutePath}"
+            }
             tempFile.delete()
             false
         }
     }
+
+    private fun imageReaderClasses(file: File): String =
+        try {
+            val input = ImageIO.createImageInputStream(file) ?: return "unavailable"
+            try {
+                val readers = ImageIO.getImageReaders(input)
+                buildList {
+                    while (readers.hasNext()) {
+                        add(readers.next().javaClass.simpleName)
+                    }
+                }.joinToString(",", prefix = "[", postfix = "]")
+            } finally {
+                input.close()
+            }
+        } catch (e: Exception) {
+            log.warn(e) { "Poster crop reader inspection failed: file=${file.absolutePath}" }
+            "unavailable"
+        }
 
     /** JPEG 输出参数对齐 mdcx:quality=95 且色度不二次抽样(4:4:4)。 */
     private const val JPEG_QUALITY = 0.95f
@@ -157,11 +225,15 @@ object PosterCropper {
 
     private fun writeJpeg(image: BufferedImage, file: File): Boolean {
         val writerIterator = ImageIO.getImageWritersByFormatName("jpg")
-        if (!writerIterator.hasNext()) return false
+        if (!writerIterator.hasNext()) {
+            log.warn { "Poster crop JPEG writer unavailable: format=jpg" }
+            return false
+        }
         val writer = writerIterator.next()
         val stream = try {
             ImageIO.createImageOutputStream(file)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            log.warn(e) { "Poster crop JPEG output stream failed: file=${file.absolutePath}" }
             null
         } ?: return false
         return try {
@@ -173,7 +245,8 @@ object PosterCropper {
             disableChromaSubsampling(metadata)
             writer.write(null, IIOImage(image, null, metadata), param)
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            log.warn(e) { "Poster crop JPEG encode failed: file=${file.absolutePath}" }
             false
         } finally {
             writer.dispose()

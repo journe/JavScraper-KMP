@@ -1,6 +1,11 @@
 package javscraper.io.image
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import java.awt.image.BufferedImage
+import java.nio.file.StandardCopyOption
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -172,6 +177,44 @@ class PosterCropperTest {
     }
 
     // --- cropToFile ---
+
+    @Test
+    fun `crop to file decodes webp source and logs key steps`() {
+        val dir = Files.createTempDirectory("javscraper-crop-webp-")
+        val logger = LoggerFactory.getLogger(PosterCropper::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>()
+        appender.start()
+        logger.addAppender(appender)
+        try {
+            val source = dir.resolve("fanart.webp").toFile()
+            javaClass.getResourceAsStream("/watermark/4k.webp")!!.use { input ->
+                Files.copy(input, source.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+            val sourceImage = assertNotNull(ImageIO.read(source), "bundled webp should be decodable")
+            val dest = dir.resolve("poster.jpg").toFile()
+            val rect = PosterCropper.initialCropRect(sourceImage.width, sourceImage.height)
+
+            val ok = PosterCropper.cropToFile(source, dest, rect)
+
+            assertTrue(ok, "webp crop should succeed")
+            val result = assertNotNull(ImageIO.read(dest), "cropped jpeg should be readable")
+            assertEquals(rect.width, result.width)
+            assertEquals(rect.height, result.height)
+            val messages = appender.list.map { it.formattedMessage }
+            listOf(
+                "Poster crop start",
+                "Poster crop decoded",
+                "Poster crop JPEG written",
+                "Poster crop completed"
+            ).forEach { expected ->
+                assertTrue(messages.any { it.contains(expected) }, "missing log: $expected, logs=$messages")
+            }
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+            cleanup(dir)
+        }
+    }
 
     @Test
     fun `crop to file writes cropped jpeg with expected size`() {

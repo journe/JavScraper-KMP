@@ -6,19 +6,19 @@ import androidx.compose.runtime.setValue
 import javscraper.models.ScannedFile
 import javscraper.models.SingleScrapeDialogState
 import javscraper.models.Video
+import javscraper.scrape.ScrapeOrchestrator
 import javscraper.sidecar.SidecarRequestException
 import javscraper.sidecar.SidecarTimeoutException
-import javscraper.scrape.ScrapeOrchestrator
 import javscraper.ui.screens.ScrapeTask
 import javscraper.ui.screens.ScrapeTaskStatus
 import javscraper.ui.screens.filesForScrapeTask
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Manages the single-scrape dialog state machine and its background job. */
 class SingleScrapeController(
@@ -132,14 +132,20 @@ class SingleScrapeController(
                 singleScrapeDialogState = SingleScrapeDialogState.Scraping
                 val writeFiles = singleScrapeFiles.ifEmpty { listOf(sf) }
                     .map { it.copy(number = number) }
-                val writeResult = withContext(Dispatchers.IO) { orch()?.writeSingleScrapeToDisk(writeFiles, video) }
+                val writeResult = withContext(Dispatchers.IO) {
+                    orch()?.writeSingleScrapeToDisk(
+                        writeFiles,
+                        video
+                    )
+                }
                 if (writeResult == null || !writeResult.success) {
                     failSingleScrape(writeResult?.error?.message ?: "Write failed")
                     return@launch
                 }
                 val written = writeResult.data ?: video
                 singleScrapeDialogState = SingleScrapeDialogState.Result(written, null)
-                singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = written)
+                singleScrapeTask =
+                    singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = written)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -173,7 +179,8 @@ class SingleScrapeController(
 
     /** User confirmed the preview: proceed with file IO. */
     fun confirmPreviewWrite() {
-        val selectedIndex = (singleScrapeDialogState as? SingleScrapeDialogState.Preview)?.selectedIndex ?: 0
+        val selectedIndex =
+            (singleScrapeDialogState as? SingleScrapeDialogState.Preview)?.selectedIndex ?: 0
         previewConfirm?.complete(selectedIndex)
     }
 
@@ -182,6 +189,7 @@ class SingleScrapeController(
         val preview = singleScrapeDialogState as? SingleScrapeDialogState.Preview ?: return
         singleScrapeDialogState = preview.select(index)
     }
+
     /** User cancelled the preview: abort without writing files. */
     fun cancelPreviewWrite() {
         previewConfirm?.complete(null)

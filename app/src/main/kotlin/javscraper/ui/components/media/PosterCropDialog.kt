@@ -119,6 +119,7 @@ fun PosterCropDialog(
         mutableStateOf(defaultWatermarkState(video, savedWatermarkEnabled))
     }
     var errorMessage by remember(sourceFile) { mutableStateOf<String?>(null) }
+    val log = mu.KotlinLogging.logger {}
 
     AlertDialog(
         modifier = Modifier.requiredWidthIn(min = 780.dp, max = 1080.dp),
@@ -217,6 +218,7 @@ fun PosterCropDialog(
                     scope.launch {
                         val watermarkOptions = watermarkState.toOptions(watermarkSize)
                         val ok = withContext(Dispatchers.IO) {
+                            log.info { "PosterCropper.cropToFile" }
                             PosterCropper.cropToFile(
                                 sourceFile,
                                 posterFile,

@@ -23,7 +23,7 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
 
             val nfo = findNfo(sourceFolder, sourcePaths)
                 ?: return UpdateModeResult.Failed(listOf("Update mode requires an existing NFO file"))
-            val coverArtReusable = hasReusableCoverArt(sourceFolder)
+            val posterReusable = hasReusablePoster(sourceFolder)
             val previewsReusable = hasPreviewImages(sourceFolder)
             val target = resolveTargetFolder(sourceFolder, files, video)
             if (target == sourceFolder) {
@@ -31,7 +31,7 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                     folder = sourceFolder,
                     files = files,
                     nfoPath = nfo,
-                    coverArtReusable = coverArtReusable,
+                    posterReusable = posterReusable,
                     previewsReusable = previewsReusable
                 )
             }
@@ -46,7 +46,7 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                     file.copy(path = target.resolve(sourcePaths[index].fileName).toString())
                 },
                 nfoPath = target.resolve(nfo.fileName),
-                coverArtReusable = coverArtReusable,
+                posterReusable = posterReusable,
                 previewsReusable = previewsReusable
             )
         } catch (e: Exception) {
@@ -94,8 +94,8 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
         }.singleOrNull()
     }
 
-    private fun hasReusableCoverArt(folder: Path): Boolean =
-        Files.isRegularFile(folder.resolve("fanart.jpg")) && Files.isRegularFile(folder.resolve("poster.jpg"))
+    private fun hasReusablePoster(folder: Path): Boolean =
+        Files.isRegularFile(folder.resolve("poster.jpg"))
 
     private fun hasPreviewImages(folder: Path): Boolean {
         val previews = folder.resolve("extrafanart")
@@ -130,7 +130,7 @@ internal sealed interface UpdateModeResult {
         val folder: Path,
         val files: List<ScannedFile>,
         val nfoPath: Path,
-        val coverArtReusable: Boolean,
+        val posterReusable: Boolean,
         val previewsReusable: Boolean
     ) : UpdateModeResult
 

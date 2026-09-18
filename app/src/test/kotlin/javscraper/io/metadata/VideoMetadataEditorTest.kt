@@ -35,7 +35,7 @@ class VideoMetadataEditorTest {
             path = videoPath.toString()
         )
 
-        val result = VideoMetadataEditor.update(edited, lockData = true)
+        val result = VideoMetadataEditor.update(edited, lockData = true, mergeTags = false)
 
         val success = assertIs<VideoMetadataEditResult.Success>(result)
         assertEquals("New title", success.video.title)
@@ -47,6 +47,39 @@ class VideoMetadataEditorTest {
         assertTrue(savedNfo.contains("<name>New actor</name>"))
         assertTrue(savedNfo.contains("<genre>New tag</genre>"))
         assertTrue(!savedNfo.contains("<genre>Old tag</genre>"))
+    }
+
+    @Test
+    fun `update merges existing tags when edited tags are unchanged`() {
+        val directory = Files.createTempDirectory("javscraper-metadata-merge-tags")
+        val videoPath = directory.resolve("ABC-001.mp4")
+        val nfoPath = directory.resolve("ABC-001.nfo")
+        nfoPath.writeText(
+            NfoWriter.generate(
+                Video(
+                    number = "ABC-001",
+                    title = "Old title",
+                    tags = listOf("AVC1", "1080P", "Shared tag")
+                )
+            )
+        )
+        val edited = Video(
+            number = "ABC-001",
+            title = "New title",
+            tags = listOf("Shared tag", "DMM"),
+            path = videoPath.toString()
+        )
+
+        val result = VideoMetadataEditor.update(edited, lockData = false, mergeTags = true)
+
+        val success = assertIs<VideoMetadataEditResult.Success>(result)
+        assertEquals(listOf("AVC1", "1080P", "Shared tag", "DMM"), success.video.tags)
+        val savedNfo = Files.readString(nfoPath)
+        assertTrue(savedNfo.contains("<genre>AVC1</genre>"))
+        assertTrue(savedNfo.contains("<genre>1080P</genre>"))
+        assertTrue(savedNfo.contains("<tag>Shared tag</tag>"))
+        assertTrue(savedNfo.contains("<tag>DMM</tag>"))
+        assertEquals(1, savedNfo.split("<genre>Shared tag</genre>").size - 1)
     }
 
     @Test

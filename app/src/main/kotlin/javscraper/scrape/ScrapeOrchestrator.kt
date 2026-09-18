@@ -110,7 +110,7 @@ class ScrapeOrchestrator(
             }
         }
         if (options.downloadImages) {
-            val downloadCoverArt = updateReady?.coverArtReusable != true
+            val downloadCoverArt = updateReady?.posterReusable != true
             val downloadPreviews = options.downloadPreviewImages && updateReady?.previewsReusable != true
             writeImages(targetFolder, outputVideo, mhtmlPath, ioErrors, downloadCoverArt, downloadPreviews)
         }

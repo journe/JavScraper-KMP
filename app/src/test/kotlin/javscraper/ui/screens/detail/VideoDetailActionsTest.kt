@@ -12,7 +12,7 @@ class VideoDetailActionsTest {
         val actions = VideoDetailActions(
             onBack = {},
             onRefresh = {},
-            onSaveMetadata = { VideoMetadataEditResult.NfoMissing }
+            onSaveMetadata = { _, _ -> VideoMetadataEditResult.NfoMissing }
         )
 
         assertEquals(null, actions.onCropPoster)
@@ -24,7 +24,7 @@ class VideoDetailActionsTest {
         val actions = VideoDetailActions(
             onBack = {},
             onRefresh = {},
-            onSaveMetadata = { VideoMetadataEditResult.NfoMissing },
+            onSaveMetadata = { _, _ -> VideoMetadataEditResult.NfoMissing },
             onCropPoster = { cropRequested++ }
         )
 

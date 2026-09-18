@@ -22,7 +22,8 @@ object VideoMetadataEditor {
         video: Video,
         lockData: Boolean,
         folderLayers: List<String> = emptyList(),
-        scanDir: String = ""
+        scanDir: String = "",
+        mergeTags: Boolean = false
     ): VideoMetadataEditResult {
         if (video.path.isBlank()) return VideoMetadataEditResult.NfoMissing
         val videoPath = Paths.get(video.path).toAbsolutePath().normalize()
@@ -45,7 +46,8 @@ object VideoMetadataEditor {
                 path = move.targetNfoPath,
                 video = video,
                 lockData = lockData,
-                insertMissingFields = true
+                insertMissingFields = true,
+                mergeTags = mergeTags
             )
             val savedVideo = NfoReader.read(move.targetNfoPath)
                 ?.copy(path = move.targetVideoPath.toString())

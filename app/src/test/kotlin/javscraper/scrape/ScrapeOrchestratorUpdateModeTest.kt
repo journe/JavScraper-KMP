@@ -212,6 +212,59 @@ class ScrapeOrchestratorUpdateModeTest {
     }
 
     @Test
+    fun `update mode preserves edited poster without fanart`() = runTest {
+        val scanDir = createTempDirectory("javscraper-edited-poster").toFile()
+        val outputDir = createTempDirectory("javscraper-edited-output").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("OLD-001.mp4")
+        source.writeText("video")
+        oldFolder.resolve("OLD-001.nfo").writeText("<movie><title>Old</title><num>OLD-001</num></movie>")
+        oldFolder.resolve("poster.jpg").writeText("edited-poster")
+        val requests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/cover.jpg") { exchange ->
+            requests.incrementAndGet()
+            val content = "downloaded-cover".toByteArray()
+            exchange.sendResponseHeaders(200, content.size.toLong())
+            exchange.responseBody.use { it.write(content) }
+        }
+        server.start()
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    outputDir = outputDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = true,
+                    downloadWebPages = false,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}")
+                )
+            )
+        )
+
+        try {
+            val result = orchestrator.writeSingleScrapeToDisk(
+                listOf(ScannedFile(source.absolutePath, source.name, "NEW-001")),
+                Video(
+                    number = "NEW-001",
+                    title = "New Title",
+                    coverUrl = "http://127.0.0.1:${server.address.port}/cover.jpg"
+                )
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val newFolder = scanDir.resolve("NEW-001 New Title")
+            assertEquals("edited-poster", newFolder.resolve("poster.jpg").readText())
+            assertEquals(0, requests.get())
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun `update mode option keeps batch write behavior`() = runTest {
         val output = createTempDirectory("javscraper-batch-update").toFile()
         val oldFolder = output.resolve("OLD-001")

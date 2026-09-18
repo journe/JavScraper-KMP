@@ -7,36 +7,58 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
+import javscraper.io.external.SystemFileLauncher
 import javscraper.models.Video
 import javscraper.ui.LocalSharedTransitionScope
-import javscraper.io.external.SystemFileLauncher
 import javscraper.ui.components.CollapsibleNavRail
 import javscraper.ui.components.LogsDialog
 import javscraper.ui.components.WorkerSetupDialog
 import javscraper.ui.components.media.PosterCropDialog
 import javscraper.ui.components.media.cropSourceModel
 import javscraper.ui.components.media.localPosterPath
-import javscraper.ui.screens.*
+import javscraper.ui.screens.FileScanScreen
+import javscraper.ui.screens.NetworkPreviewScreen
+import javscraper.ui.screens.ResultGalleryScreen
+import javscraper.ui.screens.ScrapeProgressScreen
+import javscraper.ui.screens.SingleScrapeDialog
+import javscraper.ui.screens.VideoDetailScreen
 import javscraper.ui.screens.detail.VideoDetailActions
-import javscraper.ui.screens.settings.*
-
+import javscraper.ui.screens.settings.SettingsScreen
 import javscraper.ui.theme.JavScraperTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
 import java.io.File
 
 enum class Screen { SCAN, PROGRESS, GALLERY, NETWORK_PREVIEW, SETTINGS }
@@ -137,85 +159,92 @@ fun App() {
                         SharedTransitionLayout {
                             // scope 通过 CompositionLocal 下发,深层组件免参数透传
                             CompositionLocalProvider(LocalSharedTransitionScope provides this) {
-                            AnimatedContent(
-                                targetState = detailVideo,
-                                transitionSpec = {
-                                    fadeIn(tween(220)) togetherWith fadeOut(tween(120))
-                                },
-                                label = "gallery-detail-transition"
-                            ) { video ->
-                                if (video == null) {
-                                    when (viewModel.currentScreen) {
-                                        Screen.SCAN -> FileScanScreen(
-                                            state = viewModel.scanState,
-                                            actions = viewModel.scanActions
-                                        )
+                                AnimatedContent(
+                                    targetState = detailVideo,
+                                    transitionSpec = {
+                                        fadeIn(tween(220)) togetherWith fadeOut(tween(120))
+                                    },
+                                    label = "gallery-detail-transition"
+                                ) { video ->
+                                    if (video == null) {
+                                        when (viewModel.currentScreen) {
+                                            Screen.SCAN -> FileScanScreen(
+                                                state = viewModel.scanState,
+                                                actions = viewModel.scanActions
+                                            )
 
-                                        Screen.PROGRESS -> ScrapeProgressScreen(
-                                            state = viewModel.scrapeProgressState,
-                                            actions = viewModel.scrapeProgressActions
-                                        )
+                                            Screen.PROGRESS -> ScrapeProgressScreen(
+                                                state = viewModel.scrapeProgressState,
+                                                actions = viewModel.scrapeProgressActions
+                                            )
 
-                                        Screen.GALLERY -> ResultGalleryScreen(
-                                            state = galleryState,
-                                            posterRefreshKey = posterRefreshVersion,
-                                            actions = viewModel.galleryActions.copy(
-                                                onClear = {
-                                                    selectedVideoPath = null
-                                                    galleryListState.requestScrollToItem(0)
-                                                    viewModel.clearResults()
+                                            Screen.GALLERY -> ResultGalleryScreen(
+                                                state = galleryState,
+                                                posterRefreshKey = posterRefreshVersion,
+                                                actions = viewModel.galleryActions.copy(
+                                                    onClear = {
+                                                        selectedVideoPath = null
+                                                        galleryListState.requestScrollToItem(0)
+                                                        viewModel.clearResults()
+                                                    },
+                                                    onVideoClick = { video ->
+                                                        selectedVideoPath = video.path
+                                                    }
+                                                ),
+                                                listState = galleryListState,
+                                                sharedTransitionScope = this@SharedTransitionLayout,
+                                                animatedVisibilityScope = this@AnimatedContent
+                                            )
+
+                                            Screen.NETWORK_PREVIEW -> NetworkPreviewScreen(
+                                                state = viewModel.networkPreviewState,
+                                                actions = viewModel.networkPreviewActions
+                                            )
+
+                                            Screen.SETTINGS -> SettingsScreen(
+                                                state = viewModel.settingsState,
+                                                actions = viewModel.settingsActions
+                                            )
+                                        }
+                                    } else {
+                                        val cropSource =
+                                            remember(video.path) { cropSourceModel(video) }
+                                        VideoDetailScreen(
+                                            video = video,
+                                            actions = VideoDetailActions(
+                                                onBack = { selectedVideoPath = null },
+                                                onRefresh = {
+                                                    galleryState.fileByPath(video.path)
+                                                        ?.let(viewModel::openSingleScrape)
                                                 },
-                                                onVideoClick = { video ->
-                                                    selectedVideoPath = video.path
+                                                onSaveMetadata = viewModel::saveVideoMetadata,
+                                                onMetadataSaved = { saved ->
+                                                    selectedVideoPath = saved.path
+                                                },
+                                                onCropPoster = cropSource?.let { source ->
+                                                    {
+                                                        cropRequest =
+                                                            PosterCropRequest(video, source)
+                                                    }
+                                                },
+                                                onPlayVideo = {
+                                                    scope.launch(Dispatchers.IO) {
+                                                        systemFileLauncher.openVideo(video.path)
+                                                    }
+                                                },
+                                                onOpenFolder = {
+                                                    scope.launch(Dispatchers.IO) {
+                                                        systemFileLauncher.openContainingDirectory(
+                                                            video.path
+                                                        )
+                                                    }
                                                 }
                                             ),
-                                            listState = galleryListState,
-                                            sharedTransitionScope = this@SharedTransitionLayout,
-                                            animatedVisibilityScope = this@AnimatedContent
-                                        )
-
-                                        Screen.NETWORK_PREVIEW -> NetworkPreviewScreen(
-                                            state = viewModel.networkPreviewState,
-                                            actions = viewModel.networkPreviewActions
-                                        )
-                                        Screen.SETTINGS -> SettingsScreen(
-                                            state = viewModel.settingsState,
-                                            actions = viewModel.settingsActions
+                                            animatedVisibilityScope = this@AnimatedContent,
+                                            posterRefreshKey = posterRefreshVersion
                                         )
                                     }
-                                } else {
-                                    val cropSource = remember(video.path) { cropSourceModel(video) }
-                                    VideoDetailScreen(
-                                        video = video,
-                                        actions = VideoDetailActions(
-                                            onBack = { selectedVideoPath = null },
-                                            onRefresh = {
-                                                galleryState.fileByPath(video.path)
-                                                    ?.let(viewModel::openSingleScrape)
-                                            },
-                                            onSaveMetadata = viewModel::saveVideoMetadata,
-                                            onMetadataSaved = { saved -> selectedVideoPath = saved.path },
-                                            onCropPoster = cropSource?.let { source ->
-                                                {
-                                                    cropRequest = PosterCropRequest(video, source)
-                                                }
-                                            },
-                                            onPlayVideo = {
-                                                scope.launch(Dispatchers.IO) {
-                                                    systemFileLauncher.openVideo(video.path)
-                                                }
-                                            },
-                                            onOpenFolder = {
-                                                scope.launch(Dispatchers.IO) {
-                                                    systemFileLauncher.openContainingDirectory(video.path)
-                                                }
-                                            }
-                                        ),
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        posterRefreshKey = posterRefreshVersion
-                                    )
                                 }
-                            }
                             }
                         }
                     }
