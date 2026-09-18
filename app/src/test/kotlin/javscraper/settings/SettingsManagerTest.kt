@@ -28,8 +28,11 @@ class SettingsManagerTest {
         assertEquals(false, settings.autoScrape)
         assertEquals(false, settings.fileLoggingEnabled)
         assertEquals("en", settings.language)
-        assertEquals(11, settings.enabledSites.size)
+        assertEquals(16, settings.enabledSites.size)
         assertTrue(settings.enabledSites.contains("mmtv"))
+        assertTrue(settings.enabledSites.containsAll(
+            listOf("madouqu", "mdtv", "hdouban", "cnmdb", "javday")
+        ))
         assertEquals(1.5f, settings.posterCropAspect)
         assertEquals(true, settings.posterWatermarkEnabled)
         assertEquals(5, settings.posterWatermarkSize)
@@ -45,6 +48,7 @@ class SettingsManagerTest {
         assertTrue(settings.enabledSites.contains("fc2"))
         assertTrue(settings.enabledSites.contains("fc2mirror"))
         assertTrue(settings.enabledSites.contains("javlibrary"))
+        assertTrue(settings.enabledSites.contains("mdtv"))
     }
 
     @Test

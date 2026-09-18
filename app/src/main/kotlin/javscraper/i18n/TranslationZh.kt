@@ -83,6 +83,7 @@ class TranslationZh : TranslationEn() {
     override fun settingsRequestTimeoutOption(seconds: Int): String = "${seconds}秒"
     override val settingsSiteCategoryCensored: String = "有码站点"
     override val settingsSiteCategoryUncensored: String = "无码站点"
+    override val settingsSiteCategoryDomestic: String = "国产站点"
     override val settingsSiteCategoryMixed: String = "混合站点"
     override val settingsSiteCategoryUnknown: String = "其他站点"
     override val settingsMirrorUrls: String = "镜像网址"

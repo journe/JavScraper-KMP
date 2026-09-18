@@ -4,7 +4,7 @@
 
 ## 一、架构概览
 
-每个刮削器是一个 `BaseScraper` 子类，按内容类型放在 `scraper-worker/scrapers/openaver/censored/`、`uncensored/` 或 `mixed/` 下，通过模块末尾的 `ScraperRegistry.register(...)` 自动注册。相关文件职责：
+每个刮削器是一个 `BaseScraper` 子类，按内容类型放在 `scraper-worker/scrapers/openaver/censored/`、`uncensored/`、`mixed/` 或 `domestic/` 下，通过模块末尾的 `ScraperRegistry.register(...)` 自动注册。相关文件职责：
 
 | 文件 | 职责 |
 | --- | --- |
@@ -14,7 +14,8 @@
 | `scrapers/openaver/censored/` | 有码站点刮削器实现 |
 | `scrapers/openaver/uncensored/` | 无码站点刮削器实现 |
 | `scrapers/openaver/mixed/` | 同时服务有码与无码搜索的综合性站点刮削器实现 |
-| `core/smart_search.py` | 自动搜索优先级链（`CENSORED` / `UNCENSORED`） |
+| `scrapers/openaver/domestic/` | 国产站点刮削器实现 |
+| `core/smart_search.py` | 自动搜索优先级链（`CENSORED` / `UNCENSORED` / `DOMESTIC`） |
 | `ipc_handler.py` | JSON-RPC 路由；**末尾 import 各刮削器以触发注册** |
 | `scraper-worker.spec` | PyInstaller 打包配置（`hiddenimports`） |
 
@@ -22,7 +23,7 @@
 
 ### 1. 创建刮削器文件
 
-新建 `scraper-worker/scrapers/openaver/<censored|uncensored|mixed>/<site>.py`，实现 `BaseScraper`；综合站点放入 `mixed/`：
+新建 `scraper-worker/scrapers/openaver/<censored|uncensored|mixed|domestic>/<site>.py`，实现 `BaseScraper`；综合站点放入 `mixed/`，国产站点放入 `domestic/`：
 
 ```python
 import requests
@@ -81,9 +82,9 @@ from scrapers.openaver.censored import xxx  # noqa: F401
 
 ### 3. 配置自动搜索优先级
 
-在 `core/smart_search.py` 的 `CENSORED` / `UNCENSORED` 列表中加入新站点 id。自动搜索会在该优先级链基础上继续应用应用设置传入的启用站点列表；新增站点若要参与自动搜索，也必须加入应用设置默认启用列表。
+在 `core/smart_search.py` 的 `CENSORED` / `UNCENSORED` / `DOMESTIC` 列表中加入新站点 id。自动搜索会在该优先级链基础上继续应用应用设置传入的启用站点列表；新增站点若要参与自动搜索，也必须加入应用设置默认启用列表。
 
-原则：追加到**列表末尾**作为兜底，不改变现有站点优先级；无码/素人站点加 `UNCENSORED`，有码站点加 `CENSORED`（综合站点可两边都加）。
+原则：追加到**列表末尾**作为兜底，不改变现有站点优先级；无码/素人站点加 `UNCENSORED`，有码站点加 `CENSORED`，国产站点加 `DOMESTIC`（综合站点可加入多条链）。
 
 ### 4. 更新 PyInstaller 配置
 
@@ -181,6 +182,15 @@ git check-ignore -v <新文件>
 - 覆盖 `search()` 返回全部匹配候选，单个详情页解析失败时跳过并继续；
 - 有码/无码优先从面包屑判断，其次按 FC2 前缀兜底；
 - 演员清洗：`re.sub(r"（.+）", "", each).split(" ")[0]`。
+
+### 国产站点迁移实例
+
+2026-09-19 迁移了 MDCx 默认国产网站源：`madouqu`、`mdtv`、`hdouban`、`cnmdb`、`javday`。实现位于 `scrapers/openaver/domestic/`，公共番号清洗、片商识别和标签处理位于 `domestic/common.py`。
+
+- 所有结果统一追加 `国产` 标签并去重；
+- `MD[A-Z-]*\d{4,}`（排除 `MDVR`）与 `MKY-[A-Z]+-\d{3,}` 进入 `DOMESTIC` 自动搜索链；
+- `hdouban` 使用 JSON API，其余站点使用 HTML 解析；
+- 当前站点可达性可能因域名、TLS 或反爬策略变化，维护时优先通过设置页镜像地址或更新 `BASE_URL` 处理。
 
 ## 四、常见问题
 

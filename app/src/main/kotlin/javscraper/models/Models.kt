@@ -43,6 +43,9 @@ enum class SiteCategory {
     @SerialName("uncensored")
     UNCENSORED,
 
+    @SerialName("domestic")
+    DOMESTIC,
+
     @SerialName("mixed")
     MIXED,
 
@@ -53,6 +56,7 @@ enum class SiteCategory {
         fun fromId(id: String?): SiteCategory = when (id) {
             "censored" -> CENSORED
             "uncensored" -> UNCENSORED
+            "domestic" -> DOMESTIC
             "mixed" -> MIXED
             else -> UNKNOWN
         }

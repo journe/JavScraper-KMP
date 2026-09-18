@@ -117,6 +117,15 @@ class ModelsTest {
     }
 
     @Test
+    fun `SiteInfo decodes domestic category`() {
+        val site = json.decodeFromString<SiteInfo>(
+            """{"id":"mdtv","name":"MDTV","category":"domestic"}"""
+        )
+
+        assertEquals(SiteCategory.DOMESTIC, site.category)
+    }
+
+    @Test
     fun `ScrapeError default values`() {
         val error = ScrapeError()
         assertEquals(-1, error.code)

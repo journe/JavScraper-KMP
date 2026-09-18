@@ -73,6 +73,7 @@ def test_list_sites():
         ("scrapers.openaver.censored.mock", "censored"),
         ("scrapers.openaver.uncensored.mock", "uncensored"),
         ("scrapers.openaver.mixed.mock", "mixed"),
+        ("scrapers.openaver.domestic.mock", "domestic"),
     ],
 )
 def test_list_sites_category_follows_openaver_package(monkeypatch, module, category):

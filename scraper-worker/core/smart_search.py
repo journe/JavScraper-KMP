@@ -7,6 +7,7 @@ from scrapers.models import Video
 
 CENSORED = ["javbus", "javdb", "jav321", "javlibrary", "dmm", "mmtv"]
 UNCENSORED = ["fc2", "fc2mirror", "heyzo", "avsox", "d2pass", "mmtv"]
+DOMESTIC = ["madouqu", "mdtv", "hdouban", "cnmdb", "javday"]
 
 
 def _is_uncensored(number: str) -> bool:
@@ -16,7 +17,18 @@ def _is_uncensored(number: str) -> bool:
     return re.match(r"^\d{6}-\d{2,}$", upper) is not None
 
 
+def _is_domestic(number: str) -> bool:
+    upper = number.strip().upper()
+    if upper.startswith("MDVR"):
+        return False
+    if re.search(r"(?:^|[^A-Z])MD[A-Z-]*\d{4,}", upper):
+        return True
+    return re.match(r"^MKY-[A-Z]+-\d{3,}$", upper) is not None
+
+
 def _priority_chain(number: str) -> list[str]:
+    if _is_domestic(number):
+        return DOMESTIC
     return UNCENSORED if _is_uncensored(number) else CENSORED
 
 

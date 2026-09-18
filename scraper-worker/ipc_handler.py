@@ -183,3 +183,8 @@ from scrapers.openaver.uncensored import d2pass  # noqa: F401
 from scrapers.openaver.censored import dmm  # noqa: F401
 from scrapers.openaver.censored import javlibrary  # noqa: F401
 from scrapers.openaver.mixed import mmtv  # noqa: F401
+from scrapers.openaver.domestic import madouqu  # noqa: F401
+from scrapers.openaver.domestic import mdtv  # noqa: F401
+from scrapers.openaver.domestic import hdouban  # noqa: F401
+from scrapers.openaver.domestic import cnmdb  # noqa: F401
+from scrapers.openaver.domestic import javday  # noqa: F401

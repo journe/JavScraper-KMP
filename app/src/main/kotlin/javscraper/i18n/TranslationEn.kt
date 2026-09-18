@@ -91,6 +91,7 @@ open class TranslationEn {
     open fun settingsRequestTimeoutOption(seconds: Int): String = "${seconds}s"
     open val settingsSiteCategoryCensored: String = "Censored Sites"
     open val settingsSiteCategoryUncensored: String = "Uncensored Sites"
+    open val settingsSiteCategoryDomestic: String = "Domestic Sites"
     open val settingsSiteCategoryMixed: String = "Mixed Sites"
     open val settingsSiteCategoryUnknown: String = "Other Sites"
     open val settingsMirrorUrls: String = "Mirror URLs"

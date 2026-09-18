@@ -78,6 +78,7 @@ private fun siteCategoryLabel(category: SiteCategory, t: TranslationEn): String 
     when (category) {
         SiteCategory.CENSORED -> t.settingsSiteCategoryCensored
         SiteCategory.UNCENSORED -> t.settingsSiteCategoryUncensored
+        SiteCategory.DOMESTIC -> t.settingsSiteCategoryDomestic
         SiteCategory.MIXED -> t.settingsSiteCategoryMixed
         SiteCategory.UNKNOWN -> t.settingsSiteCategoryUnknown
     }

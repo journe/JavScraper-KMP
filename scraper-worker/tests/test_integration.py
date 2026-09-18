@@ -20,6 +20,11 @@ def test_list_sites():
     assert categories["javbus"] == "censored"
     assert categories["fc2"] == "uncensored"
     assert categories["mmtv"] == "mixed"
+    assert categories["madouqu"] == "domestic"
+    assert categories["mdtv"] == "domestic"
+    assert categories["hdouban"] == "domestic"
+    assert categories["cnmdb"] == "domestic"
+    assert categories["javday"] == "domestic"
     javbus = next(site for site in result["result"] if site["id"] == "javbus")
     assert javbus["mirror_urls"] == [
         "https://www.dmmsee.casa",

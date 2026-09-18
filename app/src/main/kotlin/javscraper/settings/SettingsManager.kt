@@ -21,7 +21,7 @@ data class AppSettings(
     /** 更新模式：复用旧媒体目录资产，并字段级修改既有 NFO。 */
     val updateMode: Boolean = false,
     val language: String = "en",
-    val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2", "fc2mirror","heyzo","mmtv"),
+    val enabledSites: List<String> = listOf("javbus","javdb","jav321","dmm","javlibrary","avsox","d2pass","fc2", "fc2mirror","heyzo","mmtv","madouqu","mdtv","hdouban","cnmdb","javday"),
     val siteMirrorUrls: Map<String, String> = emptyMap(),
     val folderLayers: List<String> = listOf("{num} {title}"),
     val filenameFormat: String = "{num} {title}",

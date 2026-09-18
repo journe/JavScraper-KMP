@@ -132,6 +132,22 @@ class MirrorAwareScraper(BaseScraper):
         return [Video(number=number, title="Mirrored", source="mirror-aware")]
 
 
+class DomesticScraper(BaseScraper):
+    @property
+    def site_id(self):
+        return "mdtv"
+
+    @property
+    def site_name(self):
+        return "MDTV"
+
+    def _search_one(self, number):
+        return None
+
+    def search(self, number):
+        return [Video(number=number, title="Domestic", source="mdtv", tags=["国产"])]
+
+
 def test_smart_search_applies_site_mirror_to_scraper_instance():
     ScraperRegistry.clear()
     ScraperRegistry.register(MirrorAwareScraper)
@@ -144,3 +160,23 @@ def test_smart_search_applies_site_mirror_to_scraper_instance():
 
     assert result is not None
     assert MirrorAwareScraper.searched_base_urls == ["https://mirror.example"]
+
+
+def test_domestic_number_uses_domestic_priority_chain():
+    ScraperRegistry.clear()
+    ScraperRegistry.register(DomesticScraper)
+    ScraperRegistry.register(FirstScraper)
+
+    result = smart_search("MDX-0016", enabled_sites=["mdtv", "javbus"])
+
+    assert result == Video(number="MDX-0016", title="Domestic", source="mdtv", tags=["国产"])
+
+
+def test_mdvr_number_does_not_use_domestic_priority_chain():
+    ScraperRegistry.clear()
+    ScraperRegistry.register(DomesticScraper)
+    ScraperRegistry.register(FirstScraper)
+
+    result = smart_search("MDVR-0016", enabled_sites=["mdtv", "javbus"])
+
+    assert result == Video(number="MDVR-0016", title="First", source="javbus")

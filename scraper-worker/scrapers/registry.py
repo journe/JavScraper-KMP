@@ -4,7 +4,7 @@ from .base import BaseScraper
 
 class ScraperRegistry:
     _scrapers: dict[str, Type[BaseScraper]] = {}
-    _categories = {"censored", "uncensored", "mixed"}
+    _categories = {"censored", "uncensored", "mixed", "domestic"}
 
     @classmethod
     def register(cls, scraper_cls: Type[BaseScraper]) -> None:
