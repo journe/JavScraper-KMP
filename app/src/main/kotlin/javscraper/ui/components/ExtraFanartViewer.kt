@@ -58,6 +58,7 @@ fun ExtraFanartViewer(
     onDismiss: () -> Unit,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
+    sharedContentKey: String = carouselImageKey(image),
 ) {
     // SharedTransitionLayout 的 scope 经 CompositionLocal 下发,免参数透传
     val sharedTransitionScope = LocalSharedTransitionScope.current
@@ -91,7 +92,7 @@ fun ExtraFanartViewer(
         val boundsModifier = if (sharedTransitionScope != null) {
             with(sharedTransitionScope) {
                 Modifier.sharedBounds(
-                    rememberSharedContentState(key = carouselImageKey(image)),
+                    rememberSharedContentState(key = sharedContentKey),
                     animatedVisibilityScope = animatedVisibilityScope,
                     enter = fadeIn(),
                     exit = fadeOut(),

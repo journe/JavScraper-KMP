@@ -196,7 +196,11 @@ internal fun localFanartModel(video: Video): File? =
     localFanartPath(video).takeIf { it.isNotBlank() }
         ?.let(::File)
         ?.takeIf(File::isFile)
-        ?: localPosterModel(video)
+    ?: localPosterModel(video)
+
+/** 详情页封面放大层的 SharedTransition key,与图库转场和 extrafanart key 隔离。 */
+internal fun posterViewerKey(image: File): String =
+    "detail-poster-${image.absolutePath}"
 
 /** fanart 缺省高宽比(高/宽):读取真实尺寸前的占位,取横版封面典型比例(如 800x538)。 */
 internal const val DEFAULT_FANART_ASPECT = 2f / 3f

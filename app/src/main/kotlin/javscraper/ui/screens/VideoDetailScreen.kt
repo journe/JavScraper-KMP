@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,17 +53,21 @@ import javscraper.ui.LocalSharedTransitionScope
 import javscraper.ui.components.ExtraFanartCarousel
 import javscraper.ui.components.ExtraFanartViewer
 import javscraper.ui.components.PosterCard
-import javscraper.ui.components.PosterCropDialog
 import javscraper.ui.components.PosterSource
 import javscraper.ui.components.VideoInfoCard
-import javscraper.ui.components.cropSourceModel
+import javscraper.ui.components.carouselImageBoundsModifier
 import javscraper.ui.components.listExtraFanartImages
-import javscraper.ui.components.localPosterPath
+import javscraper.ui.components.localFanartModel
+import javscraper.ui.components.posterViewerKey
 import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
 import javscraper.ui.screens.detail.VideoDetailActions
 import javscraper.ui.screens.detail.VideoDetailHeader
 import javscraper.ui.screens.detail.VideoEditDialog
+import javscraper.ui.screens.detail.PosterViewerState
+import javscraper.ui.screens.detail.DetailEscapeAction
+import javscraper.ui.screens.detail.detailEscapeAction
+import javscraper.ui.screens.detail.shouldRestoreDetailFocus
 import javscraper.io.metadata.VideoMetadataEditResult
 import java.io.File
 
@@ -77,22 +82,42 @@ fun VideoDetailScreen(
     posterRefreshKey: Any? = null,
     onPosterCropped: () -> Unit = {}
 ) {
-    val translations = LocalTranslations.current
-    var cropVisible by remember { mutableStateOf(false) }
     var editVisible by remember { mutableStateOf(false) }
     // extrafanart 目录下的预览图:IO 读取后驱动 Carousel
     var extraFanartImages by remember(video.path) { mutableStateOf(listExtraFanartImages(video)) }
     // 当前展开的大图索引;null 表示未打开。点击 Carousel 卡片时设置,
     // 大图与卡片通过 SharedTransition(文件路径 key)联动缩放
     var viewerImageIndex by remember { mutableStateOf<Int?>(null) }
+    var posterViewerState by remember { mutableStateOf(PosterViewerState.HIDDEN) }
+    val posterViewerTransitionState = remember { MutableTransitionState(false) }
+    posterViewerTransitionState.targetState = posterViewerState == PosterViewerState.VISIBLE
+    val posterImage = remember(video.path, posterRefreshKey) { localFanartModel(video) }
     // Esc 退出:大图打开时先关大图,否则返回图库。焦点链方案与
     // ExtraFanartViewer 一致:可聚焦+主动抢焦点才能收到按键
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     // 大图关闭后 Compose 不会自动归还焦点(Viewer 移除时焦点被清空),
     // 监听到关闭即重新抢回,保证后续 Esc 仍能返回图库
-    LaunchedEffect(viewerImageIndex) {
-        if (viewerImageIndex == null) focusRequester.requestFocus()
+    LaunchedEffect(viewerImageIndex, posterViewerState) {
+        if (shouldRestoreDetailFocus(viewerImageIndex, posterViewerState)) {
+            focusRequester.requestFocus()
+        }
+    }
+    // AnimatedVisibility 的布尔值只表达"正在退出",不知道退出何时结束。
+    // 等转场真正停稳后再回到 HIDDEN,避免焦点提前回到详情页后,
+    // 第二下 Esc 穿透成页面返回
+    LaunchedEffect(
+        posterViewerState,
+        posterViewerTransitionState.currentState,
+        posterViewerTransitionState.isIdle
+    ) {
+        if (
+            posterViewerState == PosterViewerState.EXITING &&
+            !posterViewerTransitionState.targetState &&
+            posterViewerTransitionState.isIdle
+        ) {
+            posterViewerState = PosterViewerState.HIDDEN
+        }
     }
     Surface(
         modifier = modifier
@@ -102,9 +127,12 @@ fun VideoDetailScreen(
             .focusable()
             .onPreviewKeyEvent { event ->
                 if ((event.type == KeyEventType.KeyDown) && (event.key == Key.Escape)) {
-                    when {
-                        viewerImageIndex != null -> viewerImageIndex = null
-                        else -> actions.onBack()
+                    when (detailEscapeAction(viewerImageIndex, posterViewerState)) {
+                        DetailEscapeAction.CLOSE_EXTRA_FANART_VIEWER -> viewerImageIndex = null
+                        DetailEscapeAction.CLOSE_POSTER_VIEWER ->
+                            posterViewerState = PosterViewerState.EXITING
+                        DetailEscapeAction.IGNORE -> Unit
+                        DetailEscapeAction.BACK -> actions.onBack()
                     }
                     true
                 } else {
@@ -133,15 +161,32 @@ fun VideoDetailScreen(
                     sharedTransitionScope = LocalSharedTransitionScope.current,
                     animatedVisibilityScope = animatedVisibilityScope
                 )
-                PosterCard(
-                    video = video,
-                    onClick = { cropVisible = true },
-                    modifier = posterModifier,
-                    cardWidth = 320.dp,
-                    posterRefreshKey = posterRefreshKey,
-                    // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
-                    source = PosterSource.FANART
-                )
+                AnimatedVisibility(
+                    visible = posterViewerState != PosterViewerState.VISIBLE,
+                    enter = fadeIn(tween(220)),
+                    exit = fadeOut(tween(220)),
+                ) {
+                    val image = posterImage
+                    val viewerBoundsModifier = image?.let {
+                        carouselImageBoundsModifier(
+                            image = image,
+                            sharedTransitionScope = LocalSharedTransitionScope.current,
+                            animatedVisibilityScope = this@AnimatedVisibility,
+                            sharedContentKey = posterViewerKey(image)
+                        )
+                    } ?: Modifier
+                    PosterCard(
+                        video = video,
+                        onClick = {
+                            if (image != null) posterViewerState = PosterViewerState.VISIBLE
+                        },
+                        modifier = posterModifier.then(viewerBoundsModifier),
+                        cardWidth = 320.dp,
+                        posterRefreshKey = posterRefreshKey,
+                        // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
+                        source = PosterSource.FANART
+                    )
+                }
                 VideoInfoCard(
                     video = video,
                     // FlowRow 中 weight 表示占满该行剩余宽度(实验 API)
@@ -183,30 +228,32 @@ fun VideoDetailScreen(
                 )
             }
         }
+        var lastPosterImage by remember { mutableStateOf<File?>(null) }
+        if (posterViewerState == PosterViewerState.VISIBLE) lastPosterImage = posterImage
+        AnimatedVisibility(
+            visibleState = posterViewerTransitionState,
+            enter = fadeIn(tween(220)),
+            exit = fadeOut(tween(220)),
+        ) {
+            val image = lastPosterImage
+            if (image != null) {
+                ExtraFanartViewer(
+                    image = image,
+                    onDismiss = { posterViewerState = PosterViewerState.EXITING },
+                    animatedVisibilityScope = this@AnimatedVisibility,
+                    sharedContentKey = posterViewerKey(image),
+                )
+            }
+        }
     }
 
     if (editVisible) {
         VideoEditDialog(
             video = video,
             onSaveMetadata = actions.onSaveMetadata,
+            onPosterCropped = onPosterCropped,
             onDismiss = { editVisible = false }
         )
-    }
-
-    if (cropVisible) {
-        val source = remember(video.path) { cropSourceModel(video) }
-        if (source != null) {
-            PosterCropDialog(
-                videoNumber = video.number,
-                sourceFile = source,
-                posterFile = File(localPosterPath(video)),
-                onCropped = onPosterCropped,
-                onDismiss = { cropVisible = false }
-            )
-        } else {
-            // 无本地封面可裁剪:自动关闭,不打断用户
-            LaunchedEffect(Unit) { cropVisible = false }
-        }
     }
 }
 

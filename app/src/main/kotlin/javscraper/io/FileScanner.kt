@@ -1,11 +1,11 @@
 package javscraper.io
 
 import javscraper.models.ScannedFile
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 
 data class FileNameInfo(
     val number: String,

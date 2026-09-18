@@ -75,6 +75,12 @@ class TranslationsTest {
         assertEquals("元数据已保存", TranslationZh().statusMetadataSaved)
     }
 
+    @Test
+    fun `poster crop entry is localized`() {
+        assertEquals("Crop Poster", TranslationEn().galleryDetailCropPoster)
+        assertEquals("裁剪封面", TranslationZh().galleryDetailCropPoster)
+    }
+
     private fun stringFields(translation: TranslationEn): Map<String, String> =
         translation.javaClass.declaredFields
             .filter { field: Field -> field.type == String::class.java }

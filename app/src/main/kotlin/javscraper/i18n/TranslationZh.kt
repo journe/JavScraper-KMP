@@ -49,6 +49,7 @@ class TranslationZh : TranslationEn() {
     override val galleryDetailPlay: String = "播放视频"
     override val galleryDetailOpenFolder: String = "打开所在目录"
     override val galleryDetailExtraFanart: String = "额外图集"
+    override val galleryDetailCropPoster: String = "裁剪封面"
     override val galleryEmptyHint: String = "暂无结果"
     override val metadataEditNfoMissing: String = "未找到匹配的 NFO 文件"
     override val metadataEditInvalidFields: String = "请检查番号、时长和评分"

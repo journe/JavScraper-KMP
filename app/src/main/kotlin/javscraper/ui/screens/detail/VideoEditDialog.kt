@@ -7,16 +7,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,23 +29,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.io.metadata.VideoMetadataEditResult
 import javscraper.models.Video
 import javscraper.ui.VideoFieldValue
+import javscraper.ui.components.PosterCropDialog
+import javscraper.ui.components.cropSourceModel
+import javscraper.ui.components.localPosterPath
+import javscraper.ui.videoFieldEditValues
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
 fun VideoEditDialog(
     video: Video,
     onSaveMetadata: suspend (Video) -> VideoMetadataEditResult,
+    onPosterCropped: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val translations = LocalTranslations.current
     val scope = rememberCoroutineScope()
-    var fields by remember(video) { mutableStateOf(videoEditFields(video, translations)) }
+    var cropVisible by remember(video) { mutableStateOf(false) }
+    val cropSource = remember(video.path) { cropSourceModel(video) }
+    var fields by remember(video) { mutableStateOf(videoFieldEditValues(video, translations)) }
     var saving by remember(video) { mutableStateOf(false) }
     var saveError by remember(video) { mutableStateOf<String?>(null) }
     val editedVideo = videoFromEditFields(video, fields)
@@ -56,11 +67,23 @@ fun VideoEditDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                OutlinedButton(
+                    enabled = cropSource != null,
+                    onClick = { cropVisible = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.Crop, contentDescription = null)
+                    Text(
+                        text = translations.galleryDetailCropPoster,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
                 fields.forEachIndexed { index, field ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.Top
+
                     ) {
                         Text(
                             text = field.label,
@@ -69,16 +92,34 @@ fun VideoEditDialog(
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        MetadataTextField(
-                            field = field,
-                            multiline = index == 4 || index == 16,
-                            numeric = index == 9 || index == 10,
-                            onValueChange = { value ->
-                                fields = fields.mapIndexed { fieldIndex, current ->
-                                    if (fieldIndex == index) current.copy(value = value) else current
+                        if (index == VIDEO_EDIT_RATING_FIELD_INDEX) {
+                            RatingEditSlider(
+                                value = field.value,
+                                onValueChange = { value ->
+                                    fields = fields.mapIndexed { fieldIndex, current ->
+                                        if (fieldIndex == index) {
+                                            current.copy(value = value)
+                                        } else {
+                                            current
+                                        }
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        } else {
+                            MetadataTextField(
+                                field = field,
+                                multiline = index == 3,
+                                onValueChange = { value ->
+                                    fields = fields.mapIndexed { fieldIndex, current ->
+                                        if (fieldIndex == index) {
+                                            current.copy(value = value)
+                                        } else {
+                                            current
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
                 if (editedVideo == null) {
@@ -111,6 +152,7 @@ fun VideoEditDialog(
                             is VideoMetadataEditResult.Success -> onDismiss()
                             VideoMetadataEditResult.NfoMissing ->
                                 saveError = translations.metadataEditNfoMissing
+
                             is VideoMetadataEditResult.Failed ->
                                 saveError = translations.metadataEditSaveFailed(result.message)
                         }
@@ -126,13 +168,27 @@ fun VideoEditDialog(
             }
         }
     )
+
+    if (cropVisible) {
+        val source = cropSource
+        if (source != null) {
+            PosterCropDialog(
+                videoNumber = video.number,
+                sourceFile = source,
+                posterFile = File(localPosterPath(video)),
+                onCropped = onPosterCropped,
+                onDismiss = { cropVisible = false }
+            )
+        } else {
+            LaunchedEffect(Unit) { cropVisible = false }
+        }
+    }
 }
 
 @Composable
 private fun MetadataTextField(
     field: VideoFieldValue,
     multiline: Boolean,
-    numeric: Boolean,
     onValueChange: (String) -> Unit
 ) {
     OutlinedTextField(
@@ -141,7 +197,6 @@ private fun MetadataTextField(
         modifier = Modifier.fillMaxWidth(),
         singleLine = !multiline,
         minLines = if (multiline) 2 else 1,
-        keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text),
         textStyle = MaterialTheme.typography.bodySmall
     )
 }

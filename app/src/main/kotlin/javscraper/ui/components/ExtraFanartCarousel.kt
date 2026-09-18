@@ -153,11 +153,12 @@ internal fun carouselImageBoundsModifier(
     image: File,
     sharedTransitionScope: SharedTransitionScope?,
     animatedVisibilityScope: AnimatedVisibilityScope?,
+    sharedContentKey: String = carouselImageKey(image),
 ): Modifier {
     if ((sharedTransitionScope == null) || (animatedVisibilityScope == null)) return Modifier
     return with(sharedTransitionScope) {
         Modifier.sharedBounds(
-            rememberSharedContentState(key = carouselImageKey(image)),
+            rememberSharedContentState(key = sharedContentKey),
             animatedVisibilityScope = animatedVisibilityScope,
             enter = fadeIn(),
             exit = fadeOut(),

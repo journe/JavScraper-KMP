@@ -55,6 +55,7 @@ open class TranslationEn {
     open val galleryDetailPlay: String = "Play video"
     open val galleryDetailOpenFolder: String = "Open containing folder"
     open val galleryDetailExtraFanart: String = "Extra artwork"
+    open val galleryDetailCropPoster: String = "Crop Poster"
     open val galleryEmptyHint: String = "No results yet"
     open val metadataEditNfoMissing: String = "No matching NFO file was found"
     open val metadataEditInvalidFields: String = "Check number, duration, and rating"
