@@ -1,21 +1,69 @@
-import re
+"""JavDB scraper using curl_cffi browser impersonation."""
+
+import locale
+import logging
+import sys
 from typing import Optional
+from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import quote
 
 from scrapers.base import BaseScraper
-from scrapers.models import Video, Actress
-from scrapers.labels import (
-    DATE_LABELS, DIRECTOR_LABELS, MAKER_LABELS, RATING_LABELS, SERIES_LABELS, label_matches,
-)
+from scrapers.models import Video
 from scrapers.registry import ScraperRegistry
 
+from .javdb_parsing import find_detail_url, parse_detail_page, parse_search_entries
+
+logger = logging.getLogger(__name__)
+
+try:
+    import certifi
+    from curl_cffi import CurlOpt
+    from curl_cffi import requests as curl_requests
+
+    CURL_CFFI_AVAILABLE = True
+    CURL_CFFI_IMPORT_ERROR: Optional[BaseException] = None
+except ImportError as error:
+    certifi = None
+    CurlOpt = None
+    curl_requests = None
+    CURL_CFFI_AVAILABLE = False
+    CURL_CFFI_IMPORT_ERROR = error
+
+_warned = False
+_UNSET = object()
+_cainfo_override = _UNSET
+_ca_warned = False
+
+
+def _cainfo_override_bytes():
+    """Return CAINFO bytes when certifi's Windows path needs ANSI encoding."""
+    global _cainfo_override, _ca_warned
+    if _cainfo_override is not _UNSET:
+        return _cainfo_override
+
+    result = None
+    if certifi is not None:
+        ca_path = certifi.where()
+        if sys.platform == "win32" and not ca_path.isascii():
+            try:
+                result = ca_path.encode(locale.getencoding(), errors="strict")
+            except UnicodeEncodeError as error:
+                if not _ca_warned:
+                    _ca_warned = True
+                    logger.warning(
+                        "javdb: CA certificate path is not representable by the "
+                        "current code page; TLS may fail: %s",
+                        error,
+                    )
+    _cainfo_override = result
+    return result
 
 
 class JavDBScraper(BaseScraper):
     BASE_URL = "https://javdb.com"
+    MIRROR_URLS = ("https://javdb580.com",)
 
     @property
     def site_id(self) -> str:
@@ -26,115 +74,103 @@ class JavDBScraper(BaseScraper):
         return "JavDB"
 
     def __init__(self):
-        self._session = requests.Session()
-        self._session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "zh-CN,zh;q=0.9,ja;q=0.8",
-        })
+        if CURL_CFFI_AVAILABLE and curl_requests is not None:
+            self._session = curl_requests.Session()
+        else:
+            self._session = requests.Session()
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "*/*;q=0.8"
+                ),
+                "Accept-Language": "zh-TW,zh;q=0.9,ja;q=0.8,en;q=0.7",
+            }
+        )
 
-    def _search_one(self, number: str) -> Optional[Video]:
-        number = self.normalize_number(number)
+    def _get_html(self, url: str) -> Optional[str]:
+        global _warned
+        if not CURL_CFFI_AVAILABLE:
+            if not _warned:
+                _warned = True
+                logger.warning(
+                    "JavDB is using requests without TLS impersonation: %s",
+                    CURL_CFFI_IMPORT_ERROR,
+                )
+
+        kwargs = {
+            "timeout": 30,
+            "headers": {"Referer": f"{self.BASE_URL}/"},
+        }
+        if CURL_CFFI_AVAILABLE:
+            kwargs["impersonate"] = "chrome120"
+            cainfo = _cainfo_override_bytes()
+            if cainfo is not None and CurlOpt is not None:
+                kwargs["curl_options"] = {CurlOpt.CAINFO: cainfo}
+
         try:
-            search_url = f"{self.BASE_URL}/search?q={quote(number)}&f=all"
-            resp = self._session.get(search_url, timeout=15)
-            if resp.status_code != 200:
-                return None
-
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-            detail_path = None
-            number_norm = number.upper().replace("-", "")
-            for item in soup.select(".movie-list .item"):
-                uid_elem = item.select_one(".video-title strong")
-                if not uid_elem:
-                    continue
-                uid = uid_elem.get_text(strip=True).upper().replace("-", "")
-                if uid == number_norm:
-                    link = item.select_one('a[href^="/v/"]')
-                    if link:
-                        detail_path = link.get("href")
-                        break
-
-            if not detail_path:
-                return None
-
-            detail_url = f"{self.BASE_URL}{detail_path}"
-            resp = self._session.get(detail_url, timeout=15)
-            if resp.status_code != 200:
-                return None
-
-            return self._parse(BeautifulSoup(resp.text, "html.parser"), number, detail_url)
-
-        except (requests.Timeout, requests.ConnectionError):
+            response = self._session.get(url, **kwargs)
+        except Exception as error:
+            logger.debug("JavDB request failed for %s: %s", url, error)
             return None
 
-    def _parse(self, soup: BeautifulSoup, number: str, detail_url: str) -> Optional[Video]:
-        title_elem = soup.select_one(".video-detail h2, .title.is-4")
-        title = title_elem.get_text(strip=True) if title_elem else ""
-        title = re.sub(rf"^{re.escape(number)}\s*", "", title, flags=re.IGNORECASE)
+        if response.status_code != 200:
+            logger.debug("JavDB non-200 for %s: %s", url, response.status_code)
+            return None
+        return str(response.text)
 
-        cover_elem = soup.select_one(".video-cover img, .column-video-cover img")
-        cover_url = str(cover_elem.get("src", "")) if cover_elem else ""
-
-        date = ""
-        maker = ""
-        director = ""
-        series = ""
-        duration = None
-        tags = []
-        actresses = []
-        rating = None
-
-        for panel in soup.select(".panel-block"):
-            label_elem = panel.select_one("strong")
-            if not label_elem:
-                continue
-            label_text = label_elem.get_text(strip=True)
-            value_elem = panel.select_one(".value")
-
-            if not value_elem:
-                continue
-
-            if label_matches(label_text, DATE_LABELS):
-                date = value_elem.get_text(strip=True)
-            elif label_matches(label_text, MAKER_LABELS):
-                maker = value_elem.get_text(strip=True)
-            elif label_matches(label_text, DIRECTOR_LABELS):
-                director = value_elem.get_text(strip=True)
-            elif label_matches(label_text, SERIES_LABELS):
-                series = value_elem.get_text(strip=True)
-            elif label_matches(label_text, RATING_LABELS):
-                m = re.search(r"([0-9.]+)", value_elem.get_text(strip=True))
-                if m:
-                    rating = float(m.group(1))
-
-            for a in panel.select('.value a[href*="/tags/"]'):
-                t = a.get_text(strip=True)
-                if t:
-                    tags.append(t)
-
-            for a in panel.select('.value a[href*="/actors/"]'):
-                name = a.get_text(strip=True)
-                if name:
-                    actresses.append(Actress(name=name))
-
-        actresses = list({a.name: a for a in actresses}.values())
-
-        return Video(
-            number=number,
-            title=title,
-            actresses=actresses,
-            date=date,
-            maker=maker,
-            director=director,
-            series=series,
-            duration=duration,
-            rating=rating,
-            tags=tags,
-            cover_url=cover_url,
-            source="javdb",
-            detail_url=detail_url,
+    def _fetch_detail(self, number: str, detail_url: str) -> Optional[Video]:
+        html = self._get_html(detail_url)
+        if not html:
+            return None
+        return parse_detail_page(
+            BeautifulSoup(html, "html.parser"),
+            number,
+            detail_url,
         )
+
+    def _search_one(self, number: str) -> Optional[Video]:
+        normalized = self.normalize_number(number)
+        search_url = (
+            f"{self.BASE_URL}/search?q={quote(normalized)}&f=all&locale=zh"
+        )
+        html = self._get_html(search_url)
+        if not html:
+            return None
+
+        entries = parse_search_entries(
+            BeautifulSoup(html, "html.parser"),
+            self.BASE_URL,
+        )
+        detail_url = find_detail_url(entries, normalized)
+        if not detail_url:
+            return None
+        return self._fetch_detail(normalized, detail_url)
+
+    def search_by_keyword(self, keyword: str, limit: int = 20) -> list[Video]:
+        query = keyword.strip()
+        if not query or limit <= 0:
+            return []
+
+        search_url = f"{self.BASE_URL}/search?q={quote(query)}&f=all"
+        html = self._get_html(search_url)
+        if not html:
+            return []
+
+        entries = parse_search_entries(
+            BeautifulSoup(html, "html.parser"),
+            self.BASE_URL,
+        )
+        results = []
+        for entry in entries[:limit]:
+            video = self._fetch_detail(entry.number, entry.detail_url)
+            if video is not None:
+                results.append(video)
+        return results
 
 
 ScraperRegistry.register(JavDBScraper)

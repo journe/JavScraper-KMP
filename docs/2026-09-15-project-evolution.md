@@ -21,7 +21,7 @@
 - `ScraperRegistry.list_sites()` 返回站点分类，Kotlin `SiteInfo` 保存分类信息，设置页和站点选择器按有码、无码、混合站点分组展示。
 - `AppSettings.siteMirrorUrls` 保存每个站点的独立镜像地址；`SidecarManager` 在刮削、搜索和站点检查 RPC 中传递该映射。
 - Python `BaseScraper` 可通过 `MIRROR_URLS` 声明候选镜像。镜像仅在当前请求实例上覆盖 `BASE_URL`，不修改类的默认值。
-- 内置 JavBus 镜像候选已经接入设置页弹窗；镜像配置异常或为空时回退默认站点地址。
+- 内置 JavBus 与 JavDB（`javdb580.com`）镜像候选已经接入设置页弹窗；镜像配置异常或为空时回退默认站点地址。
 
 ## 扫描、多文件与写盘规则
 

@@ -68,9 +68,10 @@ ScraperRegistry.register(XxxScraper)
 ```
 
 要求：
-- 文件不超过 300 行；网络请求统一用 `requests.Session`（超时 15s），`_search_one` 失败返回 `None`；基类 `search()` 会把结果包装为空列表或单元素列表；
+- 文件不超过 300 行；网络请求默认用 `requests.Session`（超时 15s），`_search_one` 失败返回 `None`；基类 `search()` 会把结果包装为空列表或单元素列表；
+- JavDB 因 Cloudflare/TLS 反爬使用 `curl_cffi.Session` 的 `chrome120` 指纹（超时 30s），并保留 `requests` 降级路径；请求字段解析拆到 `javdb_parsing.py`；
 - 字段通过 `Video(...)` 填充，`source` 填 `site_id`，`detail_url` 填详情页地址；
-- 文件末尾必须 `ScraperRegistry.register(XxxScraper)`；如站点存在镜像，通过 `MIRROR_URLS` 声明，应用只会在请求实例上覆盖 `BASE_URL`，不会修改类默认值；
+- 文件末尾必须 `ScraperRegistry.register(XxxScraper)`；如站点存在镜像，通过 `MIRROR_URLS` 声明，应用只会在请求实例上覆盖 `BASE_URL`，不会修改类默认值；JavDB 默认 `javdb.com`，内置镜像 `javdb580.com`；
 
 ### 2. 触发注册
 
