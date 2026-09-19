@@ -23,9 +23,9 @@ private fun listFieldValue(label: String, values: List<String>) = VideoFieldValu
 
 internal fun videoFieldValues(video: Video, t: TranslationEn): List<VideoFieldValue> = listOf(
     VideoFieldValue(t.commonNumber, video.number),
-    VideoFieldValue(t.videoFieldTitle, video.title),
-    listFieldValue(t.videoFieldActresses, video.actresses),
     VideoFieldValue(t.videoFieldDate, video.date),
+    listFieldValue(t.videoFieldActresses, video.actresses),
+    VideoFieldValue(t.videoFieldTitle, video.title),
     VideoFieldValue(t.videoFieldSummary, video.summary),
     VideoFieldValue(t.videoFieldMaker, video.maker),
     VideoFieldValue(t.videoFieldLabel, video.label),

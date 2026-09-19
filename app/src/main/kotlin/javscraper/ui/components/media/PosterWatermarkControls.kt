@@ -32,6 +32,8 @@ import javscraper.models.inferWatermarkMarks
 import javscraper.ui.theme.JavScraperTheme
 import org.jetbrains.skia.Image as SkiaImage
 
+private val log = mu.KotlinLogging.logger("PosterWatermarkControls")
+
 /** 对话框内可编辑的水印状态:清晰度、字幕、马赛克三组互斥/独立选择。 */
 internal data class PosterWatermarkState(
     val enabled: Boolean = true,
@@ -91,7 +93,12 @@ internal fun PosterWatermarkControls(
             )
             Switch(
                 checked = state.enabled,
-                onCheckedChange = { checked -> onStateChange(state.copy(enabled = checked)) }
+                onCheckedChange = { checked ->
+                    log.info {
+                        "watermark switch clicked: current=${state.enabled}, checked=$checked"
+                    }
+                    onStateChange(state.copy(enabled = checked))
+                }
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -83,7 +83,7 @@ internal fun AdaptiveVideoInfoCard(
         val hasPosterSpace = posterSpace.width > 0
         val spacing = if (hasPosterSpace) DETAIL_ITEM_SPACING.roundToPx() else 0
         val fitsBesidePoster = !hasPosterSpace ||
-            posterSpace.width + spacing + MIN_VIDEO_INFO_WIDTH.roundToPx() <= constraints.maxWidth
+                posterSpace.width + spacing + MIN_VIDEO_INFO_WIDTH.roundToPx() <= constraints.maxWidth
         val layoutWidth = constraints.maxWidth.coerceIn(constraints.minWidth, constraints.maxWidth)
 
         if (fitsBesidePoster) {
