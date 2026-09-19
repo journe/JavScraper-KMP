@@ -6,7 +6,12 @@ import javscraper.io.NfoWriter
 import javscraper.io.NfoUpdater
 import javscraper.io.RenameFormatter
 import javscraper.models.*
+import javscraper.models.VideoUpdateField
+import javscraper.scrape.update.ExistingMetadataResult
+import javscraper.scrape.update.UpdateModeExistingMetadataReader
 import javscraper.sidecar.SidecarManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
@@ -21,6 +26,7 @@ class ScrapeOrchestrator(
 ) {
     private val activeWebpageArchiver: WebpageArchiver by lazy { webpageArchiver ?: SidecarWebpageArchiver(sidecar) }
     private val updateModeWriter = UpdateModeWriter(options)
+    private val existingMetadataReader = UpdateModeExistingMetadataReader()
     private val log = KotlinLogging.logger {}
 
     suspend fun process(sf: ScannedFile, site: String? = null): ScrapeResult {
@@ -45,18 +51,26 @@ class ScrapeOrchestrator(
             sf.number, site, options.enabledSites?.toList(), options.siteMirrorUrls, options.downloadWebPages
         ).map { it.copy(version = version) }
     }
-    /** Standard write path used by batch scraping; update mode never changes it. */
+    /** Reads the existing update-mode NFO without moving folders or writing files. */
+    suspend fun readExistingMetadata(files: List<ScannedFile>): ExistingMetadataResult =
+        withContext(Dispatchers.IO) { existingMetadataReader.read(files) }
+
     suspend fun writeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult =
         writeToDiskInternal(files, video, allowUpdateMode = false)
 
     /** Single-scrape write path; it honors the user update-mode setting. */
-    suspend fun writeSingleScrapeToDisk(files: List<ScannedFile>, video: Video): ScrapeResult =
-        writeToDiskInternal(files, video, allowUpdateMode = true)
+    suspend fun writeSingleScrapeToDisk(
+        files: List<ScannedFile>,
+        video: Video,
+        updateFields: Set<VideoUpdateField>? = null
+    ): ScrapeResult =
+        writeToDiskInternal(files, video, allowUpdateMode = true, updateFields = updateFields)
 
     private suspend fun writeToDiskInternal(
         files: List<ScannedFile>,
         video: Video,
-        allowUpdateMode: Boolean
+        allowUpdateMode: Boolean,
+        updateFields: Set<VideoUpdateField>? = null
     ): ScrapeResult {
         if (files.isEmpty())
             return ScrapeResult(false, error = ScrapeError(-1, "No files"))
@@ -92,7 +106,8 @@ class ScrapeOrchestrator(
                     video = outputVideo,
                     lockData = options.lockData,
                     insertMissingFields = true,
-                    mergeTags = true
+                    mergeTags = true,
+                    enabledFields = updateFields
                 )
             }
         } catch (e: Exception) {

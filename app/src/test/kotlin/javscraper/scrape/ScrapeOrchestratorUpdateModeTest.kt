@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicInteger
 import javscraper.models.ScannedFile
 import javscraper.models.Video
+import javscraper.models.VideoUpdateField
 import javscraper.settings.AppSettings
 import javscraper.sidecar.SidecarManager
 import kotlin.io.path.createTempDirectory
@@ -262,6 +263,63 @@ class ScrapeOrchestratorUpdateModeTest {
         } finally {
             server.stop(0)
         }
+    }
+
+    @Test
+    fun `update mode field mask preserves unselected fields`() = runTest {
+        val scanDir = createTempDirectory("javscraper-field-mask").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("OLD-001.mp4")
+        source.writeText("video")
+        oldFolder.resolve("OLD-001.nfo").writeText(
+            """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <movie>
+                  <title>Old Title</title>
+                  <num>OLD-001</num>
+                  <plot>Old plot</plot>
+                  <genre>Old genre</genre>
+                  <tag>Old tag</tag>
+                  <actor><name>Old actor</name></actor>
+                </movie>
+            """.trimIndent()
+        )
+        oldFolder.resolve("poster.jpg").writeText("old-poster")
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = false,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}"),
+                    filenameFormat = "{num} {title}"
+                )
+            )
+        )
+
+        val result = orchestrator.writeSingleScrapeToDisk(
+            files = listOf(ScannedFile(source.absolutePath, source.name, "NEW-001")),
+            video = Video(
+                number = "NEW-001",
+                title = "Old Title",
+                summary = "New plot",
+                tags = listOf("New tag"),
+                actresses = listOf("New actor")
+            ),
+            updateFields = setOf(VideoUpdateField.NUMBER, VideoUpdateField.SUMMARY)
+        )
+
+        assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+        val nfo = scanDir.resolve("NEW-001 Old Title").resolve("OLD-001.nfo").readText()
+        assertTrue(nfo.contains("<num>NEW-001</num>"))
+        assertTrue(nfo.contains("<plot>New plot</plot>"))
+        assertTrue(nfo.contains("<title>Old Title</title>"))
+        assertTrue(nfo.contains("<genre>Old genre</genre>"))
+        assertTrue(nfo.contains("<tag>Old tag</tag>"))
+        assertTrue(nfo.contains("<name>Old actor</name>"))
     }
 
     @Test

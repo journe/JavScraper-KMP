@@ -106,7 +106,8 @@ sealed interface SingleScrapeDialogState {
     data object Scraping : SingleScrapeDialogState
     data class Preview(
         val candidates: List<Video>,
-        val selectedIndex: Int = 0
+        val selectedIndex: Int = 0,
+        val error: String? = null
     ) : SingleScrapeDialogState {
         val video: Video
             get() = candidates[selectedIndex]
@@ -116,6 +117,22 @@ sealed interface SingleScrapeDialogState {
             return copy(selectedIndex = index.coerceIn(0, candidates.lastIndex))
         }
     }
+
+    data class FieldUpdateSelection(
+        val candidates: List<Video>,
+        val selectedIndex: Int,
+        val existing: ExistingVideoMetadata,
+        val choices: List<VideoFieldUpdateChoice>
+    ) : SingleScrapeDialogState {
+        val incoming: Video
+            get() = candidates[selectedIndex]
+    }
+
+    data class FieldUpdateConfirm(
+        val selection: FieldUpdateSelection,
+        val merged: Video,
+        val selectedFields: Set<VideoUpdateField>
+    ) : SingleScrapeDialogState
 
     data class Result(val video: Video?, val error: String?) : SingleScrapeDialogState
 }

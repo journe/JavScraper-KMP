@@ -3,7 +3,7 @@ package javscraper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import javscraper.io.pickFile
+import javscraper.io.pickers.pickFile
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
 import javscraper.scrape.ScrapeOrchestrator

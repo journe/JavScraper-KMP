@@ -16,6 +16,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.models.SingleScrapeDialogState
 import javscraper.models.SiteInfo
 import javscraper.models.Video
+import javscraper.models.VideoUpdateField
 
 enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
 data class ScrapeTask(
@@ -38,6 +39,7 @@ data class ScrapeProgressState(
     val singleScrapeTask: ScrapeTask?,
     val sites: List<SiteInfo>,
     val outputDir: String,
+    val updateMode: Boolean,
     val singleScrapeError: String?,
     val singleScrapeErrorStage: String?,
     val showMissingOutputDir: Boolean
@@ -53,6 +55,12 @@ data class ScrapeProgressActions(
     val onCloseSingleScrape: () -> Unit,
     val onCancelSingleScrape: () -> Unit,
     val onConfirmPreviewWrite: () -> Unit,
+    val onConfigureFieldUpdate: () -> Unit,
+    val onToggleFieldUpdateField: (VideoUpdateField, Boolean) -> Unit,
+    val onConfirmFieldUpdateSelection: () -> Unit,
+    val onBackToFieldUpdateSelection: () -> Unit,
+    val onConfirmFieldUpdateWrite: () -> Unit,
+    val onBackToPreviewFromFieldUpdate: () -> Unit,
     val onSelectPreviewCandidate: (Int) -> Unit,
     val onCancelPreviewWrite: () -> Unit,
     val onDismissMissingOutputDir: () -> Unit,

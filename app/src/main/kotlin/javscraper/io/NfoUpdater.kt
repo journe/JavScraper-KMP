@@ -3,6 +3,7 @@ package javscraper.io
 import javscraper.io.metadata.NfoTagMerger
 import javscraper.io.metadata.SecureDocumentBuilderFactory
 import javscraper.models.Video
+import javscraper.models.VideoUpdateField
 import org.xml.sax.InputSource
 import java.io.StringReader
 import java.nio.file.Files
@@ -15,13 +16,19 @@ object NfoUpdater {
         video: Video,
         lockData: Boolean,
         insertMissingFields: Boolean = false,
-        mergeTags: Boolean = false
+        mergeTags: Boolean = false,
+        enabledFields: Set<VideoUpdateField>? = null
     ): Boolean {
         val original = Files.readString(path)
         SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
         val patcher = TargetedNfoPatcher(original, insertMissingFields)
-        writeFields(patcher, video, lockData, mergeTags)
-        val updated = JavdbExtraNfo.update(patcher.apply(), video)
+        writeFields(patcher, video, lockData, mergeTags, enabledFields)
+        val afterStandardFields = patcher.apply()
+        val updated = if (enabledFields == null) {
+            JavdbExtraNfo.update(afterStandardFields, video)
+        } else {
+            JavdbExtraNfo.updateSelected(afterStandardFields, video, enabledFields)
+        }
         if (updated == original) return false
 
         Files.writeString(path, updated)
@@ -32,51 +39,55 @@ object NfoUpdater {
         patcher: TargetedNfoPatcher,
         video: Video,
         lockData: Boolean,
-        mergeTags: Boolean
+        mergeTags: Boolean,
+        enabledFields: Set<VideoUpdateField>?
     ) {
-        val title = video.title.ifBlank { video.number }
-        patcher.set("title", title)
-        patcher.set("originaltitle", video.number)
-        patcher.set("sorttitle", video.number)
-        patcher.set("num", video.number)
-        patcher.setOrRemove("set", video.series)
-        if (video.date.length >= 4) {
-            patcher.set("year", video.date.take(4))
-            patcher.set("premiered", video.date)
-            patcher.set("release", video.date)
-        } else {
-            patcher.remove("year")
-            patcher.remove("premiered")
-            patcher.remove("release")
-        }
-        val runtime = video.duration?.takeIf { it > 0 }?.toString().orEmpty()
-        patcher.setOrRemove("runtime", runtime)
-        patcher.set("mpaa", "JP-18+")
-        patcher.set("country", "Japan")
-        patcher.set("language", "ja")
-        patcher.setOrRemove("source", video.source)
-        patcher.setOrRemove("website", video.detailUrl)
-        val poster = video.posterUrl.ifBlank { video.coverUrl }
-        patcher.setOrRemove("poster", poster)
-        patcher.setOrRemove("thumb", poster)
-        patcher.setOrRemove("cover", video.coverUrl)
-        patcher.setOrRemove("plot", video.summary)
-        patcher.setOrRemove("outline", video.summary)
-        patcher.setOrRemove("studio", video.maker)
-        patcher.setOrRemove("maker", video.maker)
-        patcher.setOrRemove("label", video.label)
-        patcher.setOrRemove("director", video.director)
-        val rating = video.rating?.takeIf { it > 0 }?.toString().orEmpty()
-        patcher.setOrRemove("rating", rating)
-        patcher.set("lockdata", lockData.toString())
+        val fullUpdate = enabledFields == null
+        val selectedFields = enabledFields.orEmpty()
+        fun enabled(field: VideoUpdateField) = fullUpdate || field in selectedFields
 
-        val genreTags = tagsToUpdate(patcher, "genre", video.tags, mergeTags)
-        val tagTags = tagsToUpdate(patcher, "tag", video.tags, mergeTags)
-        patcher.setRepeated("genre", genreTags)
-        patcher.setRepeated("tag", tagTags)
-        patcher.setFanart(video.sampleImages)
-        patcher.setActors(video.actresses)
-        patcher.setUniqueIds(video.number)
+        if (enabled(VideoUpdateField.TITLE)) patcher.set("title", if (fullUpdate) video.title.ifBlank { video.number } else video.title)
+        if (enabled(VideoUpdateField.NUMBER)) {
+            patcher.set("originaltitle", video.number)
+            patcher.set("sorttitle", video.number)
+            patcher.set("num", video.number)
+            patcher.setUniqueIds(video.number)
+        }
+        if (enabled(VideoUpdateField.SERIES)) patcher.setOrRemove("set", video.series)
+        if (enabled(VideoUpdateField.DATE)) {
+            if (video.date.length >= 4) {
+                patcher.set("year", video.date.take(4))
+                patcher.set("premiered", video.date)
+                patcher.set("release", video.date)
+            } else {
+                patcher.remove("year")
+                patcher.remove("premiered")
+                patcher.remove("release")
+            }
+        }
+        if (enabled(VideoUpdateField.DURATION)) patcher.setOrRemove("runtime", video.duration?.takeIf { it > 0 }?.toString().orEmpty())
+        if (fullUpdate) {
+            patcher.set("mpaa", "JP-18+")
+            patcher.set("country", "Japan")
+            patcher.set("language", "ja")
+        }
+        if (enabled(VideoUpdateField.SOURCE)) patcher.setOrRemove("source", video.source)
+        if (enabled(VideoUpdateField.DETAIL_URL)) patcher.setOrRemove("website", video.detailUrl)
+        if (fullUpdate) {
+            val poster = video.posterUrl.ifBlank { video.coverUrl }
+            patcher.setOrRemove("poster", poster)
+            patcher.setOrRemove("thumb", poster)
+            patcher.setOrRemove("cover", video.coverUrl)
+            patcher.setFanart(video.sampleImages)
+        }
+        if (enabled(VideoUpdateField.SUMMARY)) { patcher.setOrRemove("plot", video.summary); patcher.setOrRemove("outline", video.summary) }
+        if (enabled(VideoUpdateField.MAKER)) { patcher.setOrRemove("studio", video.maker); patcher.setOrRemove("maker", video.maker) }
+        if (enabled(VideoUpdateField.LABEL)) patcher.setOrRemove("label", video.label)
+        if (enabled(VideoUpdateField.DIRECTOR)) patcher.setOrRemove("director", video.director)
+        if (enabled(VideoUpdateField.RATING)) patcher.setOrRemove("rating", video.rating?.takeIf { it > 0 }?.toString().orEmpty())
+        patcher.set("lockdata", lockData.toString())
+        if (enabled(VideoUpdateField.TAGS)) { patcher.setRepeated("genre", tagsToUpdate(patcher, "genre", video.tags, mergeTags)); patcher.setRepeated("tag", tagsToUpdate(patcher, "tag", video.tags, mergeTags)) }
+        if (enabled(VideoUpdateField.ACTRESSES)) patcher.setActors(video.actresses)
     }
 
     private fun tagsToUpdate(
@@ -248,7 +259,6 @@ private class TargetedNfoPatcher(
             return
         }
         if (spans.map { decodeXmlText(it.text) } == values) return
-
         val common = minOf(spans.size, values.size)
         repeat(common) { index -> replaceText(spans[index], values[index]) }
         if (values.size < spans.size) {
@@ -262,13 +272,11 @@ private class TargetedNfoPatcher(
             changed = true
         }
     }
-
     private fun replaceText(span: ElementSpan, value: String) {
         if (decodeXmlText(span.text) == value) return
         patches += TextPatch(span.contentStart, span.contentEnd, escapeXmlText(value))
         changed = true
     }
-
     private fun removeLines(spans: List<ElementSpan>) {
         if (spans.isEmpty()) return
         spans.forEach { span ->
@@ -277,7 +285,6 @@ private class TargetedNfoPatcher(
         }
         changed = true
     }
-
     private fun cloneLeafLine(template: ElementSpan, value: String): String {
         val bounds = lineBounds(template)
         val line = original.substring(bounds.first, bounds.second)
@@ -285,7 +292,6 @@ private class TargetedNfoPatcher(
         val end = template.contentEnd - bounds.first
         return line.replaceRange(start, end, escapeXmlText(value))
     }
-
     private fun cloneActor(template: ElementSpan, actress: String, order: Int): String {
         val bounds = lineBounds(template)
         var line = original.substring(bounds.first, bounds.second)
@@ -303,22 +309,18 @@ private class TargetedNfoPatcher(
         }
         return line
     }
-
     private fun lineBounds(span: ElementSpan): Pair<Int, Int> {
         val start = original.lastIndexOf('\n', maxOf(0, span.start - 1)) + 1
         val nextLine = original.indexOf('\n', span.end)
         val end = if (nextLine == -1) original.length else nextLine + 1
         return start to end
     }
-
     private fun lineEnd(span: ElementSpan): Int = lineBounds(span).second
-
     private fun spans(name: String, parent: String? = null): List<ElementSpan> {
         val path = listOfNotNull("movie", parent, name).joinToString(">")
         return spansByPath[path].orEmpty()
     }
 }
-
 private data class ElementSpan(
     val path: String,
     val start: Int,
@@ -327,11 +329,8 @@ private data class ElementSpan(
     val end: Int,
     val text: String
 )
-
 private data class TextPatch(val start: Int, val end: Int, val text: String)
-
 private class OpenElement(val start: Int, val openEnd: Int, val name: String, val pathWithoutSelf: String)
-
 private fun scanElements(original: String): List<ElementSpan> {
     val masked = Regex("""(?s)<!--.*?-->|<!\[CDATA\[.*?\]\]>""").replace(original) {
         " ".repeat(it.value.length)
@@ -375,12 +374,10 @@ private fun scanElements(original: String): List<ElementSpan> {
     if (stack.isNotEmpty()) throw IllegalArgumentException("Unclosed XML element ${stack.last().name}")
     return result
 }
-
 private fun escapeXmlText(value: String): String = value
     .replace("&", "&amp;")
     .replace("<", "&lt;")
     .replace(">", "&gt;")
-
 private fun decodeXmlText(value: String): String {
     if (!value.contains('&')) return value
     return Regex("""&(?:(?<decimal>#\d+)|(?<hex>#x[0-9A-Fa-f]+)|(?<name>amp|lt|gt|quot|apos));""").replace(value) { match ->

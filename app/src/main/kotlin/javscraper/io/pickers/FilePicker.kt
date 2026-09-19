@@ -1,4 +1,4 @@
-package javscraper.io
+package javscraper.io.pickers
 
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings

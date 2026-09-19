@@ -5,8 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javscraper.models.ScannedFile
 import javscraper.models.SingleScrapeDialogState
+import javscraper.models.ExistingVideoMetadata
 import javscraper.models.Video
+import javscraper.models.VideoUpdateField
 import javscraper.scrape.ScrapeOrchestrator
+import javscraper.scrape.update.VideoFieldMerger
+import javscraper.scrape.update.ExistingMetadataResult
+import javscraper.scrape.update.VideoFieldUpdatePlanner
 import javscraper.sidecar.SidecarRequestException
 import javscraper.sidecar.SidecarTimeoutException
 import javscraper.ui.screens.ScrapeTask
@@ -24,7 +29,8 @@ import kotlin.coroutines.cancellation.CancellationException
 class SingleScrapeController(
     private val scope: CoroutineScope,
     private val orch: () -> ScrapeOrchestrator?,
-    private val outputDir: () -> String
+    private val outputDir: () -> String,
+    private val updateMode: () -> Boolean = { false }
 ) {
 
     var singleScrapeDialogState by mutableStateOf<SingleScrapeDialogState>(SingleScrapeDialogState.Closed)
@@ -194,6 +200,122 @@ class SingleScrapeController(
     fun cancelPreviewWrite() {
         previewConfirm?.complete(null)
     }
+    fun configureFieldUpdate() {
+        val preview = singleScrapeDialogState as? SingleScrapeDialogState.Preview ?: return
+        if (!updateMode()) return
+        val file = singleScrapeFile ?: return
+        val number = singleScrapeNumber.ifBlank { preview.video.number }
+        val files = singleScrapeFiles.ifEmpty { listOf(file) }
+            .map { it.copy(number = number) }
+        singleScrapeError = null
+        singleScrapeErrorStage = null
+        scope.launch {
+            try {
+                val result = orch()?.readExistingMetadata(files)
+                when (result) {
+                    is ExistingMetadataResult.Ready ->
+                        showFieldUpdateSelection(preview.candidates, preview.selectedIndex, result.metadata)
+                    is ExistingMetadataResult.Failed ->
+                        failFieldUpdatePreparation(preview, result.errors.joinToString("; "))
+                    null -> failFieldUpdatePreparation(preview, "Worker not running")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failFieldUpdatePreparation(preview, e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    private fun failFieldUpdatePreparation(preview: SingleScrapeDialogState.Preview, message: String) {
+        singleScrapeError = message
+        singleScrapeDialogState = preview.copy(error = message)
+    }
+
+    internal fun showFieldUpdateSelection(
+        candidates: List<Video>,
+        selectedIndex: Int,
+        existing: ExistingVideoMetadata
+    ) {
+        if (candidates.isEmpty()) return
+        val index = selectedIndex.coerceIn(0, candidates.lastIndex)
+        singleScrapeDialogState = SingleScrapeDialogState.FieldUpdateSelection(
+            candidates = candidates,
+            selectedIndex = index,
+            existing = existing,
+            choices = VideoFieldUpdatePlanner.choices(existing, candidates[index])
+        )
+    }
+
+    fun toggleFieldUpdateField(field: VideoUpdateField, selected: Boolean) {
+        val selection = singleScrapeDialogState as? SingleScrapeDialogState.FieldUpdateSelection ?: return
+        singleScrapeDialogState = selection.copy(
+            choices = selection.choices.map { current ->
+                if (current.field == field) current.withSelection(selected) else current
+            }
+        )
+    }
+
+    fun confirmFieldUpdateSelection() {
+        val selection = singleScrapeDialogState as? SingleScrapeDialogState.FieldUpdateSelection ?: return
+        val selectedFields = selection.choices.filter { it.selected }.map { it.field }.toSet()
+        if (selectedFields.isEmpty()) return
+        val merged = VideoFieldMerger.merge(selection.existing, selection.incoming, selectedFields)
+        singleScrapeDialogState = SingleScrapeDialogState.FieldUpdateConfirm(selection, merged, selectedFields)
+    }
+
+    fun backToFieldUpdateSelection() {
+        val confirm = singleScrapeDialogState as? SingleScrapeDialogState.FieldUpdateConfirm ?: return
+        singleScrapeDialogState = confirm.selection
+    }
+
+    fun backToPreviewFromFieldUpdate() {
+        val current = singleScrapeDialogState
+        val selection = when (current) {
+            is SingleScrapeDialogState.FieldUpdateSelection -> current
+            is SingleScrapeDialogState.FieldUpdateConfirm -> current.selection
+            else -> return
+        }
+        singleScrapeError = null
+        singleScrapeDialogState = SingleScrapeDialogState.Preview(
+            candidates = selection.candidates,
+            selectedIndex = selection.selectedIndex
+        )
+    }
+
+    fun confirmFieldUpdateWrite() {
+        val confirm = singleScrapeDialogState as? SingleScrapeDialogState.FieldUpdateConfirm ?: return
+        val file = singleScrapeFile ?: return
+        val number = confirm.merged.number.ifBlank { singleScrapeNumber }
+        val files = singleScrapeFiles.ifEmpty { listOf(file) }
+            .map { it.copy(number = number) }
+        singleScrapeError = null
+        singleScrapeErrorStage = null
+        singleScrapeDialogState = SingleScrapeDialogState.Scraping
+        singleScrapeTask = singleScrapeTask?.copy(status = ScrapeTaskStatus.SCRAPING)
+        singleScrapeJob = scope.launch {
+            try {
+                val writeResult = withContext(Dispatchers.IO) {
+                    orch()?.writeSingleScrapeToDisk(files, confirm.merged, confirm.selectedFields)
+                }
+                if (writeResult == null || !writeResult.success) {
+                    failSingleScrape(writeResult?.error?.message ?: "Write failed")
+                    return@launch
+                }
+                val written = writeResult.data ?: confirm.merged
+                singleScrapeDialogState = SingleScrapeDialogState.Result(written, null)
+                singleScrapeTask =
+                    singleScrapeTask?.copy(status = ScrapeTaskStatus.SUCCESS, video = written)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failSingleScrape(e.message ?: "Unknown error")
+            } finally {
+                singleScrapeJob = null
+            }
+        }
+    }
+
 
     fun dismissMissingOutputDir() {
         showMissingOutputDir = false

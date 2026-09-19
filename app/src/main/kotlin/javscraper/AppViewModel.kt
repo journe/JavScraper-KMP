@@ -22,7 +22,6 @@ import javscraper.ui.screens.NetworkPreviewState
 import javscraper.ui.screens.ScrapeProgressActions
 import javscraper.ui.screens.ScrapeProgressState
 import javscraper.ui.screens.ScrapeTask
-import javscraper.ui.screens.ScrapeTaskStatus
 import javscraper.ui.screens.settings.SettingsActions
 import javscraper.ui.screens.settings.SettingsState
 import javscraper.ui.screens.upsertScrapeTask
@@ -51,7 +50,8 @@ class AppViewModel(
     private val settings = SettingsController(scope)
     private val appLog = AppLogController()
     private val worker = WorkerController(scope, settings)
-    private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir })
+    private val batchScrape = BatchScrapeController(scope, { settings.strings }, { worker.orch }, { status = it })
+    private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir }, { updateMode })
     private val networkPreview = NetworkPreviewController()
 
     init {
@@ -84,11 +84,11 @@ class AppViewModel(
         private set
 
     // --- Scrape state ---
-    var tasks by mutableStateOf<List<ScrapeTask>>(emptyList())
+    var tasks by batchScrape::tasks
         private set
-    var scraping by mutableStateOf(false)
+    var scraping by batchScrape::scraping
         private set
-    var results by mutableStateOf<List<Video>>(emptyList())
+    var results by batchScrape::results
         private set
 
     // --- Single scrape dialog state (delegated to SingleScrapeController) ---
@@ -237,71 +237,13 @@ class AppViewModel(
     }
 
     // --- Scrape ---
+    fun startAllScraping() = batchScrape.startAllScraping(scannedFiles)
 
-    fun startAllScraping() {
-        scope.launch {
-            scraping = true
-            val o = worker.orch ?: run { scraping = false; return@launch }
-            try {
-                for (i in tasks.indices) {
-                    if (!scraping) break
-                    val t = tasks[i]
-                    val updated = tasks.toMutableList()
-                    updated[i] = t.copy(status = ScrapeTaskStatus.SCRAPING)
-                    tasks = updated
-
-                    val taskFiles = scannedFiles.filter { it.number == t.number && !it.isScraped }
-                    if (taskFiles.isNotEmpty()) {
-                        try {
-                            val r = withContext(Dispatchers.IO) { o.processParts(taskFiles) }
-                            val newTasks = tasks.toMutableList()
-                            if (r.success && r.data != null) {
-                                results = results + r.data
-                                newTasks[i] = t.copy(
-                                    status = ScrapeTaskStatus.SUCCESS,
-                                    video = r.data
-                                )
-                            } else {
-                                newTasks[i] = t.copy(
-                                    status = ScrapeTaskStatus.FAILED,
-                                    error = r.error?.message ?: "Failed"
-                                )
-                            }
-                            tasks = newTasks
-                        } catch (e: Exception) {
-                            val newTasks = tasks.toMutableList()
-                            newTasks[i] = t.copy(
-                                status = ScrapeTaskStatus.FAILED,
-                                error = e.message ?: "Error"
-                            )
-                            tasks = newTasks
-                        }
-                    } else {
-                        val newTasks = tasks.toMutableList()
-                        newTasks[i] = t.copy(
-                            status = ScrapeTaskStatus.FAILED,
-                            error = strings.statusFileNotFound
-                        )
-                        tasks = newTasks
-                    }
-                }
-            } catch (e: Exception) {
-                status = strings.statusScrapeError(e.message ?: "")
-            }
-            scraping = false
-        }
-    }
-
-    fun cancelScraping() {
-        scraping = false
-    }
-
+    fun cancelScraping() = batchScrape.cancelScraping()
     fun clearResults() {
-        results = emptyList()
+        batchScrape.clearResults()
         scrapedFiles = emptyList()
-        tasks = emptyList()
     }
-
     suspend fun saveVideoMetadata(video: Video, mergeTags: Boolean): VideoMetadataEditResult {
         val result = withContext(Dispatchers.IO) {
             VideoMetadataEditor.update(
@@ -339,6 +281,13 @@ class AppViewModel(
     fun startSingleScrape() = singleScrape.startSingleScrape()
     fun cancelSingleScrape() = singleScrape.cancelSingleScrape()
     fun confirmPreviewWrite() = singleScrape.confirmPreviewWrite()
+    fun configureFieldUpdate() = singleScrape.configureFieldUpdate()
+    fun toggleFieldUpdateField(field: javscraper.models.VideoUpdateField, selected: Boolean) =
+        singleScrape.toggleFieldUpdateField(field, selected)
+    fun confirmFieldUpdateSelection() = singleScrape.confirmFieldUpdateSelection()
+    fun backToFieldUpdateSelection() = singleScrape.backToFieldUpdateSelection()
+    fun confirmFieldUpdateWrite() = singleScrape.confirmFieldUpdateWrite()
+    fun backToPreviewFromFieldUpdate() = singleScrape.backToPreviewFromFieldUpdate()
     fun selectPreviewCandidate(index: Int) = singleScrape.selectPreviewCandidate(index)
     fun cancelPreviewWrite() = singleScrape.cancelPreviewWrite()
     fun dismissMissingOutputDir() = singleScrape.dismissMissingOutputDir()
@@ -355,7 +304,7 @@ class AppViewModel(
         get() = ScrapeProgressState(
             tasks, scraping, singleScrapeDialogState, singleScrapeNumber,
             singleScrapeSite, singleScrapeTask, enabledSiteInfos,
-            outputDir, singleScrapeError, singleScrapeErrorStage, showMissingOutputDir
+            outputDir, updateMode, singleScrapeError, singleScrapeErrorStage, showMissingOutputDir
         )
     val scrapeProgressActions: ScrapeProgressActions = ScrapeProgressActions(
         ::startAllScraping,
@@ -367,6 +316,12 @@ class AppViewModel(
         ::closeSingleScrape,
         ::cancelSingleScrape,
         ::confirmPreviewWrite,
+        ::configureFieldUpdate,
+        ::toggleFieldUpdateField,
+        ::confirmFieldUpdateSelection,
+        ::backToFieldUpdateSelection,
+        ::confirmFieldUpdateWrite,
+        ::backToPreviewFromFieldUpdate,
         ::selectPreviewCandidate,
         ::cancelPreviewWrite,
         ::dismissMissingOutputDir,

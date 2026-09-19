@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
-import javscraper.io.pickDirectory
+import javscraper.io.pickers.pickDirectory
 import javscraper.settings.ScanDirectoryHistory
 import javscraper.settings.isValidSiteMirrorUrl
 import javscraper.settings.normalizeSiteMirrorUrl

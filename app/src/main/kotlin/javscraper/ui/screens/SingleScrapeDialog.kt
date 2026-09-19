@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.SingleScrapeDialogState
 import javscraper.ui.components.VideoInfoCard
+import javscraper.ui.screens.single.FieldUpdateConfirmDialog
+import javscraper.ui.screens.single.FieldUpdateSelectionDialog
 
 /** Dialog shown when the user scrapes a single task from the progress screen. */
 @Composable
@@ -26,7 +28,18 @@ fun SingleScrapeDialog(
         SingleScrapeDialogState.Closed -> { }
         SingleScrapeDialogState.Input -> InputDialog(state, actions, t)
         SingleScrapeDialogState.Scraping -> ScrapingDialog(state, actions, t)
-        is SingleScrapeDialogState.Preview -> PreviewDialog(state.singleScrapeDialogState, actions, t)
+        is SingleScrapeDialogState.Preview -> PreviewDialog(state.singleScrapeDialogState, state.updateMode, actions, t)
+        is SingleScrapeDialogState.FieldUpdateSelection -> FieldUpdateSelectionDialog(
+            state.singleScrapeDialogState,
+            actions.onToggleFieldUpdateField,
+            actions.onConfirmFieldUpdateSelection,
+            actions.onBackToPreviewFromFieldUpdate
+        )
+        is SingleScrapeDialogState.FieldUpdateConfirm -> FieldUpdateConfirmDialog(
+            state.singleScrapeDialogState,
+            actions.onConfirmFieldUpdateWrite,
+            actions.onBackToFieldUpdateSelection
+        )
         is SingleScrapeDialogState.Result -> ResultDialog(state.singleScrapeDialogState, actions, t)
     }
     if (state.showMissingOutputDir) {
@@ -211,6 +224,7 @@ private fun ScrapingDialog(
 @Composable
 private fun PreviewDialog(
     dialogState: SingleScrapeDialogState.Preview,
+    updateMode: Boolean,
     actions: ScrapeProgressActions,
     t: javscraper.i18n.TranslationEn
 ) {
@@ -218,14 +232,35 @@ private fun PreviewDialog(
         onDismissRequest = actions.onCancelPreviewWrite,
         title = { Text(t.singleScrapePreviewTitle) },
         text = {
-            PreviewCandidatesSection(
-                candidates = dialogState.candidates,
-                selectedIndex = dialogState.selectedIndex,
-                onSelect = actions.onSelectPreviewCandidate
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                dialogState.error?.let { error ->
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                PreviewCandidatesSection(
+                    candidates = dialogState.candidates,
+                    selectedIndex = dialogState.selectedIndex,
+                    onSelect = actions.onSelectPreviewCandidate
+                )
+            }
         },
         confirmButton = {
-            Button(onClick = actions.onConfirmPreviewWrite) { Text(t.singleScrapeWriteConfirm) }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (updateMode) {
+                    Button(onClick = actions.onConfigureFieldUpdate) {
+                        Text(t.singleScrapeFieldUpdateAction)
+                    }
+                }
+                Button(onClick = actions.onConfirmPreviewWrite) {
+                    Text(t.singleScrapeWriteConfirm)
+                }
+            }
         },
         dismissButton = {
             TextButton(onClick = actions.onCancelPreviewWrite) { Text(t.commonCancel) }

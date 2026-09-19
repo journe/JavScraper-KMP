@@ -3,6 +3,8 @@ package javscraper.io
 import javscraper.models.Ranking
 import javscraper.models.Review
 import javscraper.models.Video
+import javscraper.models.VideoUpdateField
+import javscraper.models.VideoCollectionMerger
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import javax.xml.stream.XMLStreamWriter
@@ -57,12 +59,52 @@ internal object JavdbExtraNfo {
             }
         }
         if (block == null) return original
+        return appendBlock(original, block, newline)
+    }
 
+    fun updateSelected(
+        original: String,
+        video: Video,
+        enabledFields: Set<VideoUpdateField>
+    ): String {
+        val match = blockPattern.find(original)
+        val selectedCounts = listOf(
+            VideoUpdateField.WANT_COUNT,
+            VideoUpdateField.WATCHED_COUNT,
+            VideoUpdateField.RATING_COUNT
+        ).filter { it in enabledFields }
+        val includeRankings = VideoUpdateField.RANKINGS in enabledFields
+        val includeReviews = VideoUpdateField.REVIEWS in enabledFields
+        if (selectedCounts.isEmpty() && !includeRankings && !includeReviews) return original
+
+        val newline = if (original.contains("\r\n")) "\r\n" else "\n"
+        val existing = match?.value?.let { readExtraBlock(it) } ?: JavdbExtra()
+        val merged = Video(
+            number = video.number,
+            wantCount = if (VideoUpdateField.WANT_COUNT in enabledFields) video.wantCount else existing.wantCount,
+            watchedCount = if (VideoUpdateField.WATCHED_COUNT in enabledFields) video.watchedCount else existing.watchedCount,
+            ratingCount = if (VideoUpdateField.RATING_COUNT in enabledFields) video.ratingCount else existing.ratingCount,
+            rankings = if (includeRankings) VideoCollectionMerger.mergeRankings(existing.rankings, video.rankings) else existing.rankings,
+            reviews = if (includeReviews) VideoCollectionMerger.mergeReviews(existing.reviews, video.reviews) else existing.reviews
+        )
+        val block = render(merged, newline)
+            ?: return if (match != null) original.removeRange(match.range) else original
+        return if (match != null) original.replaceRange(match.range, newline + block)
+        else appendBlock(original, block, newline)
+    }
+
+    private fun appendBlock(original: String, block: String, newline: String): String {
         val closeStart = original.lastIndexOf("</movie>")
         if (closeStart < 0) return original
         val lineStart = original.lastIndexOf('\n', closeStart).let { if (it < 0) 0 else it + 1 }
         return original.substring(0, lineStart) + block + newline + original.substring(lineStart)
     }
+
+    private fun readExtraBlock(block: String): JavdbExtra =
+        read(javscraper.io.metadata.SecureDocumentBuilderFactory.create()
+            .parse(org.xml.sax.InputSource(java.io.StringReader(block))))
+
+
 
     private fun render(video: Video, newline: String): String? {
         if (!video.hasJavdbExtra()) return null
