@@ -1,5 +1,7 @@
 package javscraper.io
 
+import javscraper.models.Ranking
+import javscraper.models.Review
 import javscraper.models.Video
 import java.nio.file.Files
 import kotlin.test.Test
@@ -80,7 +82,12 @@ class NfoReaderTest {
             director = "Director",
             duration = 120,
             rating = 8.8,
+            wantCount = 7411,
+            watchedCount = 1614,
+            ratingCount = 1614,
             tags = listOf("Tag"),
+            rankings = listOf(Ranking(212, "JavDB 2022年度TOP250")),
+            reviews = listOf(Review("93142913", "we***e", "2023-12-11", 5.0, 1007, "第一条短评")),
             summary = "Summary"
         )
         val nfo = Files.createTempFile("javscraper-nfo-", ".nfo")

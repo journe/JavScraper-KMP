@@ -1,5 +1,7 @@
 package javscraper.io
 
+import javscraper.models.Ranking
+import javscraper.models.Review
 import javscraper.models.Video
 import java.nio.file.Files
 import kotlin.io.path.createTempDirectory
@@ -163,6 +165,50 @@ class NfoUpdaterTest {
             assertEquals("    <name>New Actor</name>", updatedLines[7])
             assertEquals("    <role>New Actor</role>", updatedLines[8])
             assertEquals("    <order>1</order>", updatedLines[9])
+        } finally {
+            Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
+    fun `update synchronizes javdb extra fields`() {
+        val directory = createTempDirectory("javscraper-nfo-javdb")
+        try {
+            val nfo = directory.resolve("extra.nfo")
+            Files.writeString(
+                nfo,
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <movie>
+                  <num>SONE-001</num>
+                  <javdb_extra>
+                    <want_count>1</want_count>
+                  </javdb_extra>
+                </movie>
+                """.trimIndent()
+            )
+            val video = Video(
+                number = "SONE-001",
+                wantCount = 7411,
+                watchedCount = 1614,
+                ratingCount = 1614,
+                rankings = listOf(Ranking(212, "JavDB 2022年度TOP250")),
+                reviews = listOf(Review("1", "author", "2023-12-11", 5.0, 10, "短评"))
+            )
+
+            val changed = NfoUpdater.update(nfo, video, lockData = false)
+
+            assertTrue(changed)
+            val updated = Files.readString(nfo)
+            assertContains(updated, "<want_count>7411</want_count>")
+            assertContains(updated, "<watched_count>1614</watched_count>")
+            assertContains(updated, "<rating_count>1614</rating_count>")
+            assertContains(updated, """<ranking rank="212">JavDB 2022年度TOP250</ranking>""")
+            assertContains(updated, "<content>短评</content>")
+
+            val changedAgain = NfoUpdater.update(nfo, video, lockData = false)
+            assertFalse(changedAgain)
+            assertEquals(updated, Files.readString(nfo))
         } finally {
             Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
         }

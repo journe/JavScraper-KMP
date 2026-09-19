@@ -22,6 +22,7 @@ object NfoReader {
             val content = keepFirstXmlDeclaration(Files.readString(path).removePrefix("\uFEFF"))
             val safeContent = bareAmpersand.replace(content, "&amp;")
             val document = newDocumentBuilder().parse(InputSource(StringReader(safeContent)))
+            val javdbExtra = JavdbExtraNfo.read(document)
             Video(
                 number = readNumber(document),
                 title = readText(document, "title").ifBlank { readNumber(document) },
@@ -36,7 +37,12 @@ object NfoReader {
                 director = readText(document, "director"),
                 duration = readText(document, "runtime").trim().toIntOrNull(),
                 rating = readText(document, "rating").trim().toDoubleOrNull(),
+                wantCount = javdbExtra.wantCount,
+                watchedCount = javdbExtra.watchedCount,
+                ratingCount = javdbExtra.ratingCount,
                 tags = readTags(document),
+                rankings = javdbExtra.rankings,
+                reviews = javdbExtra.reviews,
                 source = readText(document, "source"),
                 detailUrl = readText(document, "website", "detailurl"),
                 sampleImages = readFanartImages(document),

@@ -21,9 +21,10 @@ object NfoUpdater {
         SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
         val patcher = TargetedNfoPatcher(original, insertMissingFields)
         writeFields(patcher, video, lockData, mergeTags)
-        if (!patcher.changed) return false
+        val updated = JavdbExtraNfo.update(patcher.apply(), video)
+        if (updated == original) return false
 
-        Files.writeString(path, patcher.apply())
+        Files.writeString(path, updated)
         return true
     }
 

@@ -1,5 +1,7 @@
 package javscraper.io
 
+import javscraper.models.Ranking
+import javscraper.models.Review
 import javscraper.models.Video
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -284,5 +286,36 @@ class NfoWriterTest {
         val video = Video(number = "SONE-001", coverUrl = "https://example.com/cover.jpg")
         val nfo = NfoWriter.generate(video)
         assertContains(nfo, "<poster>https://example.com/cover.jpg</poster>")
+    }
+
+    @Test
+    fun `generate includes javdb extra fields`() {
+        val video = Video(
+            number = "SONE-001",
+            wantCount = 7411,
+            watchedCount = 1614,
+            ratingCount = 1614,
+            rankings = listOf(Ranking(212, "JavDB 2022年度TOP250")),
+            reviews = listOf(
+                Review(
+                    id = "93142913",
+                    author = "we***e",
+                    date = "2023-12-11",
+                    score = 5.0,
+                    likes = 1007,
+                    content = "第一条短评"
+                )
+            )
+        )
+
+        val nfo = NfoWriter.generate(video)
+
+        assertContains(nfo, "<javdb_extra>")
+        assertContains(nfo, "<want_count>7411</want_count>")
+        assertContains(nfo, "<watched_count>1614</watched_count>")
+        assertContains(nfo, "<rating_count>1614</rating_count>")
+        assertContains(nfo, """<ranking rank="212">JavDB 2022年度TOP250</ranking>""")
+        assertContains(nfo, """<review id="93142913" author="we***e" date="2023-12-11" score="5.0" likes="1007">""")
+        assertContains(nfo, "<content>第一条短评</content>")
     }
 }

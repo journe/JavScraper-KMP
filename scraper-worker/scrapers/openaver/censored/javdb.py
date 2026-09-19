@@ -4,16 +4,17 @@ import locale
 import logging
 import sys
 from typing import Optional
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 
 import requests
 from bs4 import BeautifulSoup
 
 from scrapers.base import BaseScraper
-from scrapers.models import Video
+from scrapers.models import Review, Video
 from scrapers.registry import ScraperRegistry
 
 from .javdb_parsing import find_detail_url, parse_detail_page, parse_search_entries
+from .javdb_extra_parsing import parse_reviews
 
 logger = logging.getLogger(__name__)
 
@@ -123,15 +124,38 @@ class JavDBScraper(BaseScraper):
             return None
         return str(response.text)
 
-    def _fetch_detail(self, number: str, detail_url: str) -> Optional[Video]:
+    def _fetch_reviews(
+        self,
+        detail_soup: BeautifulSoup,
+        detail_url: str,
+    ) -> list[Review]:
+        tab = detail_soup.select_one(".review-tab[data-url]")
+        if tab is None:
+            return []
+        review_url = urljoin(detail_url, str(tab.get("data-url") or ""))
+        html = self._get_html(review_url)
+        if not html:
+            return []
+        return parse_reviews(BeautifulSoup(html, "html.parser"))
+
+    def _fetch_detail(
+        self,
+        number: str,
+        detail_url: str,
+        include_reviews: bool = False,
+    ) -> Optional[Video]:
         html = self._get_html(detail_url)
         if not html:
             return None
-        return parse_detail_page(
-            BeautifulSoup(html, "html.parser"),
+        soup = BeautifulSoup(html, "html.parser")
+        video = parse_detail_page(
+            soup,
             number,
             detail_url,
         )
+        if video is not None and include_reviews:
+            video.reviews = self._fetch_reviews(soup, detail_url)
+        return video
 
     def _search_one(self, number: str) -> Optional[Video]:
         normalized = self.normalize_number(number)
@@ -149,7 +173,7 @@ class JavDBScraper(BaseScraper):
         detail_url = find_detail_url(entries, normalized)
         if not detail_url:
             return None
-        return self._fetch_detail(normalized, detail_url)
+        return self._fetch_detail(normalized, detail_url, include_reviews=True)
 
     def search_by_keyword(self, keyword: str, limit: int = 20) -> list[Video]:
         query = keyword.strip()

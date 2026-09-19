@@ -18,6 +18,8 @@ from scrapers.labels import (
 )
 from scrapers.models import Actress, Video
 
+from .javdb_extra_parsing import parse_rankings, parse_rating, parse_watch_counts
+
 ACTRESS_LABELS = ("演員", "演员", "Actor", "出演")
 CATEGORY_LABELS = ("類別", "类别", "Genre", "ジャンル")
 
@@ -96,18 +98,6 @@ def _parse_duration(value: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _parse_rating(value: str) -> float | None:
-    match = re.search(r"([0-9.]+)\s*(?:分|/5)", value)
-    if not match:
-        match = re.search(r"([0-9.]+)", value)
-    if not match:
-        return None
-    try:
-        return float(match.group(1))
-    except ValueError:
-        return None
-
-
 def _unique(values: list[str]) -> list[str]:
     return list(dict.fromkeys(value for value in values if value))
 
@@ -138,6 +128,7 @@ def parse_detail_page(
     director = ""
     duration = None
     rating = None
+    rating_count = None
     tags: list[str] = []
     actresses: list[Actress] = []
 
@@ -162,7 +153,7 @@ def parse_detail_page(
         elif label_matches(label_text, DURATION_LABELS):
             duration = _parse_duration(value_text)
         elif label_matches(label_text, RATING_LABELS):
-            rating = _parse_rating(value_text)
+            rating, rating_count = parse_rating(value_text)
 
         if label_matches(label_text, CATEGORY_LABELS):
             tags.extend(
@@ -182,6 +173,8 @@ def parse_detail_page(
                 if gender == "female" or not has_explicit_gender:
                     actresses.append(Actress(name=anchor.get_text(" ", strip=True)))
 
+    want_count, watched_count = parse_watch_counts(soup)
+
     return Video(
         number=number,
         title=title,
@@ -193,7 +186,11 @@ def parse_detail_page(
         director=director,
         duration=duration,
         rating=rating,
+        want_count=want_count,
+        watched_count=watched_count,
+        rating_count=rating_count,
         tags=_unique(tags),
+        rankings=parse_rankings(soup),
         cover_url=cover_url,
         source="javdb",
         detail_url=detail_url,

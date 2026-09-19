@@ -8,6 +8,22 @@ class Actress:
 
 
 @dataclass
+class Ranking:
+    rank: int
+    list_name: str
+
+
+@dataclass
+class Review:
+    id: str = ""
+    author: str = ""
+    date: str = ""
+    score: Optional[float] = None
+    likes: Optional[int] = None
+    content: str = ""
+
+
+@dataclass
 class Video:
     number: str
     title: str = ""
@@ -19,7 +35,12 @@ class Video:
     director: str = ""
     duration: Optional[int] = None
     rating: Optional[float] = None
+    want_count: Optional[int] = None
+    watched_count: Optional[int] = None
+    rating_count: Optional[int] = None
     tags: list[str] = field(default_factory=list)
+    rankings: list[Ranking] = field(default_factory=list)
+    reviews: list[Review] = field(default_factory=list)
     cover_url: str = ""
     poster_url: str = ""
     sample_images: list[str] = field(default_factory=list)

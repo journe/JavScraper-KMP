@@ -1,6 +1,7 @@
 package javscraper.ui.components
 
 import javscraper.i18n.TranslationEn
+import javscraper.models.Ranking
 import javscraper.models.Video
 import javscraper.ui.VideoFieldItem
 import kotlin.test.Test
@@ -22,7 +23,11 @@ class VideoInfoCardTest {
             director = "Director",
             duration = 120,
             rating = 9.2,
+            wantCount = 7411,
+            watchedCount = 1614,
+            ratingCount = 1614,
             tags = listOf("Tag A", "Tag B"),
+            rankings = listOf(Ranking(212, "JavDB 2022年度TOP250")),
             coverUrl = "https://example.com/cover.jpg",
             posterUrl = "https://example.com/poster.jpg",
             sampleImages = listOf("https://example.com/sample-1.jpg", "https://example.com/sample-2.jpg"),
@@ -33,7 +38,7 @@ class VideoInfoCardTest {
 
         val rows = videoInfoRows(video, TranslationEn())
 
-        assertEquals(17, rows.size)
+        assertEquals(21, rows.size)
         assertEquals("Number", rows[0].label)
         assertEquals("SONE-001", rows[0].value)
         assertEquals("Title", rows[1].label)
@@ -51,21 +56,25 @@ class VideoInfoCardTest {
         assertEquals("Director", rows[8].label)
         assertTrue(rows[9].value.contains("120"))
         assertTrue(rows[10].value.contains("9.2"))
-        assertEquals("Tags", rows[11].label)
-        assertEquals("Tag A, Tag B", rows[11].value)
-        assertEquals(listOf(VideoFieldItem("Tag A"), VideoFieldItem("Tag B")), rows[11].items)
-        assertEquals("Source", rows[12].label)
-        assertEquals("JavBus", rows[12].value)
-        assertEquals("Detail URL", rows[13].label)
-        assertEquals("https://example.com/detail", rows[13].value)
-        assertEquals("Cover URL", rows[14].label)
-        assertEquals("https://example.com/cover.jpg", rows[14].value)
-        assertEquals("Poster URL", rows[15].label)
-        assertEquals("https://example.com/poster.jpg", rows[15].value)
-        assertEquals("Sample Images", rows[16].label)
+        assertEquals("7411", rows[11].value)
+        assertEquals("1614", rows[12].value)
+        assertEquals("1614", rows[13].value)
+        assertEquals("No.212 JavDB 2022年度TOP250", rows[14].value)
+        assertEquals("Tags", rows[15].label)
+        assertEquals("Tag A, Tag B", rows[15].value)
+        assertEquals(listOf(VideoFieldItem("Tag A"), VideoFieldItem("Tag B")), rows[15].items)
+        assertEquals("Source", rows[16].label)
+        assertEquals("JavBus", rows[16].value)
+        assertEquals("Detail URL", rows[17].label)
+        assertEquals("https://example.com/detail", rows[17].value)
+        assertEquals("Cover URL", rows[18].label)
+        assertEquals("https://example.com/cover.jpg", rows[18].value)
+        assertEquals("Poster URL", rows[19].label)
+        assertEquals("https://example.com/poster.jpg", rows[19].value)
+        assertEquals("Sample Images", rows[20].label)
         assertEquals(
             "https://example.com/sample-1.jpg\nhttps://example.com/sample-2.jpg",
-            rows[16].value
+            rows[20].value
         )
         assertTrue(rows.all { !it.isEmpty })
     }
@@ -74,7 +83,7 @@ class VideoInfoCardTest {
     fun `video info rows keep empty placeholders for every field`() {
         val rows = videoInfoRows(Video(number = "SONE-002"), TranslationEn())
 
-        assertEquals(17, rows.size)
+        assertEquals(21, rows.size)
         assertEquals("SONE-002", rows[0].value)
         assertEquals(rows.drop(1).size, rows.drop(1).count { it.isEmpty })
         assertTrue(rows.drop(1).all { it.value == "Not set" })

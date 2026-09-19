@@ -29,6 +29,7 @@ a = Analysis(
         'scrapers.site_check',
         'scrapers.openaver.censored.javbus',
         'scrapers.openaver.censored.javdb',
+        'scrapers.openaver.censored.javdb_extra_parsing',
         'scrapers.openaver.censored.javdb_parsing',
         'scrapers.openaver.censored.jav321',
         'scrapers.openaver.uncensored.fc2',

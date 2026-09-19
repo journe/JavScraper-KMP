@@ -33,6 +33,12 @@ DETAIL_HTML = """
   <strong>評分:</strong><span class="value">4.46分, 由2105人評價</span>
 </div>
 <div class="panel-block">
+  <span class="is-size-7 has-text-grey">7411人想看, 1614人看過</span>
+</div>
+<div class="control ranking-tags">
+  <a class="tags has-addons"><span class="tag is-dark">No.212</span><span>JavDB 2022年度TOP250</span></a>
+</div>
+<div class="panel-block">
   <strong>類別:</strong>
   <span class="value"><a href="/tags?c7=11">戲劇</a><a href="/tags?c4=17">巨乳</a></span>
 </div>
@@ -43,6 +49,28 @@ DETAIL_HTML = """
     <a href="/actors/O2Q30">結城結弦</a><strong class="symbol male">♂</strong>
   </span>
 </div>
+</body></html>
+"""
+
+REVIEW_HTML = """
+<html><body>
+<dl class="review-items">
+  <dt class="review-item" id="review-item-93142913">
+    <div class="review-title">
+      <div class="likes is-pulled-right">
+        <button><span>贊</span><span class="likes-count">1007</span></button>
+      </div>
+      we***e
+      <span class="score-stars">
+        <i class="icon-star"></i><i class="icon-star"></i><i class="icon-star"></i>
+        <i class="icon-star"></i><i class="icon-star"></i>
+      </span>
+      <span class="time">2023-12-11</span>
+    </div>
+    <div class="content"><p>第一条短评</p></div>
+  </dt>
+  <dt class="review-item more">更多短评可成为VIP查看</dt>
+</dl>
 </body></html>
 """
 
@@ -99,7 +127,13 @@ def test_search_uses_mirror_and_parses_full_fields():
     assert video.date == "2024-03-12"
     assert video.director == "トレンディ山口"
     assert video.maker == "S1 NO.1 STYLE"
-    assert video.rating == 4.46
+    assert video.rating == 8.92
+    assert video.want_count == 7411
+    assert video.watched_count == 1614
+    assert video.rating_count == 2105
+    assert [(item.rank, item.list_name) for item in video.rankings] == [
+        (212, "JavDB 2022年度TOP250")
+    ]
     assert video.tags == ["戲劇", "巨乳"]
     assert [actress.name for actress in video.actresses] == ["つばさ舞"]
     assert video.cover_url == "https://c0.jdbstatic.com/covers/ww/pl.jpg"
@@ -120,6 +154,52 @@ def test_search_by_keyword_returns_matching_videos():
     assert [video.number for video in result] == ["SONE-103"]
     assert result[0].source == "javdb"
     assert scraper._session.get.call_args_list[0].args[0] == search_url
+
+
+def test_search_fetches_reviews_only_for_exact_number():
+    search_url = "https://javdb580.com/search?q=SONE-103&f=all&locale=zh"
+    detail_url = "https://javdb580.com/v/Ww9zN8"
+    review_url = "https://javdb580.com/v/Ww9zN8/reviews/lastest"
+    detail_html = DETAIL_HTML.replace(
+        "</body></html>",
+        '<div class="review-tab" data-url="/v/Ww9zN8/reviews/lastest">短評(94)</div></body></html>',
+    )
+    scraper = _scraper_with_responses(
+        _response(SEARCH_HTML, search_url),
+        _response(detail_html, detail_url),
+        _response(REVIEW_HTML, review_url),
+    )
+    scraper.BASE_URL = "https://javdb580.com"
+
+    video = scraper.search("SONE-103")[0]
+
+    assert scraper._session.get.call_args_list[2].args[0] == review_url
+    assert len(video.reviews) == 1
+    assert video.reviews[0].id == "93142913"
+    assert video.reviews[0].author == "we***e"
+    assert video.reviews[0].date == "2023-12-11"
+    assert video.reviews[0].score == 5.0
+    assert video.reviews[0].likes == 1007
+    assert video.reviews[0].content == "第一条短评"
+
+
+def test_keyword_search_does_not_fetch_reviews():
+    search_url = "https://javdb.com/search?q=%E3%81%A4%E3%81%B0%E3%81%95%E8%88%9E&f=all"
+    detail_url = "https://javdb.com/v/Ww9zN8"
+    detail_html = DETAIL_HTML.replace(
+        "</body></html>",
+        '<div class="review-tab" data-url="/v/Ww9zN8/reviews/lastest">短評(94)</div></body></html>',
+    )
+    scraper = _scraper_with_responses(
+        _response(SEARCH_HTML, search_url),
+        _response(detail_html, detail_url),
+    )
+
+    result = scraper.search_by_keyword("つばさ舞")
+
+    assert len(result) == 1
+    assert result[0].reviews == []
+    assert len(scraper._session.get.call_args_list) == 2
 
 
 def test_search_filters_unmarked_male_when_female_class_is_present():
