@@ -53,6 +53,7 @@ object NfoWriter {
             write(w, "tag", it)
         }
         if (video.rating != null && video.rating > 0) write(w, "rating", video.rating.toString())
+        JavdbExtraNfo.write(w, video)
         write(w, "lockdata", lockData.toString())
         writeUniqueId(w, "num", video.number, isDefault = true)
         writeUniqueId(w, "home", video.number, isDefault = false)

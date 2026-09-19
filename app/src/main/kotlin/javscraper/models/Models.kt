@@ -7,11 +7,29 @@ import kotlinx.serialization.Serializable
 data class Actress(val name: String)
 
 @Serializable
+data class Ranking(
+    val rank: Int,
+    val listName: String
+)
+
+@Serializable
+data class Review(
+    val id: String = "",
+    val author: String = "",
+    val date: String = "",
+    val score: Double? = null,
+    val likes: Int? = null,
+    val content: String = ""
+)
+
+@Serializable
 data class Video(
     val number: String, val title: String = "", val actresses: List<String> = emptyList(),
     val date: String = "", val maker: String = "", val label: String = "", val series: String = "",
     val director: String = "", val duration: Int? = null, val rating: Double? = null,
+    val wantCount: Int? = null, val watchedCount: Int? = null, val ratingCount: Int? = null,
     val tags: List<String> = emptyList(), val coverUrl: String = "", val posterUrl: String = "",
+    val rankings: List<Ranking> = emptyList(), val reviews: List<Review> = emptyList(),
     val sampleImages: List<String> = emptyList(), val summary: String = "",
     val source: String = "", val detailUrl: String = "", val webpage: String = "",
     val path: String = "",

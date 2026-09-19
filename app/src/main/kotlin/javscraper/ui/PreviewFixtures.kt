@@ -1,5 +1,7 @@
 package javscraper.ui
 
+import javscraper.models.Ranking
+import javscraper.models.Review
 import javscraper.models.Video
 
 /**
@@ -17,6 +19,9 @@ internal fun previewVideoWithAllFields(): Video = Video(
     director = "导演",
     duration = 120,
     rating = 9.2,
+    wantCount = 7411,
+    watchedCount = 1614,
+    ratingCount = 1614,
     tags = listOf(
         "标签 A",
         "标签 B",
@@ -32,6 +37,17 @@ internal fun previewVideoWithAllFields(): Video = Video(
         "标签 c",
         "标签asd",
         "标签zzz"
+    ),
+    rankings = listOf(Ranking(rank = 212, listName = "JavDB 2022年度TOP250")),
+    reviews = listOf(
+        Review(
+            id = "93142913",
+            author = "we***e",
+            date = "2023-12-11",
+            score = 5.0,
+            likes = 1007,
+            content = "短评内容预览，用于检查折叠列表和长文本换行效果。"
+        )
     ),
     coverUrl = "https://example.com/cover.jpg",
     posterUrl = "https://example.com/poster.jpg",

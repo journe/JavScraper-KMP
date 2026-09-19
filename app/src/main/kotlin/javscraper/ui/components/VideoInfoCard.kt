@@ -15,10 +15,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationEn
 import javscraper.i18n.TranslationZh
+import javscraper.models.Review
 import javscraper.models.Video
 import javscraper.ui.VideoFieldItem
 import javscraper.ui.videoFieldValues
@@ -97,6 +104,58 @@ fun VideoInfoCard(video: Video, modifier: Modifier = Modifier) {
                     }
                 }
             }
+            ReviewsSection(video.reviews, translations)
+        }
+    }
+}
+
+@Composable
+private fun ReviewsSection(reviews: List<Review>, translations: TranslationEn) {
+    if (reviews.isEmpty()) return
+    var expanded by remember(reviews) { mutableStateOf(false) }
+    HorizontalDivider()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = translations.videoFieldReviews,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        TextButton(onClick = { expanded = !expanded }) {
+            Text(
+                text = if (expanded) {
+                    translations.videoReviewsCollapse
+                } else {
+                    translations.videoReviewsExpand(reviews.size)
+                },
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+    if (!expanded) return
+    reviews.forEachIndexed { index, review ->
+        if (index > 0) HorizontalDivider()
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val metadata = buildList {
+                review.author.takeIf { it.isNotBlank() }?.let(::add)
+                review.date.takeIf { it.isNotBlank() }?.let(::add)
+                review.score?.let { add(translations.videoReviewScore(it)) }
+                review.likes?.let { add(translations.videoReviewLikes(it)) }
+            }
+            Text(
+                text = metadata.joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = review.content,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

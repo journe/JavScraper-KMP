@@ -33,6 +33,13 @@ internal fun videoFieldValues(video: Video, t: TranslationEn): List<VideoFieldVa
     VideoFieldValue(t.videoFieldDirector, video.director),
     VideoFieldValue(t.videoFieldDuration, video.duration?.toString().orEmpty()),
     VideoFieldValue(t.videoFieldRating, video.rating?.toString().orEmpty()),
+    VideoFieldValue(t.videoFieldWantCount, video.wantCount?.toString().orEmpty()),
+    VideoFieldValue(t.videoFieldWatchedCount, video.watchedCount?.toString().orEmpty()),
+    VideoFieldValue(t.videoFieldRatingCount, video.ratingCount?.toString().orEmpty()),
+    listFieldValue(
+        t.videoFieldRankings,
+        video.rankings.map { "No.${it.rank} ${it.listName}" }
+    ),
     listFieldValue(t.videoFieldTags, video.tags),
     VideoFieldValue(t.videoFieldSource, video.source),
     VideoFieldValue(t.videoFieldDetailUrl, video.detailUrl),
