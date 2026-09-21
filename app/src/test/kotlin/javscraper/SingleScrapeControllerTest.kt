@@ -301,4 +301,24 @@ class SingleScrapeControllerTest {
             scope.advanceUntilIdle()
         }
     }
+
+    @Test
+    fun `opening a grouped file list keeps its part count`() {
+        val controller = SingleScrapeController(
+            scope = TestScope(),
+            orch = { null },
+            outputDir = { "output" }
+        )
+        val files = listOf(
+            ScannedFile("H:/fc2/[FC2-4620098]/FC2-4620098-1.mp4", "FC2-4620098-1.mp4", "FC2-4620098"),
+            ScannedFile("H:/fc2/[FC2-4620098]/FC2-4620098-2.mp4", "FC2-4620098-2.mp4", "FC2-4620098"),
+            ScannedFile("H:/fc2/[FC2-4620098]/FC2-4620098-3.mp4", "FC2-4620098-3.mp4", "FC2-4620098")
+        )
+
+        controller.openSingleScrapeGroup(files)
+
+        assertEquals(3, controller.singleScrapeTask?.partCount)
+        assertEquals("FC2-4620098-1.mp4", controller.singleScrapeTask?.fileName)
+    }
+
 }

@@ -21,6 +21,7 @@ class SettingsManagerTest {
         assertEquals(true, settings.createMovieFolders)
         assertEquals(true, settings.moveInsteadOfCopy)
         assertEquals(emptyMap(), settings.siteMirrorUrls)
+        assertEquals("", settings.javdbSessionCookie)
         assertEquals(true, settings.downloadImages)
         assertEquals(false, settings.downloadPreviewImages)
         assertEquals(false, settings.downloadWebPages)
@@ -62,6 +63,7 @@ class SettingsManagerTest {
             createMovieFolders = false,
             moveInsteadOfCopy = false,
             siteMirrorUrls = mapOf("javbus" to "https://www.dmmsee.casa/"),
+            javdbSessionCookie = "session-value",
             downloadImages = false,
             downloadPreviewImages = true,
             downloadWebPages = true,
@@ -86,6 +88,7 @@ class SettingsManagerTest {
         assertEquals(false, decoded.createMovieFolders)
         assertEquals(false, decoded.moveInsteadOfCopy)
         assertEquals(mapOf("javbus" to "https://www.dmmsee.casa/"), decoded.siteMirrorUrls)
+        assertEquals("session-value", decoded.javdbSessionCookie)
         assertEquals(false, decoded.downloadImages)
         assertEquals(true, decoded.downloadPreviewImages)
         assertEquals(true, decoded.downloadWebPages)
@@ -169,6 +172,24 @@ class SettingsManagerTest {
             controller.selectScanDirFromHistory("D:/JavScraper-Test")
 
             assertEquals(before + 1, rebuilds)
+        } finally {
+            SettingsManager.update { original }
+        }
+    }
+
+    @Test
+    fun `javdb session cookie change persists and restarts worker`() {
+        val original = SettingsManager.get()
+        var restarts = 0
+        try {
+            val controller = SettingsController(TestScope())
+            controller.onWorkerSettingsChanged = { restarts++ }
+
+            controller.updateJavdbSessionCookie("_jdb_session=session-value")
+
+            assertEquals("session-value", controller.javdbSessionCookie)
+            assertEquals("session-value", SettingsManager.get().javdbSessionCookie)
+            assertEquals(1, restarts)
         } finally {
             SettingsManager.update { original }
         }

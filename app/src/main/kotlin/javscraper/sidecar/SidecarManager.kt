@@ -22,7 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger
 class SidecarManager(
     private val workerPath: String,
     /** 单次 JSON-RPC 请求等待 worker 响应的超时（毫秒），可注入短值用于测试。 */
-    private val requestTimeoutMs: Long = 15_000
+    private val requestTimeoutMs: Long = 15_000,
+    private val environment: Map<String, String> = emptyMap()
 ) : AutoCloseable {
     private val log = mu.KotlinLogging.logger {}
 
@@ -58,6 +59,7 @@ class SidecarManager(
             processBuilder.redirectErrorStream(false)
             processBuilder.environment()["PYTHONIOENCODING"] = "utf-8"
             processBuilder.environment()["PYTHONUNBUFFERED"] = "1"
+            environment.forEach { (key, value) -> if (value.isNotBlank()) processBuilder.environment()[key] = value }
             val startedProcess = processBuilder.start()
             process = startedProcess
             stdin = startedProcess.outputStream.bufferedWriter(Charsets.UTF_8)

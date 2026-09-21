@@ -46,7 +46,12 @@ class WorkerController(
     suspend fun ensureWorkerRunning() {
         try {
             onStatusChange(settings.strings.statusStarting)
-            val m = SidecarManager(resolveWorkerPath(), SettingsManager.get().requestTimeoutMs.toLong())
+            val currentSettings = SettingsManager.get()
+            val m = SidecarManager(
+                workerPath = resolveWorkerPath(),
+                requestTimeoutMs = currentSettings.requestTimeoutMs.toLong(),
+                environment = mapOf("JAVDB_SESSION" to currentSettings.javdbSessionCookie)
+            )
             val started = withContext(Dispatchers.IO) { m.start() }
             if (started) {
                 val siteList = withContext(Dispatchers.IO) { m.listSites() }
@@ -131,6 +136,12 @@ class WorkerController(
                 siteCheckRunning = false
             }
         }
+    }
+
+    /** Restart a running worker so process-level settings take effect immediately. */
+    fun restartIfRunning() {
+        if (mgr == null) return
+        scope.launch { ensureWorkerRunning() }
     }
 
     /** Rebuild the orchestrator after scraper-related settings change. */

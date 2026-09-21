@@ -79,6 +79,16 @@ class FileScannerTest {
     }
 
     @Test
+    fun `parseFileName keeps FC2 cd suffix after bracketed title`() {
+        assertEquals(
+            FileNameInfo(number = "FC2-3259498", versionLabel = "cd1"),
+            FileScanner.parseFileName(
+                "[FC2-3259498] 「お金いらないです..もう帰りたい…」大人気アイドルグループに所属して-cd1.mp4"
+            )
+        )
+    }
+
+    @Test
     fun `extractNumber HEYZO pattern`() {
         assertEquals("HEYZO-1234", FileScanner.extractNumber("HEYZO-1234.mkv"))
     }

@@ -64,10 +64,10 @@ class SingleScrapeController(
     }
 
     fun openSingleScrape(file: ScannedFile) {
-        openSingleScrapeGroup(listOf(file), null)
+        openSingleScrapeGroup(listOf(file))
     }
 
-    private fun openSingleScrapeGroup(files: List<ScannedFile>, task: ScrapeTask?) {
+    internal fun openSingleScrapeGroup(files: List<ScannedFile>, task: ScrapeTask? = null) {
         val file = files.firstOrNull() ?: return
         singleScrapeFile = file
         singleScrapeFiles = files

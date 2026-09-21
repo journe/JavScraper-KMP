@@ -75,4 +75,79 @@ class ScrapeTaskOperationsTest {
 
         assertEquals(listOf(pending), filesForScrapeTask(task, listOf(scraped, pending)))
     }
+
+    @Test
+    fun `same folder siblings groups all matching number files in the folder`() {
+        val current = ScannedFile(
+            path = "H:/fc2/[FC2-4620098]/FC2-4620098-1.mp4",
+            fileName = "FC2-4620098-1.mp4",
+            number = "FC2-4620098",
+            isScraped = true
+        )
+        val scanned = listOf(
+            current,
+            ScannedFile("H:/fc2/[FC2-4620098]/FC2-4620098-2.mp4", "FC2-4620098-2.mp4", "FC2-4620098"),
+            ScannedFile("H:/fc2/[FC2-4620098]/FC2-4620098-3.mp4", "FC2-4620098-3.mp4", "FC2-4620098"),
+            ScannedFile("H:/fc2/[OTHER]/FC2-4620098.mp4", "FC2-4620098.mp4", "FC2-4620098"),
+            ScannedFile("H:/fc2/[FC2-4620098]/FC2-1111111.mp4", "FC2-1111111.mp4", "FC2-1111111")
+        )
+
+        val grouped = sameFolderSiblings(current, scanned)
+
+        assertEquals(3, grouped.size)
+        assertTrue(grouped.all { it.path.startsWith("H:/fc2/[FC2-4620098]") })
+    }
+
+    @Test
+    fun `same folder siblings matches number case-insensitively`() {
+        val current = ScannedFile("C:/movies/ABC-001/abc-001-1.mp4", "abc-001-1.mp4", "ABC-001")
+        val sibling = ScannedFile("C:/movies/ABC-001/ABC-001-2.mp4", "ABC-001-2.mp4", "abc-001")
+
+        val grouped = sameFolderSiblings(current, listOf(current, sibling))
+
+        assertEquals(2, grouped.size)
+        assertTrue(grouped.contains(sibling))
+    }
+
+    @Test
+    fun `same folder siblings falls back to current file without matching folder`() {
+        val current = ScannedFile("C:/movies/ABC-001.mp4", "ABC-001.mp4", "ABC-001")
+        val other = ScannedFile("C:/movies/ABC-002.mp4", "ABC-002.mp4", "ABC-002")
+
+        assertEquals(listOf(current), sameFolderSiblings(current, listOf(current, other)))
+    }
+
+    @Test
+    fun `same folder siblings keeps current file when path is blank`() {
+        val current = ScannedFile("", "ABC-001.mp4", "ABC-001")
+
+        assertEquals(listOf(current), sameFolderSiblings(current, emptyList()))
+    }
+
+    @Test
+    fun `same folder siblings resolves output path back to source folder`() {
+        val current = ScannedFile(
+            path = "D:/library/FC2-4620098/FC2-4620098 - part1.mp4",
+            fileName = "FC2-4620098 - part1.mp4",
+            number = "FC2-4620098",
+            isScraped = true
+        )
+        val source = ScannedFile(
+            path = "H:/fc2/[FC2-4620098]/FC2-4620098-1.mp4",
+            fileName = "FC2-4620098-1.mp4",
+            number = "FC2-4620098",
+            isScraped = true
+        )
+        val sibling = ScannedFile(
+            path = "H:/fc2/[FC2-4620098]/FC2-4620098-2.mp4",
+            fileName = "FC2-4620098-2.mp4",
+            number = "FC2-4620098"
+        )
+
+        val grouped = sameFolderSiblings(current, listOf(source, sibling))
+
+        assertEquals(2, grouped.size)
+        assertTrue(grouped.contains(sibling))
+    }
+
 }

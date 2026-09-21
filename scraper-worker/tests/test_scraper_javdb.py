@@ -98,6 +98,13 @@ def test_javdb_exposes_javdb580_as_mirror():
     assert "https://javdb580.com" in JavDBScraper.MIRROR_URLS
 
 
+def test_javdb_loads_session_cookie_from_environment(monkeypatch):
+    monkeypatch.setenv("JAVDB_SESSION", "session-value")
+
+    scraper = JavDBScraper()
+
+    assert scraper._session.cookies.get("_jdb_session") == "session-value"
+
 def test_get_html_uses_curl_cffi_chrome_impersonation():
     url = "https://javdb580.com/search?q=SONE-103&f=all"
     scraper = _scraper_with_responses(_response(SEARCH_HTML, url))

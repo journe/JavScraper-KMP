@@ -18,6 +18,9 @@ import kotlinx.coroutines.withContext
 /** Holds settings UI state and persistence, independent of worker/scrape logic. */
 class SettingsController(private val scope: CoroutineScope) {
 
+    /** Invoked when worker process settings change so a running worker can restart. */
+    var onWorkerSettingsChanged: () -> Unit = {}
+
     /** Invoked when scraper-related settings change so the orchestrator can be rebuilt. */
     var onScrapeSettingsChanged: () -> Unit = {}
     /** Invoked to surface errors to the app status bar. */
@@ -33,6 +36,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var showRestartHint by mutableStateOf(false)
     var enabledSites by mutableStateOf(SettingsManager.get().enabledSites)
     var siteMirrorUrls by mutableStateOf(SettingsManager.get().siteMirrorUrls)
+    var javdbSessionCookie by mutableStateOf(SettingsManager.get().javdbSessionCookie)
     var scanRecursive by mutableStateOf(SettingsManager.get().scanRecursive)
     var createMovieFolders by mutableStateOf(SettingsManager.get().createMovieFolders)
     var moveInsteadOfCopy by mutableStateOf(SettingsManager.get().moveInsteadOfCopy)
@@ -150,6 +154,19 @@ class SettingsController(private val scope: CoroutineScope) {
         SettingsManager.update { it.copy(siteMirrorUrls = siteMirrorUrls) }
         onScrapeSettingsChanged()
     }
+    fun updateJavdbSessionCookie(value: String) {
+        val trimmed = value.trim()
+        val prefix = "_jdb_session="
+        val cookie = if (trimmed.startsWith(prefix, ignoreCase = true)) {
+            trimmed.substring(prefix.length).trim()
+        } else {
+            trimmed
+        }
+        javdbSessionCookie = cookie
+        SettingsManager.update { it.copy(javdbSessionCookie = cookie) }
+        onWorkerSettingsChanged()
+    }
+
     fun updateMoveInsteadOfCopy(v: Boolean) {
         moveInsteadOfCopy = v
         SettingsManager.update { it.copy(moveInsteadOfCopy = v) }
@@ -269,6 +286,7 @@ class SettingsController(private val scope: CoroutineScope) {
         fileLoggingEnabled = fresh.fileLoggingEnabled
         enabledSites = fresh.enabledSites
         siteMirrorUrls = fresh.siteMirrorUrls
+        javdbSessionCookie = fresh.javdbSessionCookie
         currentLanguage = fresh.language
         folderLayers = fresh.folderLayers
         filenameFormat = fresh.filenameFormat

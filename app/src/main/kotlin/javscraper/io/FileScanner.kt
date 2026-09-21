@@ -66,6 +66,9 @@ object FileScanner {
         "poster", "fanart", "extra", "sub", "subtitle"
     )
 
+    private val versionTokenRegex = Regex("""(?i)^[a-z]*\d+[a-z]*$""")
+    private val specialVersionLetters = setOf("C", "U")
+
     fun scanDirectory(dir: Path, recursive: Boolean = true): List<ScannedFile> {
         if (!Files.isDirectory(dir)) return emptyList()
         val stream = if (recursive) Files.walk(dir) else Files.list(dir)
@@ -151,7 +154,7 @@ object FileScanner {
         if (isSample(fileName)) return FileNameInfo("")
 
         RX_FC2.find(n)?.let { m ->
-            val trailing = parseTrailingTokens(m.groupValues[2])
+            val trailing = parseTrailingTokens(parseTrailingText(m, n))
             return FileNameInfo(
                 number = "FC2-${m.groupValues[1]}",
                 versionLabel = trailing.label,
@@ -161,7 +164,7 @@ object FileScanner {
         for (r in listOf(RX1, RX2, RX3, RX4)) {
             val m = r.find(n)
             if (m != null) {
-                val trailing = parseTrailingTokens(m.groupValues[2])
+                val trailing = parseTrailingTokens(parseTrailingText(m, n))
                 return FileNameInfo(
                     number = m.groupValues[1].replace("–", "-").uppercase(),
                     versionLabel = trailing.label,
@@ -170,6 +173,26 @@ object FileScanner {
             }
         }
         return FileNameInfo("")
+    }
+
+    private fun parseTrailingText(m: MatchResult, n: String): String {
+        m.groupValues[2].takeIf { it.isNotBlank() }?.let { return it }
+        return extractBracketTrailing(n, m.range.last + 1)
+    }
+
+    private fun extractBracketTrailing(n: String, afterNumberIndex: Int): String {
+        if (afterNumberIndex >= n.length) return ""
+        val closing = n[afterNumberIndex]
+        if (closing != ']' && closing != ')' && closing != '）') return ""
+        val rest = n.substring(afterNumberIndex + 1).trim()
+        val last = rest.split(trailingSeparatorRegex).lastOrNull { it.isNotBlank() } ?: return ""
+        return if (isPlausibleLabel(last)) last else ""
+    }
+
+    private fun isPlausibleLabel(token: String): Boolean {
+        if (token.isBlank() || token.length > 8) return false
+        if (token.matches(versionTokenRegex)) return true
+        return token.length == 1 && token.uppercase() in specialVersionLetters
     }
 
     private fun parseTrailingTokens(value: String): TrailingTokens {

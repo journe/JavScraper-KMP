@@ -2,6 +2,7 @@ package javscraper.ui.screens
 
 import javscraper.models.ScannedFile
 import javscraper.models.Video
+import java.nio.file.Path
 
 internal fun filesForScrapeTask(
     task: ScrapeTask,
@@ -16,6 +17,29 @@ internal fun filesForScrapeTask(
         ?: ScannedFile(path = task.path, fileName = task.fileName, number = task.number)
     return listOf(fallback)
 }
+
+internal fun sameFolderSiblings(
+    file: ScannedFile,
+    scannedFiles: List<ScannedFile>
+): List<ScannedFile> {
+    if (file.path.isBlank()) return listOf(file)
+    val folder = siblingFolder(file.path) ?: return listOf(file)
+    val siblings = scannedFiles
+        .filter { candidate ->
+            candidate.number.isNotBlank() &&
+                candidate.number.equals(file.number, ignoreCase = true) &&
+                siblingFolder(candidate.path) == folder
+        }
+        .distinctBy { candidate -> candidate.path.ifBlank { candidate.fileName } }
+    if (siblings.isNotEmpty()) return siblings
+    val sourceBase = scannedFiles.firstOrNull { candidate ->
+        candidate.number.isNotBlank() && candidate.number.equals(file.number, ignoreCase = true)
+    } ?: return listOf(file)
+    return sameFolderSiblings(sourceBase, scannedFiles)
+}
+
+private fun siblingFolder(path: String): String? =
+    Path.of(path).parent?.toAbsolutePath()?.normalize()?.toString()
 
 internal fun upsertScrapeTask(
     tasks: List<ScrapeTask>,

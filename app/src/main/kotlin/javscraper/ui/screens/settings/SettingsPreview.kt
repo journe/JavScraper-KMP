@@ -2,6 +2,7 @@ package javscraper.ui.screens.settings
 
 import androidx.compose.runtime.Composable
 import javscraper.i18n.LocalTranslations
+import javscraper.auth.JavdbLoginState
 import javscraper.i18n.TranslationZh
 import javscraper.models.SiteCategory
 import javscraper.models.SiteInfo
@@ -46,6 +47,8 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     ),
     enabledSiteIds = listOf("javbus", "javdb"),
     siteMirrorUrls = mapOf("javbus" to "https://www.dmmsee.casa"),
+    javdbSessionCookie = "",
+    javdbLoginState = JavdbLoginState(),
     language = "zh",
     showRestartHint = false,
     folderLayers = listOf("{num}", "{title}"),
@@ -78,6 +81,9 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onFileLoggingChange = {},
     onToggleSite = { _, _ -> },
     onSiteMirrorChange = { _, _ -> },
+    onJavdbSessionCookieChange = {},
+    onStartJavdbLogin = {},
+    onCancelJavdbLogin = {},
     onReset = {},
     onFolderLayerChange = { _, _ -> },
     onAddLayer = {},

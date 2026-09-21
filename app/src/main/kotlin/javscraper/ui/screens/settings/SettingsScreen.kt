@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
+import javscraper.auth.JavdbLoginState
 import javscraper.i18n.TranslationEn
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
@@ -39,6 +40,8 @@ data class SettingsState(
     val sites: List<SiteInfo>,
     val enabledSiteIds: List<String>,
     val siteMirrorUrls: Map<String, String>,
+    val javdbSessionCookie: String,
+    val javdbLoginState: JavdbLoginState,
     val language: String,
     val showRestartHint: Boolean,
     val folderLayers: List<String>,
@@ -70,6 +73,9 @@ data class SettingsActions(
     val onFileLoggingChange: (Boolean) -> Unit,
     val onToggleSite: (String, Boolean) -> Unit,
     val onSiteMirrorChange: (String, String) -> Unit,
+    val onJavdbSessionCookieChange: (String) -> Unit,
+    val onStartJavdbLogin: () -> Unit,
+    val onCancelJavdbLogin: () -> Unit,
     val onReset: () -> Unit,
     val onFolderLayerChange: (Int, String) -> Unit,
     val onAddLayer: () -> Unit,

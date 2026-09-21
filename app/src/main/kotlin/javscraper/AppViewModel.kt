@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javscraper.controllers.NetworkPreviewController
+import javscraper.auth.JavdbLoginController
+import javscraper.auth.JavdbLoginState
 import javscraper.i18n.TranslationEn
 import javscraper.io.FileScanner
 import javscraper.io.logging.AppLogController
@@ -22,6 +24,7 @@ import javscraper.ui.screens.NetworkPreviewState
 import javscraper.ui.screens.ScrapeProgressActions
 import javscraper.ui.screens.ScrapeProgressState
 import javscraper.ui.screens.ScrapeTask
+import javscraper.ui.screens.sameFolderSiblings
 import javscraper.ui.screens.settings.SettingsActions
 import javscraper.ui.screens.settings.SettingsState
 import javscraper.ui.screens.upsertScrapeTask
@@ -53,11 +56,13 @@ class AppViewModel(
     private val batchScrape = BatchScrapeController(scope, { settings.strings }, { worker.orch }, { status = it })
     private val singleScrape = SingleScrapeController(scope, { worker.orch }, { outputDir }, { updateMode })
     private val networkPreview = NetworkPreviewController()
+    private val javdbLoginController = JavdbLoginController(scope)
 
     init {
         appLog.setFileLoggingEnabled(settings.fileLoggingEnabled)
         settings.onFileLoggingChanged = { enabled -> appLog.setFileLoggingEnabled(enabled) }
         settings.onScrapeSettingsChanged = { worker.rebuildOrchestrator() }
+        settings.onWorkerSettingsChanged = { worker.restartIfRunning() }
         settings.onStatusChange = { status = it }
         worker.onStatusChange = { status = it }
         singleScrape.onPreviewCandidates = { candidates -> networkPreview.add(candidates) }
@@ -110,6 +115,8 @@ class AppViewModel(
     var showRestartHint by settings::showRestartHint
     var enabledSites by settings::enabledSites
     var siteMirrorUrls by settings::siteMirrorUrls
+    var javdbSessionCookie by settings::javdbSessionCookie
+    var javdbLoginState by mutableStateOf(JavdbLoginState())
     var fileLoggingEnabled by settings::fileLoggingEnabled
     var scanRecursive by settings::scanRecursive
     var createMovieFolders by settings::createMovieFolders
@@ -126,6 +133,12 @@ class AppViewModel(
     var maxFilenameLength by settings::maxFilenameLength
     var suffixKeywords by settings::suffixKeywords
     var requestTimeoutMs by settings::requestTimeoutMs
+
+    init {
+        scope.launch {
+            javdbLoginController.state.collect { javdbLoginState = it }
+        }
+    }
 
     // --- Worker state (delegated to WorkerController) ---
     var sites by worker::sites
@@ -160,6 +173,7 @@ class AppViewModel(
         get() = appLog.logFilePath.toString()
 
     fun dispose() {
+        javdbLoginController.cancel()
         worker.dispose()
         appLog.dispose()
     }
@@ -189,6 +203,13 @@ class AppViewModel(
     fun updateFileLogging(v: Boolean) = settings.updateFileLogging(v)
     fun toggleSite(id: String, enabled: Boolean) = settings.toggleSite(id, enabled)
     fun updateSiteMirror(siteId: String, url: String) = settings.updateSiteMirror(siteId, url)
+    fun updateJavdbSessionCookie(value: String) = settings.updateJavdbSessionCookie(value)
+    fun startJavdbLogin() {
+        val site = sites.firstOrNull { it.id == "javdb" } ?: return
+        val baseUrl = siteMirrorUrls["javdb"]?.takeIf { it.isNotBlank() } ?: site.baseUrl
+        javdbLoginController.start(baseUrl, ::updateJavdbSessionCookie)
+    }
+    fun cancelJavdbLogin() = javdbLoginController.cancel()
     fun resetSettings() = settings.resetSettings()
     fun updateFolderLayer(index: Int, value: String) = settings.updateFolderLayer(index, value)
     fun addLayer() = settings.addLayer()
@@ -273,7 +294,7 @@ class AppViewModel(
 
     fun updateSingleScrapeNumber(value: String) = singleScrape.updateSingleScrapeNumber(value)
     fun updateSingleScrapeSite(value: String?) = singleScrape.updateSingleScrapeSite(value)
-    fun openSingleScrape(file: ScannedFile) = singleScrape.openSingleScrape(file)
+    fun openSingleScrape(file: ScannedFile) = singleScrape.openSingleScrapeGroup(sameFolderSiblings(file, scannedFiles))
     fun openSingleScrapeFromTask(task: ScrapeTask) =
         singleScrape.openSingleScrapeFromTask(task, scannedFiles)
 
@@ -356,6 +377,8 @@ class AppViewModel(
             sites,
             enabledSites,
             siteMirrorUrls,
+            javdbSessionCookie,
+            javdbLoginState,
             currentLanguage,
             showRestartHint,
             folderLayers,
@@ -386,6 +409,9 @@ class AppViewModel(
         ::updateFileLogging,
         ::toggleSite,
         ::updateSiteMirror,
+        ::updateJavdbSessionCookie,
+        ::startJavdbLogin,
+        ::cancelJavdbLogin,
         ::resetSettings,
         ::updateFolderLayer,
         ::addLayer,

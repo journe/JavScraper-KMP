@@ -28,6 +28,7 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
     val t = LocalTranslations.current
     var mirrorDialogVisible by remember { mutableStateOf(false) }
     var checkDialogVisible by remember { mutableStateOf(false) }
+    var javdbCookieDialogVisible by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text(t.commonScraperSites, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
@@ -51,6 +52,17 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
                 Icon(Icons.Default.Edit, null)
                 Spacer(Modifier.width(8.dp))
                 Text(t.settingsMirrorUrls)
+            }
+        }
+        if (state.sites.any { it.id == "javdb" }) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { javdbCookieDialogVisible = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Edit, null)
+                Spacer(Modifier.width(8.dp))
+                Text(t.settingsJavdbCookie)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -112,6 +124,23 @@ fun ScrapingSettingsTab(state: SettingsState, actions: SettingsActions) {
                 TextButton(onClick = { mirrorDialogVisible = false }) {
                     Text(t.settingsTestSitesClose)
                 }
+            }
+        )
+    }
+
+    if (javdbCookieDialogVisible) {
+        JavdbCookieDialog(
+            configuredCookie = state.javdbSessionCookie,
+            loginState = state.javdbLoginState,
+            onSave = { cookie ->
+                actions.onJavdbSessionCookieChange(cookie)
+                javdbCookieDialogVisible = false
+            },
+            onStartLogin = actions.onStartJavdbLogin,
+            onCancelLogin = actions.onCancelJavdbLogin,
+            onDismiss = {
+                if (state.javdbLoginState.running) actions.onCancelJavdbLogin()
+                javdbCookieDialogVisible = false
             }
         )
     }

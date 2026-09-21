@@ -187,6 +187,43 @@ class ScrapeOrchestratorTest {
     }
 
     @Test
+    fun `writeToDisk keeps cd label and subtitle version in mixed group`() {
+        val sourceDir = createTempDirectory("javscraper-mixed-source").toFile()
+        val output = createTempDirectory("javscraper-mixed-output").toFile()
+        val names = listOf(
+            "FC2-3259498-C.mp4",
+            "[FC2-3259498] 「お金いらないです..もう帰りたい…」大人気アイドルグループに所属して-cd1.mp4"
+        )
+        val files = names.map { name ->
+            sourceDir.resolve(name).apply { writeText(name) }
+        }
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = true,
+                moveInsteadOfCopy = true,
+                downloadImages = false,
+                folderLayers = listOf("{num} {title}"),
+                filenameFormat = "{num} {title}"
+            )),
+        )
+
+        runTest {
+            val result = orchestrator.writeToDisk(
+                files.map { ScannedFile(it.absolutePath, it.name, "FC2-3259498") },
+                Video(number = "FC2-3259498", title = "Test")
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            assertEquals("C", result.data?.version)
+            val folder = output.resolve("FC2-3259498")
+            assertTrue(folder.resolve("FC2-3259498 - part1-C.mp4").isFile)
+            assertTrue(folder.resolve("FC2-3259498 - cd1.mp4").isFile)
+        }
+    }
+
+    @Test
     fun `writeToDisk moves source video to output`() {
         val sourceDir = createTempDirectory("javscraper-move-source").toFile()
         val outputDir = createTempDirectory("javscraper-move-output").toFile()

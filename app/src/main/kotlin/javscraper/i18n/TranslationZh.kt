@@ -22,7 +22,6 @@ class TranslationZh : TranslationEn() {
     override val navScrape: String = "刮削"
     override val navGallery: String = "图库"
     override val navNetworkPreview: String = "网络"
-
     override val scanTitle: String = "文件扫描"
     override val scanButtonScanning: String = "扫描中..."
     override val scanButtonScan: String = "扫描视频"
@@ -61,8 +60,6 @@ class TranslationZh : TranslationEn() {
         "保存元数据失败：$message"
 
     override fun galleryCount(n: Int): String = "$n 部影片已刮削"
-
-
     override val networkPreviewTitle: String = "网络结果"
     override val networkPreviewClear: String = "清空"
     override val networkPreviewEmptyHint: String = "暂无网络结果"
@@ -94,6 +91,15 @@ class TranslationZh : TranslationEn() {
     override val settingsMirrorCustom: String = "自定义镜像"
     override val settingsMirrorInvalid: String = "请输入有效的 http(s) 地址"
     override val settingsMirrorReset: String = "恢复默认"
+    override val settingsJavdbCookie: String = "JavDB Cookie"
+    override val settingsJavdbSessionCookie: String = "_jdb_session 值"
+    override val settingsJavdbCookieInvalid: String = "请输入不含空格的 Cookie 值"
+    override val settingsJavdbLogin: String = "登录 JavDB"
+    override val settingsJavdbLoginWaitingBrowser: String = "正在启动浏览器..."
+    override val settingsJavdbLoginWaiting: String = "等待登录..."
+    override val settingsJavdbLoginSaving: String = "正在保存登录..."
+    override val settingsJavdbLoginSuccess: String = "登录已保存"
+    override val settingsJavdbLoginFailed: String = "JavDB 登录失败"
     override val settingsTestSites: String = "测试站点"
     override val settingsTestSitesTitle: String = "站点连通性测试"
     override val settingsTestSitesRunning: String = "正在测试站点连接..."
@@ -121,7 +127,6 @@ class TranslationZh : TranslationEn() {
     override val settingsSuffixKeywordsHint: String = "逗号分隔，如 -cd1,-cd2,-4k"
     override val settingsRenameVariables: String = "可用变量：{num} {title} {actor} {actors} {maker} {label} {series} {director} {date} {year} {month} {day} {suffix}"
     override val settingsAdvanced: String = "高级选项"
-
 
     override val commonBrowse: String = "浏览"
     override val commonApplicationLogs: String = "应用日志"
@@ -200,7 +205,6 @@ class TranslationZh : TranslationEn() {
     override val workerSetupMessage: String = "无法启动 scraper-worker.exe，请选择正确的 worker 可执行文件路径。"
     override val workerSetupSelect: String = "选择文件..."
     override val workerSetupSelectTitle: String = "选择 scraper-worker.exe"
-
     override val commonConfirm: String = "确认"
 
     // --- Poster crop dialog ---

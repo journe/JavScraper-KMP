@@ -1,5 +1,6 @@
 """JavDB scraper using curl_cffi browser impersonation."""
 
+import os
 import locale
 import logging
 import sys
@@ -36,6 +37,14 @@ _warned = False
 _UNSET = object()
 _cainfo_override = _UNSET
 _ca_warned = False
+
+
+def _javdb_session_cookie() -> str:
+    value = os.environ.get("JAVDB_SESSION", "").strip()
+    prefix = "_jdb_session="
+    if value.lower().startswith(prefix):
+        return value[len(prefix):].strip()
+    return value
 
 
 def _cainfo_override_bytes():
@@ -92,6 +101,9 @@ class JavDBScraper(BaseScraper):
                 "Accept-Language": "zh-TW,zh;q=0.9,ja;q=0.8,en;q=0.7",
             }
         )
+        session_cookie = _javdb_session_cookie()
+        if session_cookie:
+            self._session.cookies.set("_jdb_session", session_cookie)
 
     def _get_html(self, url: str) -> Optional[str]:
         global _warned

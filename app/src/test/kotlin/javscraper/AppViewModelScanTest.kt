@@ -52,4 +52,36 @@ class AppViewModelScanTest {
         assertEquals(listOf(first, second), viewModel.scannedFiles)
         assertEquals(2, viewModel.tasks.size)
     }
+
+    @Test
+    fun `openSingleScrape groups same-folder same-number siblings`() {
+        val scope = CoroutineScope(UnconfinedTestDispatcher())
+        val current = ScannedFile(
+            path = "D:/fc2/[FC2-4620098]/FC2-4620098-1.mp4",
+            fileName = "FC2-4620098-1.mp4",
+            number = "FC2-4620098",
+            isScraped = true
+        )
+        val sibling = ScannedFile(
+            path = "D:/fc2/[FC2-4620098]/FC2-4620098-2.mp4",
+            fileName = "FC2-4620098-2.mp4",
+            number = "FC2-4620098"
+        )
+        val viewModel = AppViewModel(
+            scope = scope,
+            scanDirectoryFlow = { _, _ -> flow { emit(listOf(current, sibling)) } }
+        )
+
+        viewModel.startScan()
+        runBlocking {
+            withTimeout(1_000) {
+                while (viewModel.scanning || viewModel.scannedFiles.isEmpty()) delay(1)
+            }
+        }
+
+        viewModel.openSingleScrape(current)
+
+        assertEquals(2, viewModel.singleScrapeTask?.partCount)
+    }
+
 }
