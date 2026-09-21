@@ -211,6 +211,9 @@ class TranslationZh : TranslationEn() {
     override fun cropSourceSize(w: Int, h: Int): String = "原图：$w × $h"
     override fun cropOutputSize(w: Int, h: Int): String = "输出：$w × $h"
     override fun cropAspectRatio(aspect: Float): String = "高/宽:" + String.format("%.2f", aspect)
+    override val cropUseOriginal: String = "使用原图"
+    override val cropUseCropped: String = "使用裁切"
+    override val cropPosterNotFound: String = "当前目录未找到海报图。"
 
     // --- Poster watermark ---
     override val cropWatermarkSectionTitle: String = "水印"

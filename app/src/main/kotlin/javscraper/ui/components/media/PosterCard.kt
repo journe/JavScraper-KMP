@@ -34,6 +34,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
+import javscraper.io.MediaArtPaths
 import javscraper.models.Video
 import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.theme.JavScraperTheme
@@ -170,12 +171,11 @@ private fun PosterCardPreview() {
 }
 
 
-private val posterFileNames = listOf("poster.jpg", "poster.png")
-
 internal fun localPosterPath(video: Video): String {
     val directory = File(video.path).parentFile ?: return ""
-    val candidates = posterFileNames.map(directory::resolve)
-    return (candidates.firstOrNull(File::isFile) ?: candidates.first()).path
+    val baseName = MediaArtPaths.videoBaseName(File(video.path).name)
+    return MediaArtPaths.findPoster(directory.toPath(), baseName)?.toString()
+        ?: directory.resolve("poster.jpg").path
 }
 
 internal fun localPosterModel(video: Video): File? =
@@ -183,12 +183,10 @@ internal fun localPosterModel(video: Video): File? =
         ?.let(::File)
         ?.takeIf(File::isFile)
 
-private val fanartFileNames = listOf("fanart.jpg", "fanart.png")
-
 internal fun localFanartPath(video: Video): String {
     val directory = File(video.path).parentFile ?: return ""
-    val candidates = fanartFileNames.map(directory::resolve)
-    return candidates.firstOrNull(File::isFile)?.path ?: ""
+    val baseName = MediaArtPaths.videoBaseName(File(video.path).name)
+    return MediaArtPaths.findFanart(directory.toPath(), baseName)?.toString() ?: ""
 }
 
 /** 详情页横版封面来源:取视频同目录的 fanart,缺省回退 poster(与裁剪源优先级一致)。 */
@@ -231,12 +229,11 @@ internal fun readImageDimensions(file: File): Pair<Int, Int>? {
     }
 }
 
-private val cropSourceFileNames = listOf("fanart.jpg", "fanart.png", "poster.jpg", "poster.png")
-
-/** 裁剪输入源:优先横版封面 fanart,缺省回退 poster(与刮削落盘约定一致)。 */
+/** 裁剪输入源:优先横版封面 fanart,缺省回退 poster(与刮削落盘约定一致);同名变体兼容在后。 */
 internal fun cropSourceModel(video: Video): File? {
     val directory = File(video.path).parentFile ?: return null
-    return cropSourceFileNames
-        .map(directory::resolve)
-        .firstOrNull(File::isFile)
+    val baseName = MediaArtPaths.videoBaseName(File(video.path).name)
+    val candidates = MediaArtPaths.fanartCandidates(directory.toPath(), baseName) +
+        MediaArtPaths.posterCandidates(directory.toPath(), baseName)
+    return candidates.firstOrNull { it.toFile().isFile }?.toFile()
 }

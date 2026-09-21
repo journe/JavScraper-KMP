@@ -153,7 +153,7 @@ private fun ReviewsOverlay(
     onToggle: () -> Unit
 ) {
     if (reviews.isEmpty()) return
-    val reviewsAnimationDuration = 100
+    val reviewsAnimationDuration = 240
 
     val revealProgress by animateFloatAsState(
         targetValue = if (expanded) 1f else 0f,

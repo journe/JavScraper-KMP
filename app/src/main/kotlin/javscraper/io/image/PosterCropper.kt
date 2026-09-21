@@ -18,8 +18,7 @@ import javax.imageio.stream.ImageOutputStream
  * pic_h_w_ratio 一致),横图上只允许水平平移,高图上只允许垂直平移。
  */
 object PosterCropper {
-//    private val log = KotlinLogging.logger {}
-    private val log =  mu.KotlinLogging.logger {}
+    private val log = KotlinLogging.logger {}
 
     /** 竖版海报默认高宽比(高/宽),对应 2:3 海报标准,与 mdcx 默认一致。 */
     const val POSTER_ASPECT = 1.5f
@@ -114,29 +113,12 @@ object PosterCropper {
         rect: Rect,
         watermark: WatermarkOptions? = null
     ): Boolean {
-        val startedAt = System.currentTimeMillis()
         log.info {
             "Poster crop start: source=${sourceFile.absolutePath}, sourceBytes=${sourceFile.length()}, " +
                 "destination=${destFile.absolutePath}, rect=$rect, " +
                 "watermarkMarks=${watermark?.marks?.size ?: 0}"
         }
-
-        val image = try {
-            val decoded = ImageIO.read(sourceFile)
-            if (decoded == null) {
-                log.warn {
-                    "Poster crop decode returned null: source=${sourceFile.absolutePath}, " +
-                        "sourceBytes=${sourceFile.length()}, readers=${imageReaderClasses(sourceFile)}"
-                }
-            }
-            decoded
-        } catch (e: Exception) {
-            log.warn(e) {
-                "Poster crop decode failed: source=${sourceFile.absolutePath}, " +
-                    "sourceBytes=${sourceFile.length()}, readers=${imageReaderClasses(sourceFile)}"
-            }
-            null
-        } ?: return false
+        val image = decodeImage(sourceFile) ?: return false
 
         log.info {
             "Poster crop decoded: source=${sourceFile.absolutePath}, size=${image.width}x${image.height}, " +
@@ -155,31 +137,92 @@ object PosterCropper {
         } finally {
             graphics.dispose()
         }
-        val output = if ((watermark != null) && watermark.marks.isNotEmpty()) {
-            WatermarkRenderer.render(cropped, watermark)
+        val output = applyWatermark(cropped, watermark)
+        return writeImageToFile(sourceFile, destFile, output, "crop")
+    }
+
+    /**
+     * 直接以整图（不裁剪）写入 [destFile]，可选叠加水印。
+     * 用于“使用原图”模式：把当前 poster 原图重新保存（可带水印），
+     * 与 [cropToFile] 共享同一套 JPEG/原子替换写盘逻辑。
+     */
+    fun writeFullImage(
+        sourceFile: File,
+        destFile: File,
+        watermark: WatermarkOptions? = null
+    ): Boolean {
+        log.info {
+            "Poster full-image write start: source=${sourceFile.absolutePath}, " +
+                "sourceBytes=${sourceFile.length()}, destination=${destFile.absolutePath}, " +
+                "watermarkMarks=${watermark?.marks?.size ?: 0}"
+        }
+        val image = decodeImage(sourceFile) ?: return false
+
+        log.info {
+            "Poster full-image decoded: source=${sourceFile.absolutePath}, " +
+                "size=${image.width}x${image.height}, type=${image.type}"
+        }
+        val output = applyWatermark(image, watermark)
+        return writeImageToFile(sourceFile, destFile, output, "full")
+    }
+
+    private fun decodeImage(sourceFile: File): BufferedImage? {
+        val image = try {
+            val decoded = ImageIO.read(sourceFile)
+            if (decoded == null) {
+                log.warn {
+                    "Poster decode returned null: source=${sourceFile.absolutePath}, " +
+                        "sourceBytes=${sourceFile.length()}, readers=${imageReaderClasses(sourceFile)}"
+                }
+            }
+            decoded
+        } catch (e: Exception) {
+            log.warn(e) {
+                "Poster decode failed: source=${sourceFile.absolutePath}, " +
+                    "sourceBytes=${sourceFile.length()}, readers=${imageReaderClasses(sourceFile)}"
+            }
+            null
+        }
+        return image
+    }
+
+    private fun applyWatermark(image: BufferedImage, watermark: WatermarkOptions?): BufferedImage =
+        if ((watermark != null) && watermark.marks.isNotEmpty()) {
+            WatermarkRenderer.render(image, watermark)
         } else {
-            cropped
+            image
         }
 
+    private fun writeImageToFile(
+        sourceFile: File,
+        destFile: File,
+        output: BufferedImage,
+        mode: String
+    ): Boolean {
+        val startedAt = System.currentTimeMillis()
+        log.info {
+            "Poster $mode write start: source=${sourceFile.absolutePath}, " +
+                "destination=${destFile.absolutePath}, output=${output.width}x${output.height}"
+        }
         val tempFile = File(destFile.parentFile, destFile.name + ".tmp.jpg")
         return try {
             val ok = writeJpeg(output, tempFile)
             if (!ok) {
                 log.warn {
-                    "Poster crop JPEG write failed: temp=${tempFile.absolutePath}, " +
+                    "Poster $mode JPEG write failed: temp=${tempFile.absolutePath}, " +
                         "outputSize=${output.width}x${output.height}"
                 }
                 tempFile.delete()
                 return false
             }
             log.info {
-                "Poster crop JPEG written: file=${tempFile.absolutePath}, bytes=${tempFile.length()}, " +
+                "Poster $mode JPEG written: file=${tempFile.absolutePath}, bytes=${tempFile.length()}, " +
                     "size=${output.width}x${output.height}"
             }
 
             if (destFile.exists() && !destFile.delete()) {
                 log.warn {
-                    "Poster crop destination delete failed: destination=${destFile.absolutePath}, " +
+                    "Poster $mode destination delete failed: destination=${destFile.absolutePath}, " +
                         "destinationBytes=${destFile.length()}"
                 }
                 tempFile.delete()
@@ -187,14 +230,14 @@ object PosterCropper {
             }
             Files.move(tempFile.toPath(), destFile.toPath())
             log.info {
-                "Poster crop completed: destination=${destFile.absolutePath}, bytes=${destFile.length()}, " +
+                "Poster $mode completed: destination=${destFile.absolutePath}, bytes=${destFile.length()}, " +
                     "elapsedMs=${System.currentTimeMillis() - startedAt}"
             }
             true
         } catch (e: Exception) {
             log.warn(e) {
-                "Poster crop failed: source=${sourceFile.absolutePath}, destination=${destFile.absolutePath}, " +
-                    "temp=${tempFile.absolutePath}"
+                "Poster $mode failed: source=${sourceFile.absolutePath}, " +
+                    "destination=${destFile.absolutePath}, temp=${tempFile.absolutePath}"
             }
             tempFile.delete()
             false

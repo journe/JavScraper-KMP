@@ -5,12 +5,57 @@ import javscraper.io.metadata.SecureDocumentBuilderFactory
 import javscraper.models.Video
 import javscraper.models.VideoUpdateField
 import org.xml.sax.InputSource
+import org.xml.sax.SAXParseException
 import java.io.StringReader
 import java.nio.file.Files
 import java.nio.file.Path
 
+/** Thrown when an existing NFO file cannot be parsed; carries the offending line for quick diagnosis. */
+class InvalidNfoException(
+    val nfoPath: String,
+    override val cause: Throwable,
+) : Exception(buildMessage(nfoPath, cause), cause) {
+    companion object {
+        private const val MAX_LINE_LENGTH = 200
+
+        private fun buildMessage(path: String, cause: Throwable): String {
+            val detail = if (cause is SAXParseException && cause.lineNumber > 0) {
+                "line ${cause.lineNumber}, column ${cause.columnNumber}: ${cause.message}"
+            } else {
+                cause.message.orEmpty()
+            }
+            return "Existing NFO is not valid XML: $path ($detail)${offendingLine(path, cause)}"
+        }
+
+        private fun offendingLine(path: String, cause: Throwable): String {
+            if (cause !is SAXParseException || cause.lineNumber <= 0) return ""
+            val line = runCatching {
+                Files.readAllLines(Path.of(path)).getOrNull(cause.lineNumber - 1)
+            }.getOrNull() ?: return ""
+            val truncated = if (line.length > MAX_LINE_LENGTH) line.take(MAX_LINE_LENGTH) + "..." else line
+            return " | offending line: $truncated"
+        }
+    }
+}
+
 /** Updates existing NFO fields with targeted text patches instead of re-serializing the document. */
 object NfoUpdater {
+    // 7mmtv 官方模板使用以数字开头的元素名（如 <7mmtvid>），对 XML 规范非法，
+    // 严格解析器会将其当作文本中的裸 "<" 报错。该标签内容与 <website> 重复，统一剥离。
+    private val illegalMmtvElement = Regex("(?m)^.*</\\d[\\w.-]*>.*\\R?")
+
+    private fun sanitize(original: String): String = illegalMmtvElement.replace(original, "")
+
+    /** Strictly parses the NFO at [path]; throws [InvalidNfoException] with location context on failure. */
+    fun validate(path: Path) {
+        val original = sanitize(Files.readString(path))
+        try {
+            SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
+        } catch (e: SAXParseException) {
+            throw InvalidNfoException(path.toString(), e)
+        }
+    }
+
     fun update(
         path: Path,
         video: Video,
@@ -19,8 +64,12 @@ object NfoUpdater {
         mergeTags: Boolean = false,
         enabledFields: Set<VideoUpdateField>? = null
     ): Boolean {
-        val original = Files.readString(path)
-        SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
+        val original = sanitize(Files.readString(path))
+        try {
+            SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
+        } catch (e: SAXParseException) {
+            throw InvalidNfoException(path.toString(), e)
+        }
         val patcher = TargetedNfoPatcher(original, insertMissingFields)
         writeFields(patcher, video, lockData, mergeTags, enabledFields)
         val afterStandardFields = patcher.apply()
@@ -141,7 +190,9 @@ private class TargetedNfoPatcher(
             removeLines(listOf(fanart))
             return
         }
-        synchronizeLeaf("thumb", (spans("thumb", "fanart") + spans("thumb")).sortedBy { it.start }, images)
+        // 仅同步 fanart 内部的 <thumb>；根级 <thumb>（海报元素）由 setOrRemove("thumb", poster) 单独维护，
+        // 若混入同一批补丁会对同一段文本产生重叠补丁导致坐标失效、闭合标记损坏。
+        synchronizeLeaf("thumb", spans("thumb", "fanart"), images)
     }
 
     fun setActors(actresses: List<String>) {

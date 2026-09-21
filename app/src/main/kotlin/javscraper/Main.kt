@@ -11,7 +11,7 @@ import java.awt.Dimension
 import javax.imageio.ImageIO
 
 fun main() = application {
-    val windowState = remember { WindowState(size = DpSize(1200.dp, 800.dp)) }
+    val windowState = remember { WindowState(size = DpSize(1280.dp, 800.dp)) }
     Window(
         onCloseRequest = ::exitApplication,
         state = windowState,

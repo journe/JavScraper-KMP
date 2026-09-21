@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from scrapers.openaver.censored.javdb import JavDBScraper
+from scrapers.openaver.mixed.javdb import JavDBScraper
 
 
 SEARCH_HTML = """

@@ -113,6 +113,40 @@ class PosterCardTest {
         }
     }
     @Test
+    fun `local poster model accepts same-name variant`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val poster = directory.resolve("FC2-3264420-poster.jpg")
+        try {
+            Files.createFile(poster)
+            val video = Video(
+                number = "FC2-3264420",
+                path = directory.resolve("FC2-3264420.mp4").toString()
+            )
+
+            assertEquals(poster.toFile(), localPosterModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
+    fun `local fanart model accepts same-name variant`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val fanart = directory.resolve("FC2-3264420-fanart.jpg")
+        try {
+            Files.createFile(fanart)
+            val video = Video(
+                number = "FC2-3264420",
+                path = directory.resolve("FC2-3264420.mp4").toString()
+            )
+
+            assertEquals(fanart.toFile(), localFanartModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
     fun `local poster path is resolved beside the video`() {
         val path = localPosterPath(Video(number = "ABP-123", path = "D:/videos/ABP-123.mp4"))
 

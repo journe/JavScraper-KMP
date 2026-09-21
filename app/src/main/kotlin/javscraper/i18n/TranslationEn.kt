@@ -222,6 +222,9 @@ open class TranslationEn {
     open fun cropSourceSize(w: Int, h: Int): String = "Source: $w x $h"
     open fun cropOutputSize(w: Int, h: Int): String = "Output: $w x $h"
     open fun cropAspectRatio(aspect: Float): String = "Aspect ratio (H/W): " + String.format("%.2f", aspect)
+    open val cropUseOriginal: String = "Use original image"
+    open val cropUseCropped: String = "Use cropped image"
+    open val cropPosterNotFound: String = "No poster image found in this folder."
 
     // --- Poster watermark ---
     open val cropWatermarkSectionTitle: String = "Watermark"

@@ -137,6 +137,10 @@ internal fun CropCanvas(
     }
 }
 
+/**
+ * 预览缩略图:按 [rectState] 指定的源图区域(原图模式传整图矩形即等价于原图预览)
+ * 撑满卡片绘制,并叠加水印层。卡片高度固定,宽度按 [aspect](高/宽)自适应。
+ */
 @Composable
 internal fun PreviewThumbnail(
     bitmap: ImageBitmap,

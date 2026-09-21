@@ -75,17 +75,25 @@ class ScrapeOrchestrator(
         if (files.isEmpty())
             return ScrapeResult(false, error = ScrapeError(-1, "No files"))
         val updateRequested = options.updateMode && allowUpdateMode
-        if (options.outputDir.isBlank() && !updateRequested)
-            return ScrapeResult(false, error = ScrapeError(-1, "Output directory is empty"))
-
         val outputVideo = video.withFileVersion(files)
         val ioErrors = mutableListOf<String>()
         val updateResult = if (updateRequested) updateModeWriter.prepare(files, outputVideo) else null
         if (updateResult is UpdateModeResult.Failed) {
             return ScrapeResult(false, error = ScrapeError(-20, updateResult.errors.joinToString("; ")))
         }
+        // 更新模式但旧文件夹无 NFO（从未刮削过）：不算失败，回退标准写盘流程，
+        // 但基准目录改为扫描目录，输出仍在库内而非设置中的输出目录。
+        // 视频可能直接位于扫描目录根部（sourceFolder == scanDir），此时基准必须是扫描目录本身，
+        // 不能取 sourceFolder.parent（那是盘符根，会把目标写到库外）。
+        val fallbackScanBase = (updateResult as? UpdateModeResult.NoExistingNfo)?.sourceFolder?.let { folder ->
+            val configuredScanDir = options.scanDir.takeIf { it.isNotBlank() }
+                ?.let { Path.of(it).toAbsolutePath().normalize() }
+            resolveUpdateModeScanBase(folder, configuredScanDir)
+        }
+        if (options.outputDir.isBlank() && fallbackScanBase == null && !updateRequested)
+            return ScrapeResult(false, error = ScrapeError(-1, "Output directory is empty"))
         val updateReady = updateResult as? UpdateModeResult.Ready
-        val writePlan = if (updateReady == null) resolveWritePlan(files, video) else null
+        val writePlan = if (updateReady == null) resolveWritePlan(files, video, fallbackScanBase) else null
         val targetFolder = updateReady?.folder ?: writePlan!!.folder
 
         try {
@@ -111,7 +119,7 @@ class ScrapeOrchestrator(
                 )
             }
         } catch (e: Exception) {
-            log.error(e) { "NFO failed" }
+            log.error(e) { "NFO failed for ${updateReady?.nfoPath ?: writePlan?.let { targetFolder.resolve(it.nfoBase + ".nfo") }}" }
             ioErrors += "NFO failed: ${e.message}"
         }
         var mhtmlPath: Path? = null
@@ -126,6 +134,7 @@ class ScrapeOrchestrator(
         }
         if (options.downloadImages && updateReady != null) {
             // 更新模式：fanart（封面本体）与 poster（副本，可能被用户编辑过）分开处理。
+            // 图片均为通用名或同名变体（<视频基准名>-fanart.jpg 等），以 prepare 探测到的实际路径为准。
             val fanartReusable = updateReady.fanartReusable
             val posterPresent = updateReady.posterPresent
             when {
@@ -133,8 +142,10 @@ class ScrapeOrchestrator(
                 fanartReusable && posterPresent -> Unit
                 // fanart 在、poster 缺：本地补副本，不覆盖已有内容，失败仅告警。
                 fanartReusable -> try {
-                    val fanart = targetFolder.resolve("fanart.jpg")
-                    val poster = targetFolder.resolve("poster.jpg")
+                    val fanart = updateReady.fanartPath
+                        ?: targetFolder.resolve("fanart.jpg")
+                    val poster = updateReady.posterPath
+                        ?: targetFolder.resolve("poster.jpg")
                     if (!Files.exists(poster)) Files.copy(fanart, poster)
                 } catch (e: Exception) {
                     log.warn(e) { "Poster copy failed" }
@@ -261,9 +272,13 @@ class ScrapeOrchestrator(
         return "$safeNumber-$safeSite.mhtml"
     }
 
-    private fun resolveWritePlan(files: List<ScannedFile>, video: Video): FileWritePlan {
+    private fun resolveWritePlan(
+        files: List<ScannedFile>,
+        video: Video,
+        fallbackBase: Path? = null
+    ): FileWritePlan {
         if (files.size == 1) {
-            val paths = resolveOutputPaths(files.first(), video)
+            val paths = resolveOutputPaths(files.first(), video, fallbackBase)
             return FileWritePlan(
                 folder = paths.folder,
                 nfoBase = paths.nfoBase,
@@ -289,7 +304,7 @@ class ScrapeOrchestrator(
         val layers = RenameFormatter.formatFolder(video, options.folderLayers, "")
         val baseName = RenameFormatter.sanitize(video.number).ifBlank { "UNKNOWN" }
 
-        val base = Path.of(options.outputDir)
+        val base = fallbackBase ?: Path.of(options.outputDir)
         val parentLayers = if (options.createMovieFolders && layers.size > 1) {
             layers.dropLast(1)
         } else {
@@ -357,11 +372,12 @@ class ScrapeOrchestrator(
     private fun isPartLabel(value: String): Boolean =
         value.replace(" ", "").matches(partLabelRegex)
 
-    private fun resolveOutputPaths(sf: ScannedFile, video: Video): OutputPaths {
+    private fun resolveOutputPaths(sf: ScannedFile, video: Video, fallbackBase: Path? = null): OutputPaths {
         val ext = sf.fileName.substringAfterLast('.')
-        if (options.outputDir.isBlank()) return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName), sf.fileName.substringBeforeLast("."))
+        if (options.outputDir.isBlank() && fallbackBase == null)
+            return OutputPaths(Path.of(""), sf.fileName, Path.of(sf.fileName), sf.fileName.substringBeforeLast("."))
 
-        val base = Path.of(options.outputDir)
+        val base = fallbackBase ?: Path.of(options.outputDir)
         if (!options.createMovieFolders) return OutputPaths(base, sf.fileName, base.resolve(sf.fileName), sf.fileName.substringBeforeLast("."))
 
         val suffix = RenameFormatter.detectSuffix(sf.fileName, options.suffixKeywords)

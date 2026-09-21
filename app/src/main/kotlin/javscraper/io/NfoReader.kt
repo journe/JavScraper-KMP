@@ -15,11 +15,14 @@ object NfoReader {
     private val log = KotlinLogging.logger {}
     private val bareAmpersand = Regex("&(?!amp;|lt;|gt;|quot;|apos;|#)")
     private val xmlDeclaration = Regex("<\\?xml[^>]*\\?+>")
+    // 7mmtv 官方模板使用以数字开头的元素名（如 <7mmtvid>），对 XML 非法；读取时直接剥离。
+    private val illegalDigitElement = Regex("(?m)^.*</\\d[\\w.-]*>.*\\R?")
 
     fun read(path: Path): Video? {
         if (!Files.isRegularFile(path)) return null
         return try {
-            val content = keepFirstXmlDeclaration(Files.readString(path).removePrefix("\uFEFF"))
+            val raw = Files.readString(path).removePrefix("\uFEFF")
+            val content = keepFirstXmlDeclaration(illegalDigitElement.replace(raw, ""))
             val safeContent = bareAmpersand.replace(content, "&amp;")
             val document = newDocumentBuilder().parse(InputSource(StringReader(safeContent)))
             val javdbExtra = JavdbExtraNfo.read(document)

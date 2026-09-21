@@ -168,8 +168,39 @@ class VideoMetadataEditorTest {
 
             assertIs<VideoMetadataEditResult.Failed>(result)
             assertTrue(Files.exists(videoPath))
+            assertTrue(Files.exists(oldFolder), "invalid NFO must fail before any folder move")
             assertFalse(Files.exists(scanDirectory.resolve("[ABC-002] New title")))
             assertEquals(invalidNfo, Files.readString(nfoPath))
+        } finally {
+            Files.walk(scanDirectory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
+    fun `update rejects nfo with bare markup in text before moving folder`() {
+        val scanDirectory = Files.createTempDirectory("javscraper-metadata-invalid-text")
+        try {
+            val oldFolder = scanDirectory.resolve("[ABC-001] Old title")
+            Files.createDirectory(oldFolder)
+            val videoPath = oldFolder.resolve("ABC-001.mp4")
+            val nfoPath = oldFolder.resolve("ABC-001.nfo")
+            val invalidNfo = "<movie><num>ABC-001</num><tag>年龄 <18 禁止观看</tag></movie>"
+            Files.writeString(videoPath, "video")
+            Files.writeString(nfoPath, invalidNfo)
+
+            val result = VideoMetadataEditor.update(
+                video = Video(number = "ABC-002", title = "New title", path = videoPath.toString()),
+                lockData = false,
+                folderLayers = listOf("[{num}] {title}"),
+                scanDir = scanDirectory.toString()
+            )
+
+            val failed = assertIs<VideoMetadataEditResult.Failed>(result)
+            assertTrue(failed.message.contains("ABC-001.nfo"), failed.message)
+            assertTrue(failed.message.contains("年龄 <18 禁止观看"), failed.message)
+            assertTrue(Files.exists(oldFolder), "folder must stay in place on invalid NFO")
+            assertEquals(invalidNfo, Files.readString(nfoPath))
+            assertFalse(Files.exists(scanDirectory.resolve("[ABC-002] New title")))
         } finally {
             Files.walk(scanDirectory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
         }

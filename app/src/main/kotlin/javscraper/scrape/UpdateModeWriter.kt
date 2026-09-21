@@ -1,11 +1,22 @@
 package javscraper.scrape
 
+import javscraper.io.InvalidNfoException
+import javscraper.io.MediaArtPaths
+import javscraper.io.NfoUpdater
 import javscraper.io.RenameFormatter
 import javscraper.models.ScannedFile
 import javscraper.models.Video
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
+
+/** 更新模式基准目录：源文件夹位于配置的扫描目录内时取扫描目录；否则退回源文件夹父目录。
+ *  源文件夹可能与扫描目录相同（视频直接放在扫描根下），此时返回扫描目录本身，
+ *  绝不能取其 parent（那是盘符根，会把目标解析到库外）。 */
+internal fun resolveUpdateModeScanBase(sourceFolder: Path, configuredScanDir: Path?): Path {
+    if (configuredScanDir != null && sourceFolder.startsWith(configuredScanDir)) return configuredScanDir
+    return sourceFolder.parent ?: sourceFolder
+}
 
 /** Moves an already-scraped movie folder and exposes assets reused by update mode. */
 internal class UpdateModeWriter(private val options: ScrapeOptions) {
@@ -22,11 +33,22 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
             }
 
             val nfo = findNfo(sourceFolder, sourcePaths)
-                ?: return UpdateModeResult.Failed(listOf("Update mode requires an existing NFO file"))
+                ?: return UpdateModeResult.NoExistingNfo(sourceFolder)
+            // 旧 NFO 无法解析时，在任何文件夹移动/写盘之前失败，保持用户输入态。
+            try {
+                NfoUpdater.validate(nfo)
+            } catch (e: InvalidNfoException) {
+                return UpdateModeResult.Failed(listOf(e.message.orEmpty()))
+            }
             // fanart 是封面本体，poster 是副本（用户可能手动裁剪/编辑过），分开判断：
             // fanart 缺失时重新下载封面；poster 缺失时本地补副本，不覆盖已编辑的 poster。
-            val fanartReusable = Files.isRegularFile(sourceFolder.resolve("fanart.jpg"))
-            val posterPresent = Files.isRegularFile(sourceFolder.resolve("poster.jpg"))
+            // 两类图片均同时接受通用名（fanart.jpg/poster.jpg）与同名变体（<视频基准名>-fanart.jpg 等）。
+            // 基准名取首个视频文件名去扩展名；多文件时各视频基准名不同，但旧库通常一套图共用通用名或首片名。
+            val artBaseName = MediaArtPaths.videoBaseName(sourcePaths.first().fileName.toString())
+            val fanartPath = MediaArtPaths.findFanart(sourceFolder, artBaseName)
+            val posterPath = MediaArtPaths.findPoster(sourceFolder, artBaseName)
+            val fanartReusable = fanartPath != null
+            val posterPresent = posterPath != null
             val previewsReusable = hasPreviewImages(sourceFolder)
             val target = resolveTargetFolder(sourceFolder, files, video)
             if (target == sourceFolder) {
@@ -34,6 +56,8 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                     folder = sourceFolder,
                     files = files,
                     nfoPath = nfo,
+                    fanartPath = fanartPath,
+                    posterPath = posterPath,
                     fanartReusable = fanartReusable,
                     posterPresent = posterPresent,
                     previewsReusable = previewsReusable
@@ -50,6 +74,8 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                     file.copy(path = target.resolve(sourcePaths[index].fileName).toString())
                 },
                 nfoPath = target.resolve(nfo.fileName),
+                fanartPath = fanartPath?.let { target.resolve(it.fileName) },
+                posterPath = posterPath?.let { target.resolve(it.fileName) },
                 fanartReusable = fanartReusable,
                 posterPresent = posterPresent,
                 previewsReusable = previewsReusable
@@ -67,12 +93,8 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
         if (!options.createMovieFolders) return sourceFolder
         val configuredScanDir = options.scanDir.takeIf { it.isNotBlank() }
             ?.let { Path.of(it).toAbsolutePath().normalize() }
-        val scanBase = when {
-            configuredScanDir == null -> sourceFolder.parent ?: return sourceFolder
-            configuredScanDir == sourceFolder -> return sourceFolder
-            sourceFolder.startsWith(configuredScanDir) -> configuredScanDir
-            else -> sourceFolder.parent ?: return sourceFolder
-        }
+        if (configuredScanDir == sourceFolder) return sourceFolder
+        val scanBase = resolveUpdateModeScanBase(sourceFolder, configuredScanDir)
         if (files.size > 1) {
             val layers = RenameFormatter.formatFolder(video, options.folderLayers, "")
             val parent = layers.dropLast(1).fold(scanBase) { path, layer -> path.resolve(layer) }
@@ -128,13 +150,20 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
 }
 
 internal sealed interface UpdateModeResult {
+    /** 旧文件夹中找不到 NFO（视频从未刮削过）：不算失败，调用方回退标准写盘流程，基准为扫描目录。 */
+    data class NoExistingNfo(val sourceFolder: Path) : UpdateModeResult
+
     data class Ready(
         val folder: Path,
         val files: List<ScannedFile>,
         val nfoPath: Path,
+        /** 已存在的 fanart 路径（可能是同名变体命名）；无则 null。 */
+        val fanartPath: Path?,
+        /** 已存在的 poster 路径（可能是同名变体命名，也可能是用户编辑版）；无则 null。 */
+        val posterPath: Path?,
         /** fanart（封面本体）已存在，可跳过封面下载。 */
         val fanartReusable: Boolean,
-        /** poster.jpg 是否已存在（可能是用户编辑过的版本，不应被覆盖）。 */
+        /** poster 是否已存在（可能是用户编辑过的版本，不应被覆盖）。 */
         val posterPresent: Boolean,
         val previewsReusable: Boolean
     ) : UpdateModeResult

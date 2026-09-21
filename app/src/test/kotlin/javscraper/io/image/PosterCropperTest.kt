@@ -325,6 +325,69 @@ class PosterCropperTest {
         }
     }
 
+    // --- writeFullImage ---
+
+    @Test
+    fun `write full image saves original poster without cropping`() {
+        val dir = Files.createTempDirectory("javscraper-full-")
+        try {
+            // 600x1200 竖图:若被裁剪,输出尺寸必然不等于原图
+            val poster = writeTestImage(dir.resolve("poster.jpg").toFile(), 600, 1200)
+
+            val ok = PosterCropper.writeFullImage(poster, poster)
+
+            assertTrue(ok, "full-image write should succeed")
+            val result = assertNotNull(ImageIO.read(poster))
+            assertEquals(600, result.width)
+            assertEquals(1200, result.height)
+            assertFalse(File(dir.toFile(), "poster.jpg.tmp.jpg").isFile, "temp file should be cleaned")
+        } finally {
+            cleanup(dir)
+        }
+    }
+
+    @Test
+    fun `write full image applies watermark to original poster`() {
+        val dir = Files.createTempDirectory("javscraper-full-")
+        try {
+            val poster = writeTestImage(dir.resolve("poster.jpg").toFile(), 600, 900)
+            val options = WatermarkOptions(listOf(WatermarkMark.HD_4K), size = 5)
+
+            val ok = PosterCropper.writeFullImage(poster, poster, options)
+
+            assertTrue(ok, "watermarked full-image write should succeed")
+            val result = assertNotNull(ImageIO.read(poster))
+            assertEquals(600, result.width)
+            val placement = WatermarkRenderer.layout(options, 600, 900).first().rect
+            val hasMarkPixel = (placement.x until placement.x + placement.width).step(2).any { x ->
+                (placement.y until placement.y + placement.height).step(2).any { y ->
+                    result.getRGB(x, y) != Color.BLACK.rgb
+                }
+            }
+            assertTrue(hasMarkPixel, "watermark pixels should be drawn on the original poster")
+        } finally {
+            cleanup(dir)
+        }
+    }
+
+    @Test
+    fun `write full image preserves existing poster on invalid source`() {
+        val dir = Files.createTempDirectory("javscraper-full-")
+        try {
+            val source = dir.resolve("not-an-image.jpg").toFile()
+            source.writeBytes(byteArrayOf(1, 2, 3))
+            val dest = writeTestImage(dir.resolve("poster.jpg").toFile(), 10, 10)
+            val before = dest.readBytes()
+
+            val ok = PosterCropper.writeFullImage(source, dest)
+
+            assertFalse(ok, "full-image write should fail on unreadable source")
+            assertTrue(dest.readBytes().contentEquals(before), "existing poster must stay intact")
+        } finally {
+            cleanup(dir)
+        }
+    }
+
     // --- helpers (appended) ---
     // --- helpers ---
 

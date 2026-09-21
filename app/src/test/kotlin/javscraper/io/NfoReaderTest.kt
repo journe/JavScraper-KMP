@@ -11,6 +11,30 @@ import kotlin.test.assertTrue
 
 class NfoReaderTest {
     @Test
+    fun `read ignores illegal digit-leading 7mmtvid element`() {
+        val nfo = Files.createTempFile("javscraper-nfo-mmtv", ".nfo")
+        try {
+            Files.writeString(
+                nfo,
+                """
+                <movie>
+                    <title>MMTV Title</title>
+                    <id>FC2-1967256</id>
+                    <7mmtvid>https://7mmtv.sx/zh/uncensored_content/32216/fc2-ppv-1967256.html</7mmtvid>
+                </movie>
+                """.trimIndent()
+            )
+
+            val video = NfoReader.read(nfo)
+
+            assertEquals("FC2-1967256", video?.number)
+            assertEquals("MMTV Title", video?.title)
+        } finally {
+            Files.deleteIfExists(nfo)
+        }
+    }
+
+    @Test
     fun `read parses compatible fields and aliases`() {
         val nfo = Files.createTempFile("javscraper-nfo-", ".nfo")
         try {

@@ -1,6 +1,7 @@
 package javscraper.io.metadata
 
 import javscraper.io.FileScanner
+import javscraper.io.InvalidNfoException
 import javscraper.io.NfoReader
 import javscraper.io.NfoUpdater
 import javscraper.models.Video
@@ -35,6 +36,12 @@ object VideoMetadataEditor {
 
         return try {
             originalNfo = Files.readString(nfoPath)
+            // 旧 NFO 非法时在移动文件夹前直接失败，避免先 move 再回滚。
+            try {
+                NfoUpdater.validate(nfoPath)
+            } catch (e: InvalidNfoException) {
+                return VideoMetadataEditResult.Failed(e.message.orEmpty())
+            }
             val move = MetadataFolderRenamer.plan(video, videoPath, nfoPath, folderLayers, scanDir)
                 .also { plannedMove = it }
             if (move.shouldMove) {

@@ -20,6 +20,7 @@ def test_list_sites():
     assert categories["javbus"] == "censored"
     assert categories["fc2"] == "uncensored"
     assert categories["mmtv"] == "mixed"
+    assert categories["javdb"] == "mixed"
     assert categories["madouqu"] == "domestic"
     assert categories["mdtv"] == "domestic"
     assert categories["hdouban"] == "domestic"

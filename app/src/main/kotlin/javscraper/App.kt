@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -121,6 +123,14 @@ fun App() {
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(end = 4.dp)
                             )
+                            if (viewModel.updateMode) {
+                                IconButton(onClick = { }) {
+                                    Icon(
+                                        Icons.Default.Upload,
+                                        contentDescription = t.settingsUpdateMode
+                                    )
+                                }
+                            }
                             IconButton(onClick = { logsVisible = true }) {
                                 Icon(
                                     Icons.Default.Description,

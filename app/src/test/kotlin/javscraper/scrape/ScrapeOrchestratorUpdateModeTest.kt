@@ -17,6 +17,135 @@ import kotlinx.coroutines.test.runTest
 
 class ScrapeOrchestratorUpdateModeTest {
     @Test
+    fun `update mode reuses same-name fanart and poster variants without download`() = runTest {
+        val scanDir = createTempDirectory("javscraper-update-variant").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("FC2-3264420.mp4")
+        source.writeText("video")
+        oldFolder.resolve("FC2-3264420.nfo").writeText(
+            "<movie><title>Old</title><num>FC2-3264420</num></movie>"
+        )
+        // 同名变体命名，而非通用 fanart.jpg/poster.jpg
+        oldFolder.resolve("FC2-3264420-fanart.jpg").writeText("old-fanart")
+        oldFolder.resolve("FC2-3264420-poster.jpg").writeText("old-poster")
+        val requests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/cover.jpg") { exchange ->
+            requests.incrementAndGet()
+            val content = "downloaded-cover".toByteArray()
+            exchange.sendResponseHeaders(200, content.size.toLong())
+            exchange.responseBody.use { it.write(content) }
+        }
+        server.start()
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = true,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}")
+                )
+            )
+        )
+
+        try {
+            val result = orchestrator.writeSingleScrapeToDisk(
+                listOf(ScannedFile(source.absolutePath, source.name, "FC2-3264420")),
+                Video(
+                    number = "FC2-3264420",
+                    title = "New Title",
+                    coverUrl = "http://127.0.0.1:${server.address.port}/cover.jpg"
+                )
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val newFolder = scanDir.resolve("FC2-3264420 New Title")
+            assertEquals("old-fanart", newFolder.resolve("FC2-3264420-fanart.jpg").readText())
+            assertEquals("old-poster", newFolder.resolve("FC2-3264420-poster.jpg").readText())
+            assertEquals(0, requests.get())
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `update mode without nfo falls back to standard write in scan dir`() = runTest {
+        val scanDir = createTempDirectory("javscraper-update-no-nfo").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("OLD-001.mp4")
+        source.writeText("video")
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = false,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}"),
+                    filenameFormat = "{num} {title}"
+                )
+            )
+        )
+
+        val result = orchestrator.writeSingleScrapeToDisk(
+            listOf(ScannedFile(source.absolutePath, source.name, "NEW-001")),
+            Video(number = "NEW-001", title = "New Title")
+        )
+
+        assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+        // 标准写盘流程：目标目录基于扫描目录，视频重命名并移动，NFO 全新生成
+        val newFolder = scanDir.resolve("NEW-001 New Title")
+        assertTrue(newFolder.resolve("NEW-001 New Title.mp4").isFile)
+        assertTrue(newFolder.resolve("NEW-001 New Title.nfo").isFile)
+        assertFalse(oldFolder.resolve("OLD-001.mp4").exists())
+        // 旧文件夹已空则被清掉；否则允许残留空目录之外无视频文件
+        assertTrue(
+            !oldFolder.exists() ||
+                oldFolder.listFiles().orEmpty().none { it.isFile }
+        )
+        assertEquals(newFolder.resolve("NEW-001 New Title.mp4").absolutePath, result.data?.path)
+    }
+
+    @Test
+    fun `update mode without nfo writes into scan dir root when source file is directly inside`() = runTest {
+        // 复现用户场景：扫描目录 H:\fc2，视频直接放在扫描目录根部（无子文件夹、无 NFO）。
+        // 回退基准必须取设置的扫描目录本身，而不是源文件夹的父目录（那会是盘符根）。
+        val scanDir = createTempDirectory("javscraper-update-no-nfo-root").toFile()
+        val source = scanDir.resolve("FC2-1234567.mp4")
+        source.writeText("video")
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = false,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}"),
+                    filenameFormat = "{num} {title}"
+                )
+            )
+        )
+
+        val result = orchestrator.writeSingleScrapeToDisk(
+            listOf(ScannedFile(source.absolutePath, source.name, "FC2-1234567")),
+            Video(number = "FC2-1234567", title = "New Title")
+        )
+
+        assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+        val newFolder = scanDir.resolve("FC2-1234567 New Title")
+        assertTrue(newFolder.resolve("FC2-1234567 New Title.mp4").isFile)
+        assertTrue(newFolder.resolve("FC2-1234567 New Title.nfo").isFile)
+        assertFalse(source.exists())
+        assertEquals(newFolder.resolve("FC2-1234567 New Title.mp4").absolutePath, result.data?.path)
+    }
+
+    @Test
     fun `update mode moves the whole folder and reuses existing artwork`() = runTest {
         val output = createTempDirectory("javscraper-update-output").toFile()
         val oldFolder = output.resolve("OLD-001")
@@ -428,6 +557,52 @@ class ScrapeOrchestratorUpdateModeTest {
         assertTrue(nfo.contains("<genre>Old genre</genre>"))
         assertTrue(nfo.contains("<tag>Old tag</tag>"))
         assertTrue(nfo.contains("<name>Old actor</name>"))
+    }
+
+    @Test
+    fun `update mode rejects invalid nfo before moving the folder`() = runTest {
+        val scanDir = createTempDirectory("javscraper-update-invalid").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("OLD-001.mp4")
+        source.writeText("video")
+        // 模拟用户遇到的场景：文本节点含裸 "<"（第 5 行）
+        oldFolder.resolve("OLD-001.nfo").writeText(
+            """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <movie>
+                  <title>Old Title</title>
+                  <tag>年龄 <18 禁止观看</tag>
+                </movie>
+            """.trimIndent()
+        )
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = false,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}")
+                )
+            )
+        )
+
+        val result = orchestrator.writeSingleScrapeToDisk(
+            listOf(ScannedFile(source.absolutePath, source.name, "NEW-001")),
+            Video(number = "NEW-001", title = "New Title")
+        )
+
+        assertFalse(result.success)
+        val message = result.error?.message.orEmpty()
+        assertTrue(message.contains("OLD-001.nfo"), message)
+        assertTrue(message.contains("line 4"), message)
+        assertTrue(message.contains("年龄 <18 禁止观看"), message)
+        // 失败发生在移动之前：源文件夹原封不动，目标目录不存在
+        assertTrue(oldFolder.resolve(source.name).isFile)
+        assertTrue(oldFolder.resolve("OLD-001.nfo").isFile)
+        assertFalse(scanDir.resolve("NEW-001 New Title").exists())
     }
 
     @Test

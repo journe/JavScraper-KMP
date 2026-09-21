@@ -175,7 +175,7 @@ def _extract_webpage_images(
 
 
 from scrapers.openaver.censored import javbus  # noqa: F401
-from scrapers.openaver.censored import javdb  # noqa: F401
+from scrapers.openaver.mixed import javdb  # noqa: F401
 from scrapers.openaver.censored import jav321  # noqa: F401
 from scrapers.openaver.uncensored import fc2  # noqa: F401
 from scrapers.openaver.uncensored import fc2_mirror  # noqa: F401

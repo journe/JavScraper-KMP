@@ -41,7 +41,7 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
             "https://www.javbus.com",
             listOf("https://www.dmmsee.casa", "https://www.buscdn.casa")
         ),
-        SiteInfo("javdb", "JavDB", SiteCategory.CENSORED),
+        SiteInfo("javdb", "JavDB", SiteCategory.MIXED),
         SiteInfo("dmm", "DMM", SiteCategory.CENSORED)
     ),
     enabledSiteIds = listOf("javbus", "javdb"),
