@@ -38,7 +38,10 @@ internal fun previewVideoWithAllFields(): Video = Video(
         "标签asd",
         "标签zzz"
     ),
-    rankings = listOf(Ranking(rank = 212, listName = "JavDB 2022年度TOP250")),
+    rankings = listOf(
+        Ranking(rank = 212, listName = "JavDB 2022年度TOP250"),
+        Ranking(rank = 12, listName = "JavDB 2025年度TOP250")
+    ),
     reviews = listOf(
         Review(
             id = "93142913",

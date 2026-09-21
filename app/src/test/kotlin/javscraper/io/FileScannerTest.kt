@@ -89,6 +89,19 @@ class FileScannerTest {
     }
 
     @Test
+    fun `extractNumber site prefix separated by at sign`() {
+        assertEquals(
+            "ACME-003",
+            FileScanner.extractNumber("hdd600.com@ACME-003_UNCENSORED_LEAKED_NOWATERMARK.mp4")
+        )
+    }
+
+    @Test
+    fun `extractNumber digit prefixed studio code`() {
+        assertEquals("476MLA-192", FileScanner.extractNumber("476MLA-192.mp4"))
+    }
+
+    @Test
     fun `extractNumber with brackets around site prefix`() {
         assertEquals("", FileScanner.extractNumber("[FC2]1234567.mp4"))
     }

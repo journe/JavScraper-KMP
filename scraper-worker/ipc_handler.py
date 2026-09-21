@@ -162,6 +162,7 @@ def _extract_webpage_images(
     cover_url: str = "",
     poster_url: str = "",
     sample_images: list[str] | None = None,
+    write_poster: bool = True,
 ) -> dict:
     return extract_images(
         mhtml_path,
@@ -169,6 +170,7 @@ def _extract_webpage_images(
         cover_url=cover_url,
         poster_url=poster_url,
         sample_images=sample_images or [],
+        write_poster=write_poster,
     )
 
 

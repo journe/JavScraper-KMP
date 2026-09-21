@@ -28,7 +28,8 @@ private class RecordingWebpageArchiver(
     override suspend fun extractImages(
         mhtmlPath: Path,
         outputDir: Path,
-        video: Video
+        video: Video,
+        writePoster: Boolean
     ): WebpageImageResult {
         this.mhtmlPath = mhtmlPath
         this.outputDir = outputDir
@@ -208,6 +209,36 @@ fun `writeToDisk omits preview images when disabled`() = runTest {
     assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
     assertEquals(emptyList(), archiver.video?.sampleImages)
     assertFalse(output.resolve("extrafanart").exists())
+}
+
+@Test
+fun `writeToDisk treats preview download failure as non-fatal`() = runTest {
+    val output = createTempDirectory("javscraper-preview-fail").toFile()
+    val source = output.resolve("ABC-005.mp4")
+    source.writeText("video")
+    val orchestrator = ScrapeOrchestrator(
+        sidecar = SidecarManager("unused-worker.exe"),
+        options = ScrapeOptions.from(
+            AppSettings(
+                outputDir = output.absolutePath,
+                createMovieFolders = false,
+                downloadImages = true,
+                downloadPreviewImages = true
+            )
+        )
+    )
+
+    val result = orchestrator.writeToDisk(
+        listOf(ScannedFile(source.absolutePath, source.name, "ABC-005")),
+        Video(
+            number = "ABC-005",
+            title = "Test",
+            sampleImages = listOf("http://127.0.0.1:1/sample.jpg")
+        )
+    )
+
+    assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+    assertFalse(output.resolve("extrafanart").resolve("fanart1.jpg").exists())
 }
 
 private fun startImageServer(): Pair<HttpServer, String> {

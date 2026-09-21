@@ -10,12 +10,14 @@ class SidecarWebpageArchiver(private val sidecar: SidecarManager) : WebpageArchi
     override suspend fun extractImages(
         mhtmlPath: Path,
         outputDir: Path,
-        video: Video
+        video: Video,
+        writePoster: Boolean
     ): WebpageImageResult = sidecar.extractWebpageImages(
         mhtmlPath = mhtmlPath.toString(),
         outputDir = outputDir.toString(),
         coverUrl = video.coverUrl,
         posterUrl = video.posterUrl,
-        sampleImages = video.sampleImages
+        sampleImages = video.sampleImages,
+        writePoster = writePoster
     )
 }

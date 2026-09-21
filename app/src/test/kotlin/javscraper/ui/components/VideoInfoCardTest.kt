@@ -2,6 +2,7 @@ package javscraper.ui.components
 
 import javscraper.i18n.TranslationEn
 import javscraper.models.Video
+import javscraper.ui.components.media.videoInfoRows
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

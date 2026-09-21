@@ -34,25 +34,31 @@ object FileScanner {
     // FC2 numbering commonly appears as FC2-123, FC2-PPV-123 or FC2-PPV 123.
     // The optional trailing group is a multi-file label, such as -2 or -4k.
     private val RX_FC2 = Regex(
-        """(?:^|[\s\-_\[\(.,])FC2(?:[-_ ]?PPV)?[-_ ]?(\d+)(?:[-_. ]+(.+))?(?=$|[\s\-_\[\]().,])""",
+        """(?:^|[\s\-_\[\(.,@])FC2(?:[-_ ]?PPV)?[-_ ]?(\d+)(?:[-_. ]+(.+))?(?=$|[\s\-_\[\]().,@])""",
         RegexOption.IGNORE_CASE
     )
 
     private val RX1 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])((?:$SPECIAL_ALTERNATION))(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,])",
+        "(?:^|[\\s\\-_\\[\\(.,@])((?:$SPECIAL_ALTERNATION))(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,@])",
         RegexOption.IGNORE_CASE
     )
 
     // Standard JAV: 2-6 letters, separator, 2-5 digits
     private val RX2 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])([A-Za-z]{2,6}[-–]\\d{2,5})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,])",
+        "(?:^|[\\s\\-_\\[\\(.,@])([A-Za-z]{2,6}[-–]\\d{2,5})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,@])",
         RegexOption.IGNORE_CASE
     )
 
     // Numeric codes: 6 digits, separator (dash/en-dash/underscore), 2-4 digits
     // Covers both 123456-789 and 011225_01 / 031226_001 formats
     private val RX3 = Regex(
-        "(?:^|[\\s\\-_\\[\\(.,])(\\d{6}[-–_]\\d{2,4})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,])"
+        "(?:^|[\\s\\-_\\[\\(.,@])(\\d{6}[-–_]\\d{2,4})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,@])"
+    )
+
+    // Digit-prefixed studio codes: 1-4 digits, 2-6 letters, separator, 2-5 digits (e.g. 476MLA-192)
+    private val RX4 = Regex(
+        "(?:^|[\\s\\-_\\[\\(.,@])(\\d{1,4}[A-Za-z]{2,6}[-–]\\d{2,5})(?:[-_. ]+(.+))?(?=$|[\\s\\-_\\[\\]().,@])",
+        RegexOption.IGNORE_CASE
     )
 
     private val EXCLUDE = setOf(
@@ -152,7 +158,7 @@ object FileScanner {
                 version = trailing.version
             )
         }
-        for (r in listOf(RX1, RX2, RX3)) {
+        for (r in listOf(RX1, RX2, RX3, RX4)) {
             val m = r.find(n)
             if (m != null) {
                 val trailing = parseTrailingTokens(m.groupValues[2])

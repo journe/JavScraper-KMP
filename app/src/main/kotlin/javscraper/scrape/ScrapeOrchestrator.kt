@@ -124,14 +124,43 @@ class ScrapeOrchestrator(
                 ioErrors += "Webpage failed: ${e.message}"
             }
         }
-        if (options.downloadImages) {
-            val downloadCoverArt = updateReady?.posterReusable != true
-            val downloadPreviews = options.downloadPreviewImages && updateReady?.previewsReusable != true
-            writeImages(targetFolder, outputVideo, mhtmlPath, ioErrors, downloadCoverArt, downloadPreviews)
+        if (options.downloadImages && updateReady != null) {
+            // 更新模式：fanart（封面本体）与 poster（副本，可能被用户编辑过）分开处理。
+            val fanartReusable = updateReady.fanartReusable
+            val posterPresent = updateReady.posterPresent
+            when {
+                // 两张都在：全部复用，不联网。
+                fanartReusable && posterPresent -> Unit
+                // fanart 在、poster 缺：本地补副本，不覆盖已有内容，失败仅告警。
+                fanartReusable -> try {
+                    val fanart = targetFolder.resolve("fanart.jpg")
+                    val poster = targetFolder.resolve("poster.jpg")
+                    if (!Files.exists(poster)) Files.copy(fanart, poster)
+                } catch (e: Exception) {
+                    log.warn(e) { "Poster copy failed" }
+                }
+                // fanart 缺、poster 在：只重新下载封面（fanart），不碰用户编辑过的 poster。
+                // 两者都缺：完整下载（fanart + poster）。
+                else -> writeCoverArt(
+                    targetFolder, outputVideo, mhtmlPath, ioErrors,
+                    writePoster = !posterPresent
+                )
+            }
+        } else if (options.downloadImages) {
+            writeCoverArt(targetFolder, outputVideo, mhtmlPath, ioErrors, writePoster = true)
         }
 
         if (writePlan != null) {
             writePlan.files.forEach { planned -> writeSourceFile(planned, ioErrors) }
+        }
+
+        // 预览图（extrafanart）属于补充资源：放在核心产物（目录/NFO/封面/视频落位）之后下载，
+        // 且失败不视为刮削失败，避免网络抖动拖住整次写盘。
+        val downloadPreviews = options.downloadImages &&
+            options.downloadPreviewImages &&
+            updateReady?.previewsReusable != true
+        if (downloadPreviews) {
+            writePreviewImages(targetFolder, outputVideo)
         }
 
         val resultPath = updateReady?.files?.firstOrNull()?.path
@@ -143,52 +172,50 @@ class ScrapeOrchestrator(
         }
     }
 
-    private suspend fun writeImages(
+    private suspend fun writeCoverArt(
         folder: Path,
         video: Video,
         mhtmlPath: Path?,
         ioErrors: MutableList<String>,
-        downloadCoverArt: Boolean,
-        downloadPreviewImages: Boolean
+        writePoster: Boolean
     ) {
         if (options.downloadWebPages) {
-            val path = mhtmlPath
-            if (downloadCoverArt && path != null) {
-                try {
-                    val imageResult = activeWebpageArchiver.extractImages(
-                        path,
-                        folder,
-                        video.copy(sampleImages = emptyList())
-                    )
-                    if (!imageResult.success) ioErrors += "Images failed: ${imageResult.message}"
-                } catch (e: Exception) {
-                    log.warn(e) { "Images failed" }
-                    ioErrors += "Images failed: ${e.message}"
-                }
-            }
-            if (downloadPreviewImages) {
-                try {
-                    ImageSaver.download(folder, sampleImages = video.sampleImages)
-                } catch (e: Exception) {
-                    log.warn(e) { "Preview images failed" }
-                    ioErrors += "Preview images failed: ${e.message}"
-                }
-            }
-        } else if (downloadCoverArt) {
+            val path = mhtmlPath ?: return
             try {
-                val previewImages = if (downloadPreviewImages) video.sampleImages else emptyList()
-                ImageSaver.download(folder, video.coverUrl, video.posterUrl, previewImages)
+                val imageResult = activeWebpageArchiver.extractImages(
+                    path,
+                    folder,
+                    video.copy(sampleImages = emptyList()),
+                    writePoster = writePoster
+                )
+                if (!imageResult.success) ioErrors += "Images failed: ${imageResult.message}"
             } catch (e: Exception) {
                 log.warn(e) { "Images failed" }
                 ioErrors += "Images failed: ${e.message}"
             }
-        } else if (downloadPreviewImages) {
+        } else {
             try {
-                ImageSaver.download(folder, sampleImages = video.sampleImages)
+                ImageSaver.download(
+                    folder,
+                    coverUrl = video.coverUrl,
+                    // poster 已存在（可能是用户编辑版）时不传独立海报地址，且禁止复制覆盖
+                    posterUrl = if (writePoster) video.posterUrl else "",
+                    copyPosterFromFanart = writePoster
+                )
             } catch (e: Exception) {
-                log.warn(e) { "Preview images failed" }
-                ioErrors += "Preview images failed: ${e.message}"
+                log.warn(e) { "Images failed" }
+                ioErrors += "Images failed: ${e.message}"
             }
+        }
+    }
+
+    /** 预览图（extrafanart）为尽力而为的补充资源：失败仅记录日志，不影响刮削结果。 */
+    private suspend fun writePreviewImages(folder: Path, video: Video) {
+        if (video.sampleImages.isEmpty()) return
+        try {
+            ImageSaver.download(folder, sampleImages = video.sampleImages)
+        } catch (e: Exception) {
+            log.warn(e) { "Preview images failed" }
         }
     }
 

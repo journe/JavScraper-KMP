@@ -7,7 +7,9 @@ interface WebpageArchiver {
     suspend fun extractImages(
         mhtmlPath: Path,
         outputDir: Path,
-        video: Video
+        video: Video,
+        /** 为 false 时不写 poster.jpg（保护更新模式下已存在的用户编辑版海报）。 */
+        writePoster: Boolean = true
     ): WebpageImageResult
 }
 

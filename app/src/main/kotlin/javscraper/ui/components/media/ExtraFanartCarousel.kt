@@ -136,7 +136,7 @@ fun ExtraFanartCarousel(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .maskClip(MaterialTheme.shapes.largeIncreased),
+                        .maskClip(MaterialTheme.shapes.medium),
                 )
             }
         }

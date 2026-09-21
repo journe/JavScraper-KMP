@@ -23,7 +23,10 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
 
             val nfo = findNfo(sourceFolder, sourcePaths)
                 ?: return UpdateModeResult.Failed(listOf("Update mode requires an existing NFO file"))
-            val posterReusable = hasReusablePoster(sourceFolder)
+            // fanart 是封面本体，poster 是副本（用户可能手动裁剪/编辑过），分开判断：
+            // fanart 缺失时重新下载封面；poster 缺失时本地补副本，不覆盖已编辑的 poster。
+            val fanartReusable = Files.isRegularFile(sourceFolder.resolve("fanart.jpg"))
+            val posterPresent = Files.isRegularFile(sourceFolder.resolve("poster.jpg"))
             val previewsReusable = hasPreviewImages(sourceFolder)
             val target = resolveTargetFolder(sourceFolder, files, video)
             if (target == sourceFolder) {
@@ -31,7 +34,8 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                     folder = sourceFolder,
                     files = files,
                     nfoPath = nfo,
-                    posterReusable = posterReusable,
+                    fanartReusable = fanartReusable,
+                    posterPresent = posterPresent,
                     previewsReusable = previewsReusable
                 )
             }
@@ -46,7 +50,8 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                     file.copy(path = target.resolve(sourcePaths[index].fileName).toString())
                 },
                 nfoPath = target.resolve(nfo.fileName),
-                posterReusable = posterReusable,
+                fanartReusable = fanartReusable,
+                posterPresent = posterPresent,
                 previewsReusable = previewsReusable
             )
         } catch (e: Exception) {
@@ -94,9 +99,6 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
         }.singleOrNull()
     }
 
-    private fun hasReusablePoster(folder: Path): Boolean =
-        Files.isRegularFile(folder.resolve("poster.jpg"))
-
     private fun hasPreviewImages(folder: Path): Boolean {
         val previews = folder.resolve("extrafanart")
         if (!Files.isDirectory(previews)) return false
@@ -130,7 +132,10 @@ internal sealed interface UpdateModeResult {
         val folder: Path,
         val files: List<ScannedFile>,
         val nfoPath: Path,
-        val posterReusable: Boolean,
+        /** fanart（封面本体）已存在，可跳过封面下载。 */
+        val fanartReusable: Boolean,
+        /** poster.jpg 是否已存在（可能是用户编辑过的版本，不应被覆盖）。 */
+        val posterPresent: Boolean,
         val previewsReusable: Boolean
     ) : UpdateModeResult
 

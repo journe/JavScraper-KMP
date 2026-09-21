@@ -288,7 +288,8 @@ class SidecarManager(
         outputDir: String,
         coverUrl: String = "",
         posterUrl: String = "",
-        sampleImages: List<String> = emptyList()
+        sampleImages: List<String> = emptyList(),
+        writePoster: Boolean = true
     ): WebpageImageResult {
         val params = buildJsonObject {
             put("mhtml_path", mhtmlPath)
@@ -296,6 +297,7 @@ class SidecarManager(
             put("cover_url", coverUrl)
             put("poster_url", posterUrl)
             put("sample_images", JsonArray(sampleImages.map(::JsonPrimitive)))
+            put("write_poster", writePoster)
         }
         return json.decodeFromJsonElement(sendRequest("extract_webpage_images", params))
     }

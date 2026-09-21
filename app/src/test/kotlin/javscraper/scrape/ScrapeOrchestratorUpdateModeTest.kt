@@ -258,8 +258,116 @@ class ScrapeOrchestratorUpdateModeTest {
 
             assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
             val newFolder = scanDir.resolve("NEW-001 New Title")
+            // fanart 缺失 → 重新下载封面（fanart）；poster 保持用户编辑版不被覆盖
             assertEquals("edited-poster", newFolder.resolve("poster.jpg").readText())
+            assertEquals("downloaded-cover", newFolder.resolve("fanart.jpg").readText())
+            assertEquals(1, requests.get())
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `update mode fills poster copy from fanart without network`() = runTest {
+        val scanDir = createTempDirectory("javscraper-update-poster-copy").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("OLD-001.mp4")
+        source.writeText("video")
+        oldFolder.resolve("OLD-001.nfo").writeText("<movie><title>Old</title><num>OLD-001</num></movie>")
+        // 只有 fanart（封面本体），poster 缺失
+        oldFolder.resolve("fanart.jpg").writeText("old-fanart")
+        val requests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/cover.jpg") { exchange ->
+            requests.incrementAndGet()
+            val content = "downloaded-cover".toByteArray()
+            exchange.sendResponseHeaders(200, content.size.toLong())
+            exchange.responseBody.use { it.write(content) }
+        }
+        server.start()
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = true,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}")
+                )
+            )
+        )
+
+        try {
+            val result = orchestrator.writeSingleScrapeToDisk(
+                listOf(ScannedFile(source.absolutePath, source.name, "NEW-001")),
+                Video(
+                    number = "NEW-001",
+                    title = "New Title",
+                    coverUrl = "http://127.0.0.1:${server.address.port}/cover.jpg"
+                )
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val newFolder = scanDir.resolve("NEW-001 New Title")
+            // fanart 复用（不联网），poster 由 fanart 本地补副本
+            assertEquals("old-fanart", newFolder.resolve("fanart.jpg").readText())
+            assertEquals("old-fanart", newFolder.resolve("poster.jpg").readText())
             assertEquals(0, requests.get())
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `update mode downloads only fanart when poster is user edited`() = runTest {
+        val scanDir = createTempDirectory("javscraper-update-fanart-only").toFile()
+        val oldFolder = scanDir.resolve("OLD-001")
+        oldFolder.mkdirs()
+        val source = oldFolder.resolve("OLD-001.mp4")
+        source.writeText("video")
+        oldFolder.resolve("OLD-001.nfo").writeText("<movie><title>Old</title><num>OLD-001</num></movie>")
+        // 只有用户编辑过的 poster，fanart 缺失
+        oldFolder.resolve("poster.jpg").writeText("edited-poster")
+        val requests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/cover.jpg") { exchange ->
+            requests.incrementAndGet()
+            val content = "downloaded-cover".toByteArray()
+            exchange.sendResponseHeaders(200, content.size.toLong())
+            exchange.responseBody.use { it.write(content) }
+        }
+        server.start()
+        val orchestrator = ScrapeOrchestrator(
+            sidecar = SidecarManager("unused-worker.exe"),
+            options = ScrapeOptions.from(
+                AppSettings(
+                    scanDir = scanDir.absolutePath,
+                    createMovieFolders = true,
+                    downloadImages = true,
+                    updateMode = true,
+                    folderLayers = listOf("{num} {title}")
+                )
+            )
+        )
+
+        try {
+            val result = orchestrator.writeSingleScrapeToDisk(
+                listOf(ScannedFile(source.absolutePath, source.name, "NEW-001")),
+                Video(
+                    number = "NEW-001",
+                    title = "New Title",
+                    coverUrl = "http://127.0.0.1:${server.address.port}/cover.jpg"
+                )
+            )
+
+            assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
+            val newFolder = scanDir.resolve("NEW-001 New Title")
+            // 只下载 fanart；poster 保持用户编辑版不被覆盖
+            assertEquals("downloaded-cover", newFolder.resolve("fanart.jpg").readText())
+            assertEquals("edited-poster", newFolder.resolve("poster.jpg").readText())
+            assertEquals(1, requests.get())
         } finally {
             server.stop(0)
         }

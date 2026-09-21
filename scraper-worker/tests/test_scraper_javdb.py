@@ -37,6 +37,7 @@ DETAIL_HTML = """
 </div>
 <div class="control ranking-tags">
   <a class="tags has-addons"><span class="tag is-dark">No.212</span><span>JavDB 2022年度TOP250</span></a>
+  <a class="tags has-addons"><span class="tag is-dark">No.7</span><span>JavDB 2024年度TOP250</span></a>
 </div>
 <div class="panel-block">
   <strong>類別:</strong>
@@ -132,7 +133,8 @@ def test_search_uses_mirror_and_parses_full_fields():
     assert video.watched_count == 1614
     assert video.rating_count == 2105
     assert [(item.rank, item.list_name) for item in video.rankings] == [
-        (212, "JavDB 2022年度TOP250")
+        (212, "JavDB 2022年度TOP250"),
+        (7, "JavDB 2024年度TOP250"),
     ]
     assert video.tags == ["戲劇", "巨乳"]
     assert [actress.name for actress in video.actresses] == ["つばさ舞"]

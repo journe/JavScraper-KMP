@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import javscraper.models.Video
-import javscraper.ui.components.VideoInfoCard
+import javscraper.ui.components.media.VideoInfoCard
 
 private val MIN_VIDEO_INFO_WIDTH = 160.dp
 private val MAX_VIDEO_INFO_WIDTH = 500.dp

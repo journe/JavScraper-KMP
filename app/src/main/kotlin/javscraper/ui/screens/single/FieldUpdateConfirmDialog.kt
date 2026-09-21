@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.models.SingleScrapeDialogState
-import javscraper.ui.components.VideoInfoCard
+import javscraper.ui.components.media.VideoInfoCard
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

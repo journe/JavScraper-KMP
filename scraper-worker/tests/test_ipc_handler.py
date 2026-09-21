@@ -226,6 +226,7 @@ def test_extract_webpage_images():
         cover_url="https://example.test/a.jpg",
         poster_url="https://example.test/b.jpg",
         sample_images=["https://example.test/c.jpg"],
+        write_poster=True,
     )
 
 def test_search_webpage_archive_timeout_returns_stage_error():

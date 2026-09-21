@@ -48,7 +48,7 @@ def parse_watch_counts(soup: BeautifulSoup) -> tuple[Optional[int], Optional[int
 
 def parse_rankings(soup: BeautifulSoup) -> list[Ranking]:
     rankings = []
-    for node in soup.select(".control.ranking-tags"):
+    for node in soup.select(".control.ranking-tags a.tags.has-addons"):
         text = re.sub(r"\s+", " ", node.get_text(" ", strip=True)).strip()
         match = re.match(r"^No\.\s*(\d+)\s+(.+)$", text, flags=re.IGNORECASE)
         if not match:

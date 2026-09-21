@@ -210,16 +210,24 @@ def extract_images(
     cover_url: str = "",
     poster_url: str = "",
     sample_images: Iterable[str] = (),
+    write_poster: bool = True,
 ) -> dict:
     output = Path(output_dir)
     errors: list[str] = []
     saved: dict[str, str | list[str]] = {}
     try:
         resources, root_url = _mhtml_resources(mhtml_path)
+        cover_norm = normalize_url(cover_url, root_url)
+        poster_norm = normalize_url(poster_url, root_url)
+        # 海报拥有独立地址时单独下载；否则复用封面（fanart）内容复制为 poster。
+        # write_poster=False 时不产生任何 poster.jpg（保护已存在的用户编辑版）。
+        poster_independent = bool(poster_norm) and poster_norm != cover_norm
+
         requests = [
-            ("poster", cover_url, output / "poster.jpg"),
-            ("fanart", poster_url, output / "fanart.jpg"),
+            ("fanart", cover_url, output / "fanart.jpg"),
         ]
+        if poster_independent and write_poster:
+            requests.append(("poster", poster_url, output / "poster.jpg"))
         for index, sample_url in enumerate(sample_images, start=1):
             requests.append((f"extrafanart{index}", sample_url, output / "extrafanart" / f"fanart{index}.jpg"))
 
@@ -232,13 +240,11 @@ def extract_images(
                 errors.append(f"{key}: {url} not found in MHTML")
                 continue
             _write_resource(content, target)
-            if key == "poster":
-                # 封面下载为 poster 后，复制同一份内容为 fanart（不做二次下载）。
-                # 与 Kotlin 侧 ImageSaver.download 的落盘规则保持一致；
-                # 正常刮削结果为每个影片目录得到内容相同的 poster.jpg + fanart.jpg。
-                fanart_target = output / "fanart.jpg"
-                _write_resource(content, fanart_target)
-                saved["fanart"] = str(fanart_target)
+            if key == "fanart" and not poster_independent and write_poster:
+                # 封面（cover）写为 fanart 后，复制同一份内容为 poster（不做二次下载）。
+                poster_target = output / "poster.jpg"
+                _write_resource(content, poster_target)
+                saved["poster"] = str(poster_target)
             if key.startswith("extrafanart"):
                 values = saved.setdefault("extrafanart", [])
                 if isinstance(values, list):

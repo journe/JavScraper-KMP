@@ -207,8 +207,8 @@ fun VideoDetailScreen(
         if (viewerImageIndex != null) lastViewedImageIndex = viewerImageIndex
         AnimatedVisibility(
             visible = viewerImageIndex != null,
-            enter = fadeIn(tween(220)),
-            exit = fadeOut(tween(220)),
+            enter = fadeIn(tween(120)),
+            exit = fadeOut(tween(120)),
         ) {
             val index = lastViewedImageIndex
             if (index != null && index < extraFanartImages.size) {
@@ -223,8 +223,8 @@ fun VideoDetailScreen(
         if (posterViewerState == PosterViewerState.VISIBLE) lastPosterImage = posterImage
         AnimatedVisibility(
             visibleState = posterViewerTransitionState,
-            enter = fadeIn(tween(220)),
-            exit = fadeOut(tween(220)),
+            enter = fadeIn(tween(120)),
+            exit = fadeOut(tween(120)),
         ) {
             val image = lastPosterImage
             if (image != null) {

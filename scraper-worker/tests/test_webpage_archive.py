@@ -106,12 +106,13 @@ def test_extract_images_writes_expected_files(tmp_path: Path):
         "fanart": str(output_dir / "fanart.jpg"),
         "extrafanart": [str(output_dir / "extrafanart" / "fanart1.jpg")],
     }
-    assert (output_dir / "poster.jpg").read_bytes() == IMAGE_BYTES
-    assert (output_dir / "fanart.jpg").read_bytes() == POSTER_BYTES
+    # 封面(cover) → fanart.jpg；海报(poster)独立地址 → poster.jpg
+    assert (output_dir / "fanart.jpg").read_bytes() == IMAGE_BYTES
+    assert (output_dir / "poster.jpg").read_bytes() == POSTER_BYTES
     assert (output_dir / "extrafanart" / "fanart1.jpg").read_bytes() == SAMPLE_BYTES
 
 
-def test_extract_images_copies_cover_as_fanart(tmp_path: Path):
+def test_extract_images_copies_cover_as_poster(tmp_path: Path):
     archive = build_mhtml(
         root=response_for(ROOT_URL, ROOT_HTML),
         related=[],
@@ -135,6 +136,30 @@ def test_extract_images_copies_cover_as_fanart(tmp_path: Path):
     assert (output_dir / "fanart.jpg").read_bytes() == IMAGE_BYTES
 
 
+def test_extract_images_skips_poster_when_disabled(tmp_path: Path):
+    archive = build_mhtml(
+        root=response_for(ROOT_URL, ROOT_HTML),
+        related=[],
+        fetch=lambda url: response_for(url, IMAGE_BYTES, "image/jpeg"),
+        extra_urls=[IMAGE_URL],
+    )
+    mhtml_path = tmp_path / "no-poster.mhtml"
+    mhtml_path.write_bytes(archive)
+    output_dir = tmp_path / "no-poster-output"
+
+    result = extract_images(
+        str(mhtml_path),
+        str(output_dir),
+        cover_url=IMAGE_URL,
+        write_poster=False,
+    )
+
+    assert result["success"] is True, result
+    assert "poster" not in result["saved"]
+    assert (output_dir / "fanart.jpg").read_bytes() == IMAGE_BYTES
+    assert not (output_dir / "poster.jpg").exists()
+
+
 def test_extract_images_reports_missing_requested_images(tmp_path: Path):
     archive = build_mhtml(
         root=response_for(ROOT_URL, b"<html></html>"),
@@ -148,7 +173,7 @@ def test_extract_images_reports_missing_requested_images(tmp_path: Path):
     result = extract_images(str(mhtml_path), str(tmp_path / "output"), poster_url=POSTER_URL)
 
     assert result["success"] is False
-    assert re.search(r"fanart:.*not found", result["message"])
+    assert re.search(r"poster:.*not found", result["message"])
 
 
 def test_extract_images_resolves_relative_urls_from_mhtml_root(tmp_path: Path):
