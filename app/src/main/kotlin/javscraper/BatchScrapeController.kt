@@ -25,13 +25,15 @@ class BatchScrapeController(
     var results by mutableStateOf<List<Video>>(emptyList())
 
     fun startAllScraping(sourceFiles: List<ScannedFile>) {
+        if (scraping) return
+        scraping = true
         scope.launch {
-            scraping = true
             var worker: ScrapeOrchestrator? = null
             try {
                 for (index in tasks.indices) {
                     if (!scraping) break
                     val task = tasks[index]
+                    if (task.status == ScrapeTaskStatus.SUCCESS) continue
                     tasks = tasks.toMutableList().also {
                         it[index] = task.copy(status = ScrapeTaskStatus.SCRAPING)
                     }
@@ -52,8 +54,9 @@ class BatchScrapeController(
                 }
             } catch (e: Exception) {
                 onError(strings().statusScrapeError(e.message ?: ""))
+            } finally {
+                scraping = false
             }
-            scraping = false
         }
     }
 

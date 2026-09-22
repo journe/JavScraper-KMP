@@ -10,6 +10,7 @@ import javscraper.settings.ScanDirectoryHistory
 import javscraper.settings.isValidSiteMirrorUrl
 import javscraper.settings.normalizeSiteMirrorUrl
 import javscraper.settings.SettingsManager
+import javscraper.settings.MultiPartSuffix
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,6 +50,7 @@ class SettingsController(private val scope: CoroutineScope) {
     var fileLoggingEnabled by mutableStateOf(SettingsManager.get().fileLoggingEnabled)
     var folderLayers by mutableStateOf(SettingsManager.get().folderLayers)
     var filenameFormat by mutableStateOf(SettingsManager.get().filenameFormat)
+    var multiPartSuffix by mutableStateOf(SettingsManager.get().multiPartSuffix)
     var maxTitleLength by mutableStateOf(SettingsManager.get().maxTitleLength)
     var maxFilenameLength by mutableStateOf(SettingsManager.get().maxFilenameLength)
     var suffixKeywords by mutableStateOf(SettingsManager.get().suffixKeywords)
@@ -243,6 +245,12 @@ class SettingsController(private val scope: CoroutineScope) {
         onScrapeSettingsChanged()
     }
 
+    fun updateMultiPartSuffix(v: MultiPartSuffix) {
+        multiPartSuffix = v
+        SettingsManager.update { it.copy(multiPartSuffix = v) }
+        onScrapeSettingsChanged()
+    }
+
     fun updateMaxTitleLength(v: Int) {
         maxTitleLength = v
         SettingsManager.update { it.copy(maxTitleLength = v) }
@@ -290,6 +298,7 @@ class SettingsController(private val scope: CoroutineScope) {
         currentLanguage = fresh.language
         folderLayers = fresh.folderLayers
         filenameFormat = fresh.filenameFormat
+        multiPartSuffix = fresh.multiPartSuffix
         maxTitleLength = fresh.maxTitleLength
         maxFilenameLength = fresh.maxFilenameLength
         suffixKeywords = fresh.suffixKeywords

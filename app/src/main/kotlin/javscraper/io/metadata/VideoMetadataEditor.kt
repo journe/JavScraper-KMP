@@ -5,6 +5,7 @@ import javscraper.io.InvalidNfoException
 import javscraper.io.NfoReader
 import javscraper.io.NfoUpdater
 import javscraper.models.Video
+import javscraper.settings.MultiPartSuffix
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -24,9 +25,11 @@ object VideoMetadataEditor {
         lockData: Boolean,
         folderLayers: List<String> = emptyList(),
         scanDir: String = "",
+        multiPartSuffix: MultiPartSuffix = MultiPartSuffix.CD,
         mergeTags: Boolean = false
     ): VideoMetadataEditResult {
         if (video.path.isBlank()) return VideoMetadataEditResult.NfoMissing
+        MultiPartMetadataEditor.update(video, lockData, folderLayers, scanDir, multiPartSuffix, mergeTags)?.let { return it }
         val videoPath = Paths.get(video.path).toAbsolutePath().normalize()
         val nfoPath = FileScanner.findMatchingNfo(videoPath)
             ?: return VideoMetadataEditResult.NfoMissing

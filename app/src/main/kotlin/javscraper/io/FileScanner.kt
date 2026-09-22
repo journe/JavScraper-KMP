@@ -1,6 +1,7 @@
 package javscraper.io
 
 import javscraper.models.ScannedFile
+import javscraper.settings.MultiPartSuffix
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -129,18 +130,29 @@ object FileScanner {
     }
 
     fun findMatchingNfo(video: Path): Path? {
+        val parent = video.parent
+        val movieNfo = parent?.resolve("movie.nfo")
+        if (movieNfo != null && Files.isRegularFile(movieNfo)) return movieNfo
+
         val videoName = video.fileName.toString()
         val nfoName = videoName.substringBeforeLast('.', videoName) + ".nfo"
         val nfo = video.resolveSibling(nfoName)
         if (Files.isRegularFile(nfo)) return nfo
 
-        val parent = video.parent ?: return null
-        val sharedNfo = parent.resolve(parent.fileName.toString() + ".nfo")
-        return sharedNfo.takeIf { Files.isRegularFile(it) }
+        val sharedNfo = parent?.resolve(parent.fileName.toString() + ".nfo")
+        return sharedNfo?.takeIf { Files.isRegularFile(it) }
     }
 
     fun isVideo(p: Path): Boolean =
         p.fileName.toString().substringAfterLast(".", "").lowercase() in VIDEO_EXTS
+
+    fun isMultiPartLabel(label: String): Boolean =
+        label.trim().matches(multiPartLabelRegex)
+
+    fun multiPartLabelNumber(label: String): Int? {
+        val groups = multiPartLabelNumberRegex.matchEntire(label.trim())?.groupValues ?: return null
+        return groups.drop(1).firstOrNull { it.isNotEmpty() }?.toIntOrNull()
+    }
 
     fun isSample(n: String): Boolean =
         EXCLUDE.any { n.lowercase().contains(it) }
@@ -217,5 +229,9 @@ object FileScanner {
         val version: String
     )
 }
+
+private val multiPartTypes = MultiPartSuffix.entries.joinToString("|") { it.value }
+private val multiPartLabelRegex = Regex("""(?i)^(?:$multiPartTypes)[ _.-]*[0-9]+$|^[1-9]$""")
+private val multiPartLabelNumberRegex = Regex("""(?i)^(?:$multiPartTypes)[ _.-]*([0-9]+)$|^([1-9])$""")
 
 private val trailingSeparatorRegex = Regex("""[-_.\s]+""")

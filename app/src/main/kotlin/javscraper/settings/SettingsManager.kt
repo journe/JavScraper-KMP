@@ -29,6 +29,7 @@ data class AppSettings(
     val maxTitleLength: Int = 50,
     val maxFilenameLength: Int = 60,
     val suffixKeywords: List<String> = listOf("-cd1", "-cd2", "-4k", "-uc"),
+    val multiPartSuffix: MultiPartSuffix = MultiPartSuffix.CD,
     /** 封面裁剪高宽比(高/宽),默认 1.5 = 2:3 海报标准,范围见 PosterCropper。 */
     val posterCropAspect: Float = 1.5f,
     /** 裁剪海报时是否添加水印,对齐 mdcx poster_mark 默认开启。 */

@@ -4,6 +4,9 @@ import javscraper.io.InvalidNfoException
 import javscraper.io.MediaArtPaths
 import javscraper.io.NfoUpdater
 import javscraper.io.RenameFormatter
+import javscraper.io.metadata.MultiPartRenamePlan
+import javscraper.io.metadata.MultiPartRenamePlanner
+import javscraper.scrape.update.UpdateModeSources
 import javscraper.models.ScannedFile
 import javscraper.models.Video
 import java.nio.file.Files
@@ -32,7 +35,7 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
                 return UpdateModeResult.Failed(listOf("Update mode source file is missing"))
             }
 
-            val nfo = findNfo(sourceFolder, sourcePaths)
+            val nfo = UpdateModeSources.findNfo(sourceFolder, sourcePaths)
                 ?: return UpdateModeResult.NoExistingNfo(sourceFolder)
             // 旧 NFO 无法解析时，在任何文件夹移动/写盘之前失败，保持用户输入态。
             try {
@@ -50,35 +53,46 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
             val fanartReusable = fanartPath != null
             val posterPresent = posterPath != null
             val previewsReusable = hasPreviewImages(sourceFolder)
-            val target = resolveTargetFolder(sourceFolder, files, video)
-            if (target == sourceFolder) {
-                return UpdateModeResult.Ready(
-                    folder = sourceFolder,
-                    files = files,
-                    nfoPath = nfo,
-                    fanartPath = fanartPath,
-                    posterPath = posterPath,
-                    fanartReusable = fanartReusable,
-                    posterPresent = posterPresent,
-                    previewsReusable = previewsReusable
-                )
+            val multiPartPlan = MultiPartRenamePlanner.plan(
+                video = video,
+                videoPath = sourcePaths.first(),
+                masterNfo = nfo,
+                folderLayers = options.folderLayers,
+                scanDir = options.scanDir,
+                multiPartSuffix = options.multiPartSuffix
+            )
+            val target = multiPartPlan?.targetFolder ?: resolveTargetFolder(sourceFolder, files, video)
+            if (multiPartPlan == null) {
+                if (target == sourceFolder) {
+                    return UpdateModeResult.Ready(
+                        folder = sourceFolder,
+                        files = files,
+                        nfoPath = nfo,
+                        fanartPath = fanartPath,
+                        posterPath = posterPath,
+                        fanartReusable = fanartReusable,
+                        posterPresent = posterPresent,
+                        previewsReusable = previewsReusable,
+                        isMultiPart = false
+                    )
+                }
+                if (target.startsWith(sourceFolder)) {
+                    return UpdateModeResult.Failed(listOf("Update mode target folder must not be inside the source folder"))
+                }
+                moveFolderContents(sourceFolder, target)
+            } else {
+                multiPartPlan.apply()
             }
-            if (target.startsWith(sourceFolder)) {
-                return UpdateModeResult.Failed(listOf("Update mode target folder must not be inside the source folder"))
-            }
-
-            moveFolderContents(sourceFolder, target)
-            UpdateModeResult.Ready(
+            return UpdateModeResult.Ready(
                 folder = target,
-                files = files.mapIndexed { index, file ->
-                    file.copy(path = target.resolve(sourcePaths[index].fileName).toString())
-                },
-                nfoPath = target.resolve(nfo.fileName),
-                fanartPath = fanartPath?.let { target.resolve(it.fileName) },
-                posterPath = posterPath?.let { target.resolve(it.fileName) },
+                files = movedScannedFiles(files, multiPartPlan, target),
+                nfoPath = multiPartPlan?.targetMasterNfo ?: target.resolve(nfo.fileName),
+                fanartPath = fanartPath?.let { movedArtPath(it, multiPartPlan, target) },
+                posterPath = posterPath?.let { movedArtPath(it, multiPartPlan, target) },
                 fanartReusable = fanartReusable,
                 posterPresent = posterPresent,
-                previewsReusable = previewsReusable
+                previewsReusable = previewsReusable,
+                isMultiPart = multiPartPlan != null
             )
         } catch (e: Exception) {
             UpdateModeResult.Failed(listOf("Update mode folder move failed: ${e.message}"))
@@ -107,18 +121,34 @@ internal class UpdateModeWriter(private val options: ScrapeOptions) {
             .fold(scanBase) { path, layer -> path.resolve(layer) }
     }
 
-    private fun findNfo(folder: Path, videos: List<Path>): Path? {
-        val explicit = (
-            videos.map { video ->
-                video.resolveSibling(video.fileName.toString().substringBeforeLast('.') + ".nfo")
-            } + folder.resolve(folder.fileName.toString() + ".nfo")
-            ).distinct()
-        explicit.firstOrNull { Files.isRegularFile(it) }?.let { return it }
+    private fun movedScannedFiles(
+        files: List<ScannedFile>,
+        plan: MultiPartRenamePlan?,
+        target: Path
+    ): List<ScannedFile> {
+        if (plan == null) {
+            return files.map { file ->
+                val sourcePath = Path.of(file.path).toAbsolutePath().normalize()
+                file.copy(path = target.resolve(sourcePath.fileName).toString())
+            }
+        }
+        val filesByName = files.associateBy { file ->
+            Path.of(file.path).toAbsolutePath().normalize().fileName
+        }
+        val movedFiles = plan.videoMoves.mapNotNull { move ->
+            filesByName[move.source.fileName]?.copy(path = move.target.toString())
+        }
+        require(movedFiles.size == files.size) { "Multi-part move did not cover all source files" }
+        return movedFiles
+    }
 
-        return Files.list(folder).use { stream ->
-            stream.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".nfo", ignoreCase = true) }
-                .toList()
-        }.singleOrNull()
+    private fun movedArtPath(
+        source: Path,
+        plan: MultiPartRenamePlan?,
+        target: Path
+    ): Path {
+        val moved = plan?.fileMoves?.firstOrNull { it.source.fileName == source.fileName }
+        return moved?.target ?: target.resolve(source.fileName)
     }
 
     private fun hasPreviewImages(folder: Path): Boolean {
@@ -155,6 +185,7 @@ internal sealed interface UpdateModeResult {
 
     data class Ready(
         val folder: Path,
+        val isMultiPart: Boolean,
         val files: List<ScannedFile>,
         val nfoPath: Path,
         /** 已存在的 fanart 路径（可能是同名变体命名）；无则 null。 */

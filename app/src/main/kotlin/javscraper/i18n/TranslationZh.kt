@@ -121,6 +121,7 @@ class TranslationZh : TranslationEn() {
     override val settingsAddLayer: String = "添加层级"
     override val settingsRemoveLayer: String = "删除"
     override val settingsFilenameFormat: String = "文件名格式"
+    override val settingsMultiPartSuffix: String = "多分段后缀"
     override val settingsMaxTitleLength: String = "标题最大长度"
     override val settingsMaxFilenameLength: String = "文件名最大长度"
     override val settingsSuffixKeywords: String = "版本后缀关键词"

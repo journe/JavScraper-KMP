@@ -6,6 +6,7 @@ import javscraper.auth.JavdbLoginState
 import javscraper.i18n.TranslationZh
 import javscraper.models.SiteCategory
 import javscraper.models.SiteInfo
+import javscraper.settings.MultiPartSuffix
 import javscraper.ui.theme.JavScraperTheme
 
 /** Wraps previews with app theme and Chinese translations. */
@@ -53,6 +54,7 @@ internal fun previewSettingsState(): SettingsState = SettingsState(
     showRestartHint = false,
     folderLayers = listOf("{num}", "{title}"),
     filenameFormat = "{num} {title}",
+    multiPartSuffix = MultiPartSuffix.CD,
     maxTitleLength = 200,
     maxFilenameLength = 150,
     suffixKeywords = listOf("-cd1", "-cd2"),
@@ -89,6 +91,7 @@ internal fun previewSettingsActions(): SettingsActions = SettingsActions(
     onAddLayer = {},
     onRemoveLayer = {},
     onFilenameFormatChange = {},
+    onMultiPartSuffixChange = {},
     onMaxTitleLengthChange = {},
     onMaxFilenameLengthChange = {},
     onSuffixKeywordsChange = {},

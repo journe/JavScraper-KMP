@@ -132,6 +132,7 @@ class AppViewModel(
     var maxTitleLength by settings::maxTitleLength
     var maxFilenameLength by settings::maxFilenameLength
     var suffixKeywords by settings::suffixKeywords
+    var multiPartSuffix by settings::multiPartSuffix
     var requestTimeoutMs by settings::requestTimeoutMs
 
     init {
@@ -272,6 +273,7 @@ class AppViewModel(
                 lockData = lockData,
                 folderLayers = folderLayers,
                 scanDir = scanDir,
+                multiPartSuffix = multiPartSuffix,
                 mergeTags = mergeTags
             )
         }
@@ -383,6 +385,7 @@ class AppViewModel(
             showRestartHint,
             folderLayers,
             filenameFormat,
+            multiPartSuffix,
             maxTitleLength,
             maxFilenameLength,
             suffixKeywords,
@@ -417,6 +420,7 @@ class AppViewModel(
         ::addLayer,
         ::removeLayer,
         ::updateFilenameFormat,
+        settings::updateMultiPartSuffix,
         ::updateMaxTitleLength,
         ::updateMaxFilenameLength,
         ::updateSuffixKeywords,

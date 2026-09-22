@@ -20,6 +20,7 @@ import javscraper.auth.JavdbLoginState
 import javscraper.i18n.TranslationEn
 import javscraper.models.SiteCheckResult
 import javscraper.models.SiteInfo
+import javscraper.settings.MultiPartSuffix
 
 /** Bundled settings state to reduce parameter count on [SettingsScreen]. */
 data class SettingsState(
@@ -46,6 +47,7 @@ data class SettingsState(
     val showRestartHint: Boolean,
     val folderLayers: List<String>,
     val filenameFormat: String,
+    val multiPartSuffix: MultiPartSuffix,
     val maxTitleLength: Int,
     val maxFilenameLength: Int,
     val suffixKeywords: List<String>,
@@ -81,6 +83,7 @@ data class SettingsActions(
     val onAddLayer: () -> Unit,
     val onRemoveLayer: (Int) -> Unit,
     val onFilenameFormatChange: (String) -> Unit,
+    val onMultiPartSuffixChange: (MultiPartSuffix) -> Unit,
     val onMaxTitleLengthChange: (Int) -> Unit,
     val onMaxFilenameLengthChange: (Int) -> Unit,
     val onSuffixKeywordsChange: (List<String>) -> Unit,

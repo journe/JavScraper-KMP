@@ -1,6 +1,7 @@
 package javscraper.scrape
 
 import javscraper.settings.AppSettings
+import javscraper.settings.MultiPartSuffix
 
 /**
  * 刮削与写盘的输出选项，聚合从 [AppSettings] 投影而来的全部配置项。
@@ -23,6 +24,7 @@ data class ScrapeOptions(
     val maxTitleLength: Int,
     val maxFilenameLength: Int,
     val suffixKeywords: List<String>,
+    val multiPartSuffix: MultiPartSuffix,
     val siteMirrorUrls: Map<String, String>,
     val enabledSites: Set<String>?
 ) {
@@ -43,6 +45,7 @@ data class ScrapeOptions(
             maxTitleLength = settings.maxTitleLength,
             maxFilenameLength = settings.maxFilenameLength,
             suffixKeywords = settings.suffixKeywords,
+            multiPartSuffix = settings.multiPartSuffix,
             siteMirrorUrls = settings.siteMirrorUrls,
             enabledSites = settings.enabledSites.toSet()
         )

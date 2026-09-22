@@ -132,6 +132,7 @@ open class TranslationEn {
     open val settingsAddLayer: String = "Add Layer"
     open val settingsRemoveLayer: String = "Remove"
     open val settingsFilenameFormat: String = "Filename Format"
+    open val settingsMultiPartSuffix: String = "Multi-part Suffix"
     open val settingsMaxTitleLength: String = "Max Title Length"
     open val settingsMaxFilenameLength: String = "Max Filename Length"
     open val settingsSuffixKeywords: String = "Suffix Keywords"

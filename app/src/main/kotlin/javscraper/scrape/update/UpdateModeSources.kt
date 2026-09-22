@@ -21,6 +21,8 @@ internal object UpdateModeSources {
     }
 
     fun findNfo(folder: Path, videos: List<Path>): Path? {
+        folder.resolve("movie.nfo").takeIf { Files.isRegularFile(it) }?.let { return it }
+
         val explicit = videos.map { video ->
             video.resolveSibling(video.fileName.toString().substringBeforeLast('.') + ".nfo")
         } + folder.resolve(folder.fileName.toString() + ".nfo")

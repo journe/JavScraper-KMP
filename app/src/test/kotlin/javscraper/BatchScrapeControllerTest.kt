@@ -15,6 +15,61 @@ import kotlinx.coroutines.test.runTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class BatchScrapeControllerTest {
     @Test
+    fun `repeated starts launch only one batch`() = runTest {
+        var orchestratorCalls = 0
+        val controller = BatchScrapeController(
+            scope = this,
+            strings = { TranslationEn() },
+            orchestrator = {
+                orchestratorCalls++
+                null
+            }
+        )
+        controller.tasks = listOf(ScrapeTask(number = "ABC-001", fileName = "ABC-001.mp4"))
+        val source = ScannedFile(
+            path = "ABC-001.mp4",
+            fileName = "ABC-001.mp4",
+            number = "ABC-001"
+        )
+
+        controller.startAllScraping(listOf(source))
+        controller.startAllScraping(listOf(source))
+        advanceUntilIdle()
+
+        assertEquals(1, orchestratorCalls)
+        assertFalse(controller.scraping)
+    }
+
+    @Test
+    fun `successful tasks are not scraped again`() = runTest {
+        var orchestratorCalls = 0
+        val controller = BatchScrapeController(
+            scope = this,
+            strings = { TranslationEn() },
+            orchestrator = {
+                orchestratorCalls++
+                null
+            }
+        )
+        controller.tasks = listOf(
+            ScrapeTask(
+                number = "ABC-001",
+                fileName = "ABC-001.mp4",
+                status = ScrapeTaskStatus.SUCCESS
+
+            )
+        )
+
+        controller.startAllScraping(
+            listOf(ScannedFile(path = "ABC-001.mp4", fileName = "ABC-001.mp4", number = "ABC-001"))
+        )
+        advanceUntilIdle()
+
+        assertEquals(0, orchestratorCalls)
+        assertEquals(ScrapeTaskStatus.SUCCESS, controller.tasks.single().status)
+    }
+
+    @Test
     fun `missing task files mark task failed without requiring orchestrator`() = runTest {
         val controller = BatchScrapeController(
             scope = this,

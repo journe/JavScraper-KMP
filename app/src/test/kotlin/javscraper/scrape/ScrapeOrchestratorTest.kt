@@ -105,13 +105,13 @@ class ScrapeOrchestratorTest {
             )
 
             assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
-            val folder = output.resolve("FC2-4694056")
-            assertTrue(folder.resolve("FC2-4694056.nfo").isFile)
+            val folder = output.resolve("FC2-4694056 Test")
+            assertTrue(folder.resolve("movie.nfo").isFile)
             listOf(
-                "FC2-4694056 - part1.mp4",
-                "FC2-4694056 - part2.mp4",
-                "FC2-4694056 - part3.mp4",
-                "FC2-4694056 - part4.mp4"
+                "FC2-4694056 Test - cd1.mp4",
+                "FC2-4694056 Test - cd2.mp4",
+                "FC2-4694056 Test - cd3.mp4",
+                "FC2-4694056 Test - cd4.mp4"
             ).forEach { name ->
                 assertTrue(folder.resolve(name).isFile, "missing $name")
             }
@@ -180,9 +180,9 @@ class ScrapeOrchestratorTest {
 
             assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
             assertEquals("C", result.data?.version)
-            val folder = output.resolve("ABC-123")
-            assertTrue(folder.resolve("ABC-123 - part2-C.mp4").isFile)
-            assertTrue(folder.resolve("ABC-123 - part3-C.mp4").isFile)
+            val folder = output.resolve("ABC-123 Test")
+            assertTrue(folder.resolve("ABC-123 Test - cd2-C.mp4").isFile)
+            assertTrue(folder.resolve("ABC-123 Test - cd3-C.mp4").isFile)
         }
     }
 
@@ -217,9 +217,9 @@ class ScrapeOrchestratorTest {
 
             assertTrue(result.success, result.error?.message ?: "writeToDisk failed")
             assertEquals("C", result.data?.version)
-            val folder = output.resolve("FC2-3259498")
-            assertTrue(folder.resolve("FC2-3259498 - part1-C.mp4").isFile)
-            assertTrue(folder.resolve("FC2-3259498 - cd1.mp4").isFile)
+            val folder = output.resolve("FC2-3259498 Test")
+            assertTrue(folder.resolve("FC2-3259498 Test - cd2-C.mp4").isFile)
+            assertTrue(folder.resolve("FC2-3259498 Test - cd1.mp4").isFile)
         }
     }
 
@@ -271,6 +271,7 @@ class ScrapeOrchestratorTest {
                 Video(number = "SONE-001", title = "Test")
             )
             assertFalse(result.success)
+            assertFalse(output.resolve("SONE-001 Test").exists())
         }
     }
 }

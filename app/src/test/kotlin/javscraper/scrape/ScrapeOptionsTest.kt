@@ -1,6 +1,7 @@
 package javscraper.scrape
 
 import javscraper.settings.AppSettings
+import javscraper.settings.MultiPartSuffix
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -24,6 +25,7 @@ class ScrapeOptionsTest {
             maxTitleLength = 12,
             maxFilenameLength = 34,
             suffixKeywords = listOf("-cd1"),
+            multiPartSuffix = MultiPartSuffix.DISC,
             enabledSites = listOf("javbus", "dmm")
         )
 
@@ -44,6 +46,7 @@ class ScrapeOptionsTest {
         assertEquals(12, options.maxTitleLength)
         assertEquals(34, options.maxFilenameLength)
         assertEquals(listOf("-cd1"), options.suffixKeywords)
+        assertEquals(MultiPartSuffix.DISC, options.multiPartSuffix)
         assertEquals(setOf("javbus", "dmm"), options.enabledSites)
     }
 

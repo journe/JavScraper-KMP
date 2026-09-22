@@ -39,6 +39,7 @@ class SettingsManagerTest {
         assertEquals(5, settings.posterWatermarkSize)
         assertEquals(true, settings.lockData)
         assertEquals(15_000, settings.requestTimeoutMs)
+        assertEquals(MultiPartSuffix.CD, settings.multiPartSuffix)
     }
 
     @Test
@@ -76,7 +77,8 @@ class SettingsManagerTest {
             posterWatermarkSize = 8,
             posterCropAspect = 1.8f,
             lockData = false,
-            requestTimeoutMs = 60_000
+            requestTimeoutMs = 60_000,
+            multiPartSuffix = MultiPartSuffix.DISK
         )
         val jsonStr = json.encodeToString(AppSettings.serializer(), original)
         val decoded = json.decodeFromString(AppSettings.serializer(), jsonStr)
@@ -102,6 +104,7 @@ class SettingsManagerTest {
         assertEquals(8, decoded.posterWatermarkSize)
         assertEquals(false, decoded.lockData)
         assertEquals(60_000, decoded.requestTimeoutMs)
+        assertEquals(MultiPartSuffix.DISK, decoded.multiPartSuffix)
     }
 
     @Test
@@ -135,6 +138,7 @@ class SettingsManagerTest {
         val jsonStr = """{"workerPath": "custom.exe"}"""
         val settings = json.decodeFromString(AppSettings.serializer(), jsonStr)
         assertEquals(15_000, settings.requestTimeoutMs)
+        assertEquals(MultiPartSuffix.CD, settings.multiPartSuffix)
     }
 
     @Test

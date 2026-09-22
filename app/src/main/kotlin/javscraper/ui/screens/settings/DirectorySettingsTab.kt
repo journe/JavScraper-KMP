@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import javscraper.i18n.LocalTranslations
+import javscraper.settings.MultiPartSuffix
 import javscraper.ui.components.ScanDirectoryField
 
 /** Scan/output directories and file naming rules. */
@@ -87,6 +88,13 @@ fun DirectorySettingsTab(state: SettingsState, actions: SettingsActions) {
             )
             VariableInsertButton { v -> actions.onFilenameFormatChange(state.filenameFormat + v) }
         }
+        Spacer(Modifier.height(12.dp))
+        Text(t.settingsMultiPartSuffix, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(4.dp))
+        MultiPartSuffixSelector(
+            selected = state.multiPartSuffix,
+            onSelect = actions.onMultiPartSuffixChange
+        )
         Spacer(Modifier.height(16.dp))
 
         var advancedExpanded by remember { mutableStateOf(false) }
@@ -152,6 +160,41 @@ private fun VariableInsertButton(onInsert: (String) -> Unit) {
                 DropdownMenuItem(
                     text = { Text(v, fontFamily = FontFamily.Monospace) },
                     onClick = { onInsert(v); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MultiPartSuffixSelector(
+    selected: MultiPartSuffix,
+    onSelect: (MultiPartSuffix) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = selected.displayName,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            MultiPartSuffix.entries.forEach { suffix ->
+                DropdownMenuItem(
+                    text = { Text(suffix.displayName) },
+                    onClick = {
+                        onSelect(suffix)
+                        expanded = false
+                    }
                 )
             }
         }
