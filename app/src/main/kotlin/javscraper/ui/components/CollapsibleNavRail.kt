@@ -71,7 +71,7 @@ fun CollapsibleNavRail(
         )
         NavRailItem(
             icon = if (scrapeEnabled) Icons.Default.CloudDownload else Icons.Default.CloudOff,
-            label = t.navScrape,
+            label = t.commonScraping,
             selected = currentScreen == Screen.PROGRESS,
             expanded = expanded,
             enabled = scrapeEnabled,

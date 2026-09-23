@@ -22,7 +22,6 @@ open class TranslationEn {
 
     // --- Navigation ---
     open val navScan: String = "Scan"
-    open val navScrape: String = "Scrape"
     open val navGallery: String = "Gallery"
     open val navNetworkPreview: String = "Network"
 
@@ -44,7 +43,6 @@ open class TranslationEn {
     open fun progressCompleted(ok: Int, total: Int): String = "$ok / $total completed"
 
     // --- Gallery screen ---
-    open val galleryTitle: String = "Scrape Results"
     open val galleryOpenOutput: String = "Open Output"
     open val galleryClear: String = "Clear Results"
     open val galleryDetailTitle: String = "Video Details"
@@ -77,7 +75,6 @@ open class TranslationEn {
     open fun networkPreviewCount(n: Int): String = "$n network results"
     // --- Settings screen ---
     open val settingsTabDirectories: String = "Directories"
-    open val settingsTabScraping: String = "Scraping"
     open val settingsTabOther: String = "Other"
     open val settingsWorkerPath: String = "Worker Path"
     open val settingsScanRecursive: String = "Scan subdirectories"
@@ -101,7 +98,6 @@ open class TranslationEn {
     open val settingsMirrorDefault: String = "Default URL"
     open val settingsMirrorCustom: String = "Custom mirror URL"
     open val settingsMirrorInvalid: String = "Enter a valid http(s) URL"
-    open val settingsMirrorReset: String = "Use Default"
     open val settingsJavdbCookie: String = "JavDB Cookie"
     open val settingsJavdbSessionCookie: String = "_jdb_session value"
     open val settingsJavdbCookieInvalid: String = "Enter a cookie value without spaces"
@@ -120,7 +116,6 @@ open class TranslationEn {
     open val settingsTestSitesOk: String = "OK"
     open val settingsTestSitesFail: String = "Unreachable"
     open fun settingsTestSitesLatency(ms: Int): String = "$ms ms"
-    open val settingsReset: String = "Reset to Defaults"
     open val settingsLanguage: String = "Language"
     open val settingsLanguageEn: String = "English"
     open val settingsLanguageZh: String = "Chinese"
@@ -144,6 +139,10 @@ open class TranslationEn {
     // --- StatusBar ---
 
     // --- Common ---
+    open val commonScraping: String = "Scraping"
+    open val commonScrapeResults: String = "Scrape Results"
+    open val commonResetToDefaults: String = "Reset to Defaults"
+    open val commonPartVideos: String = "Part Videos"
     open val commonBrowse: String = "Browse"
     open val commonApplicationLogs: String = "Application Logs"
     open val commonCancel: String = "Cancel"
@@ -159,13 +158,11 @@ open class TranslationEn {
 
     // --- Single Scrape Dialog ---
     open val singleScrapeTitle: String = "Single Scrape"
-    open val singleScrapeSiteLabel: String = "Scraper Site"
     open val singleScrapeSiteAuto: String = "Auto"
     open val singleScrapeInProgress: String = "Scraping in progress..."
     open val singleScrapeErrorWebpageRequestTimeout: String = "Web page request timed out: the site responded too slowly. Retry or choose another site."
     open val singleScrapeErrorWebpageArchiveTimeout: String = "Saving webpage timed out: metadata was found, but archiving resources took too long. Disable Download webpage and retry."
     open val singleScrapeErrorWorkerTimeout: String = "Worker response timed out before reporting a stage. Check the latest Scrape progress entry in Application Logs."
-    open val singleScrapeResultTitle: String = "Scrape Result"
     open val singleScrapeResultError: String = "Error"
     open val singleScrapeMissingOutputTitle: String = "Output Directory Not Set"
     open val singleScrapeMissingOutputMessage: String = "Please set the output directory in Settings before scraping."

@@ -102,7 +102,7 @@ fun ResultGalleryScreen(
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Column {
                 Text(
-                    translations.galleryTitle,
+                    translations.commonScrapeResults,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )

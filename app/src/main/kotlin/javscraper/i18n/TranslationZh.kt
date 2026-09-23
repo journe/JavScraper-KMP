@@ -19,7 +19,6 @@ class TranslationZh : TranslationEn() {
     override fun statusScrapeError(msg: String): String = "刮削错误：$msg"
 
     override val navScan: String = "扫描"
-    override val navScrape: String = "刮削"
     override val navGallery: String = "图库"
     override val navNetworkPreview: String = "网络"
     override val scanTitle: String = "文件扫描"
@@ -37,7 +36,6 @@ class TranslationZh : TranslationEn() {
 
     override fun progressCompleted(ok: Int, total: Int): String = "$ok / $total 已完成"
 
-    override val galleryTitle: String = "刮削结果"
     override val galleryOpenOutput: String = "打开输出目录"
     override val galleryClear: String = "清空结果"
     override val galleryDetailTitle: String = "视频详情"
@@ -66,7 +64,6 @@ class TranslationZh : TranslationEn() {
 
     override fun networkPreviewCount(n: Int): String = "$n 条网络结果"
     override val settingsTabDirectories: String = "目录"
-    override val settingsTabScraping: String = "刮削"
     override val settingsTabOther: String = "其他"
     override val settingsWorkerPath: String = "工作进程路径"
     override val settingsScanRecursive: String = "递归扫描子目录"
@@ -90,7 +87,6 @@ class TranslationZh : TranslationEn() {
     override val settingsMirrorDefault: String = "默认地址"
     override val settingsMirrorCustom: String = "自定义镜像"
     override val settingsMirrorInvalid: String = "请输入有效的 http(s) 地址"
-    override val settingsMirrorReset: String = "恢复默认"
     override val settingsJavdbCookie: String = "JavDB Cookie"
     override val settingsJavdbSessionCookie: String = "_jdb_session 值"
     override val settingsJavdbCookieInvalid: String = "请输入不含空格的 Cookie 值"
@@ -109,7 +105,6 @@ class TranslationZh : TranslationEn() {
     override val settingsTestSitesOk: String = "可用"
     override val settingsTestSitesFail: String = "不可用"
     override fun settingsTestSitesLatency(ms: Int): String = "$ms ms"
-    override val settingsReset: String = "恢复默认"
     override val settingsLanguage: String = "语言"
     override val settingsLanguageEn: String = "English"
     override val settingsLanguageZh: String = "中文"
@@ -129,6 +124,10 @@ class TranslationZh : TranslationEn() {
     override val settingsRenameVariables: String = "可用变量：{num} {title} {actor} {actors} {maker} {label} {series} {director} {date} {year} {month} {day} {suffix}"
     override val settingsAdvanced: String = "高级选项"
 
+    override val commonScraping: String = "刮削"
+    override val commonScrapeResults: String = "刮削结果"
+    override val commonResetToDefaults: String = "恢复默认"
+    override val commonPartVideos: String = "分段视频"
     override val commonBrowse: String = "浏览"
     override val commonApplicationLogs: String = "应用日志"
     override val commonCancel: String = "取消"
@@ -144,13 +143,11 @@ class TranslationZh : TranslationEn() {
 
     // --- Single Scrape Dialog ---
     override val singleScrapeTitle: String = "单个刮削"
-    override val singleScrapeSiteLabel: String = "刮削站点"
     override val singleScrapeSiteAuto: String = "自动（由服务端决定）"
     override val singleScrapeInProgress: String = "正在刮削..."
     override val singleScrapeErrorWebpageRequestTimeout: String = "请求网页超时：站点响应过慢，可重试或更换站点。"
     override val singleScrapeErrorWebpageArchiveTimeout: String = "保存网页超时：元数据已找到，但归档页面资源耗时过长；可关闭“下载网页”后重试。"
     override val singleScrapeErrorWorkerTimeout: String = "Worker 响应超时且未收到明确阶段；请查看应用日志中的最后一条 Scrape progress。"
-    override val singleScrapeResultTitle: String = "刮削结果"
     override val singleScrapeResultError: String = "错误"
     override val singleScrapeMissingOutputTitle: String = "输出目录未设置"
     override val singleScrapeMissingOutputMessage: String = "刮削前请先在设置页设置输出目录。"

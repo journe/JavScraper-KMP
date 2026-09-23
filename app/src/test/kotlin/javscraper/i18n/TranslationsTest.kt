@@ -7,6 +7,24 @@ import kotlin.test.assertTrue
 
 class TranslationsTest {
     @Test
+    fun `common labels reuse shared translation keys`() {
+        val english = TranslationEn()
+        val chinese = TranslationZh()
+        assertEquals("Scraping", english.commonScraping)
+        assertEquals("刮削", chinese.commonScraping)
+        assertEquals("Scrape Results", english.commonScrapeResults)
+        assertEquals("刮削结果", chinese.commonScrapeResults)
+        assertEquals("Reset to Defaults", english.commonResetToDefaults)
+        assertEquals("恢复默认", chinese.commonResetToDefaults)
+    }
+
+    @Test
+    fun `part videos label is localized`() {
+        assertEquals("Part Videos", TranslationEn().commonPartVideos)
+        assertEquals("分段视频", TranslationZh().commonPartVideos)
+    }
+
+    @Test
     fun `static texts duplicated in both locales use shared keys`() {
         val english = stringFields(TranslationEn())
         val chinese = stringFields(TranslationZh())

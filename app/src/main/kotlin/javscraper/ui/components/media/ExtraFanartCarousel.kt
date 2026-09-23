@@ -2,21 +2,27 @@ package javscraper.ui.components.media
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SharedTransitionScope.ResizeMode
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.carousel.CarouselState
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
@@ -28,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -38,7 +45,9 @@ import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
 import javscraper.models.Video
 import javscraper.ui.LocalSharedTransitionScope
+import javscraper.ui.PreviewImageProvider
 import javscraper.ui.theme.JavScraperTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -73,75 +82,85 @@ fun ExtraFanartCarousel(
     val state = rememberCarouselState { images.size }
     val scope = rememberCoroutineScope()
 
-    HorizontalMultiBrowseCarousel(
-        state = state,
-        modifier = modifier
-            .fillMaxWidth()
-            // 滚轮:垂直滚轮增量映射为水平翻页
-            .pointerInput(state) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        when (event.type) {
-                            PointerEventType.Scroll -> {
-                                val delta = event.changes.first().scrollDelta.y
-                                scope.launch { state.scrollBy(delta * 64f) }
-                            }
-
-                            else -> Unit
-                        }
-                    }
-                }
-            }
-            // 鼠标左键拖拽:水平位移转发给 CarouselState
-            .pointerInput(state) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    scope.launch { state.scrollBy(-dragAmount.x) }
-                }
-            },
-        preferredItemWidth = 320.dp,
-        itemSpacing = 8.dp,
-        contentPadding = PaddingValues(horizontal = 4.dp),
-    ) { page ->
-        // 选中项退出:提供 exiting bounds 供 SharedTransition 插值
-        AnimatedVisibility(
-            visible = selectedIndex != page,
-            enter = fadeIn(tween(220)),
-            exit = fadeOut(tween(220)),
-        ) {
-            Card(
-                onClick = { onImageClick(page) },
-                modifier = Modifier
-                    .then(
-                        carouselImageBoundsModifier(
-                            image = images[page],
-                            sharedTransitionScope = sharedTransitionScope,
-                            // 用本项自己的 AnimatedVisibility scope:
-                            // 只有它会随选中状态变化,才能与 viewer 端配对成过渡
-                            animatedVisibilityScope = this@AnimatedVisibility,
-                        )
-                    )
-                    .fillMaxSize()
-                    .height(height),
-                // 背景透明:图片本身铺满卡片,避免 Card 默认底色在图片加载前/圆角处露出
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(0.dp),
+    Column {
+        Box(Modifier.padding(8.dp)) {
+            Text(
+                text = translations.videoFieldSampleImages,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        HorizontalMultiBrowseCarousel(
+            state = state,
+            modifier = modifier
+                .fillMaxWidth()
+                .carouselDesktopScrollInput(state, scope),
+            preferredItemWidth = 320.dp,
+            itemSpacing = 8.dp,
+            contentPadding = PaddingValues(horizontal = 4.dp),
+        ) { page ->
+            // 选中项退出:提供 exiting bounds 供 SharedTransition 插值
+            AnimatedVisibility(
+                visible = selectedIndex != page,
+                enter = fadeIn(tween(220)),
+                exit = fadeOut(tween(220)),
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(PlatformContext.INSTANCE)
-                        .data(images[page])
-                        .build(),
-                    contentDescription = "${translations.galleryDetailExtraFanart} ${page + 1}",
-                    contentScale = ContentScale.Crop,
+                Card(
+                    onClick = { onImageClick(page) },
                     modifier = Modifier
+                        .then(
+                            carouselImageBoundsModifier(
+                                image = images[page],
+                                sharedTransitionScope = sharedTransitionScope,
+                                // 用本项自己的 AnimatedVisibility scope:
+                                // 只有它会随选中状态变化,才能与 viewer 端配对成过渡
+                                animatedVisibilityScope = this@AnimatedVisibility,
+                            )
+                        )
                         .fillMaxSize()
-                        .maskClip(MaterialTheme.shapes.medium),
-                )
+                        .height(height),
+                    // 背景透明:图片本身铺满卡片,避免 Card 默认底色在图片加载前/圆角处露出
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(PlatformContext.INSTANCE)
+                            .data(images[page])
+                            .build(),
+                        contentDescription = "${translations.galleryDetailExtraFanart} ${page + 1}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .maskClip(MaterialTheme.shapes.medium),
+                    )
+                }
             }
         }
     }
 }
+
+/** 桌面端 Carousel 内置手势在 JVM 目标上不稳定,统一转发滚轮与拖拽增量。 */
+internal fun Modifier.carouselDesktopScrollInput(
+    state: CarouselState,
+    scope: CoroutineScope,
+): Modifier = this
+    .pointerInput(state) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent()
+                if (event.type == PointerEventType.Scroll) {
+                    val delta = event.changes.first().scrollDelta.y
+                    scope.launch { state.scrollBy(delta * 64f) }
+                }
+            }
+        }
+    }
+    .pointerInput(state) {
+        detectDragGestures { change, dragAmount ->
+            change.consume()
+            scope.launch { state.scrollBy(-dragAmount.x) }
+        }
+    }
 
 /** SharedTransition bounds key:按文件路径唯一标识 extrafanart 图片。 */
 internal fun carouselImageKey(image: File): String = "extrafanart-${image.absolutePath}"
@@ -197,15 +216,10 @@ fun listExtraFanartImages(video: Video): List<File> {
 private fun ExtraFanartCarouselPreview() {
     CompositionLocalProvider(LocalTranslations provides TranslationZh()) {
         JavScraperTheme {
-            val tempDir = remember {
-                File(System.getProperty("java.io.tmpdir"), "javscraper-carousel-preview").apply {
-                    mkdirs()
-                }
+            val images = remember { PreviewImageProvider.previewImages(3) }
+            Card(modifier = Modifier.height(360.dp).width(800.dp)) {
+                ExtraFanartCarousel(images = images)
             }
-            val images = remember {
-                (1..3).map { i -> File(tempDir, "fanart$i.jpg") }
-            }
-            ExtraFanartCarousel(images = images)
         }
     }
 }

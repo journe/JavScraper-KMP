@@ -208,7 +208,7 @@ private fun SiteMirrorDialog(
                         selectedUrl = site.baseUrl
                         customUrl = ""
                     }
-                ) { Text(t.settingsMirrorReset) }
+                ) { Text(t.commonResetToDefaults) }
                 Spacer(Modifier.width(4.dp))
                 TextButton(onClick = onDismiss) { Text(t.commonCancel) }
             }

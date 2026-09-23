@@ -155,7 +155,7 @@ private fun FloatingSettingsTabs(
 
 private fun categoryLabel(category: SettingsCategory, t: TranslationEn): String = when (category) {
     SettingsCategory.DIRECTORIES -> t.settingsTabDirectories
-    SettingsCategory.SCRAPING -> t.settingsTabScraping
+    SettingsCategory.SCRAPING -> t.commonScraping
     SettingsCategory.OTHER -> t.settingsTabOther
 }
 

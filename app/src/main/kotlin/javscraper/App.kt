@@ -16,7 +16,6 @@ import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -54,8 +53,8 @@ import javscraper.ui.screens.FileScanScreen
 import javscraper.ui.screens.NetworkPreviewScreen
 import javscraper.ui.screens.ResultGalleryScreen
 import javscraper.ui.screens.ScrapeProgressScreen
-import javscraper.ui.screens.SingleScrapeDialog
-import javscraper.ui.screens.VideoDetailScreen
+import javscraper.ui.screens.single.SingleScrapeDialog
+import javscraper.ui.screens.detail.VideoDetailScreen
 import javscraper.ui.screens.detail.VideoDetailActions
 import javscraper.ui.screens.settings.SettingsScreen
 import javscraper.ui.theme.JavScraperTheme

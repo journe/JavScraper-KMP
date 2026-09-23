@@ -56,7 +56,7 @@ fun OtherSettingsTab(state: SettingsState, actions: SettingsActions) {
             onClick = actions.onReset,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-        ) { Icon(Icons.Default.SettingsBackupRestore, null); Spacer(Modifier.width(8.dp)); Text(t.settingsReset) }
+        ) { Icon(Icons.Default.SettingsBackupRestore, null); Spacer(Modifier.width(8.dp)); Text(t.commonResetToDefaults) }
         Spacer(Modifier.height(32.dp))
     }
 }

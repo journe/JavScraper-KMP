@@ -1,4 +1,4 @@
-package javscraper.ui.screens
+package javscraper.ui.screens.single
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,10 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
+import javscraper.i18n.TranslationEn
 import javscraper.models.SingleScrapeDialogState
 import javscraper.ui.components.media.VideoInfoCard
-import javscraper.ui.screens.single.FieldUpdateConfirmDialog
-import javscraper.ui.screens.single.FieldUpdateSelectionDialog
+import javscraper.ui.screens.PreviewCandidatesSection
+import javscraper.ui.screens.ScrapeProgressActions
+import javscraper.ui.screens.ScrapeProgressState
 
 /** Dialog shown when the user scrapes a single task from the progress screen. */
 @Composable
@@ -58,7 +60,7 @@ fun SingleScrapeDialog(
 private fun InputDialog(
     state: ScrapeProgressState,
     actions: ScrapeProgressActions,
-    t: javscraper.i18n.TranslationEn
+    t: TranslationEn
 ) {
     val number = state.singleScrapeNumber
     val site = state.singleScrapeSite
@@ -142,7 +144,7 @@ private fun InputDialog(
 private fun SiteDropdown(
     state: ScrapeProgressState,
     actions: ScrapeProgressActions,
-    t: javscraper.i18n.TranslationEn
+    t: TranslationEn
 ) {
     val site = state.singleScrapeSite
     val selectedSiteName = if (site == null) t.singleScrapeSiteAuto
@@ -155,7 +157,7 @@ private fun SiteDropdown(
         OutlinedTextField(
             value = selectedSiteName,
             onValueChange = {},
-            label = { Text(t.singleScrapeSiteLabel) },
+            label = { Text(t.commonScraperSites) },
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
@@ -188,7 +190,7 @@ private fun SiteDropdown(
 private fun ScrapingDialog(
     state: ScrapeProgressState,
     actions: ScrapeProgressActions,
-    t: javscraper.i18n.TranslationEn
+    t: TranslationEn
 ) {
     AlertDialog(
         onDismissRequest = {},
@@ -226,7 +228,7 @@ private fun PreviewDialog(
     dialogState: SingleScrapeDialogState.Preview,
     updateMode: Boolean,
     actions: ScrapeProgressActions,
-    t: javscraper.i18n.TranslationEn
+    t: TranslationEn
 ) {
     AlertDialog(
         onDismissRequest = actions.onCancelPreviewWrite,
@@ -272,11 +274,11 @@ private fun PreviewDialog(
 private fun ResultDialog(
     dialogState: SingleScrapeDialogState.Result,
     actions: ScrapeProgressActions,
-    t: javscraper.i18n.TranslationEn
+    t: TranslationEn
 ) {
     AlertDialog(
         onDismissRequest = {},
-        title = { Text(if (dialogState.video != null) t.singleScrapeResultTitle else t.singleScrapeFailedTitle) },
+        title = { Text(if (dialogState.video != null) t.commonScrapeResults else t.singleScrapeFailedTitle) },
         text = {
             val video = dialogState.video
             if (video != null) {

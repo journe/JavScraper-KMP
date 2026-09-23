@@ -17,6 +17,7 @@ import javscraper.models.SingleScrapeDialogState
 import javscraper.models.SiteInfo
 import javscraper.models.Video
 import javscraper.models.VideoUpdateField
+import javscraper.ui.screens.single.SingleScrapeDialog
 
 enum class ScrapeTaskStatus { PENDING, SCRAPING, SUCCESS, FAILED }
 data class ScrapeTask(
@@ -194,9 +195,9 @@ fun ScrapeProgressScreen(
 
 
     // --- Single scrape dialog ---
-    SingleScrapeDialog(
-        state = state,
-        actions = actions
-    )
+        SingleScrapeDialog(
+            state = state,
+            actions = actions
+        )
     }
 }

@@ -1,4 +1,4 @@
-package javscraper.ui.screens
+package javscraper.ui.screens.detail
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
@@ -51,15 +52,10 @@ import javscraper.ui.components.media.carouselImageBoundsModifier
 import javscraper.ui.components.media.listExtraFanartImages
 import javscraper.ui.components.media.localFanartModel
 import javscraper.ui.components.media.posterViewerKey
+import javscraper.ui.components.media.partposter.PartPosterCarousel
+import javscraper.ui.components.media.partposter.listPartPosters
 import javscraper.ui.previewVideoWithAllFields
-import javscraper.ui.screens.detail.AdaptiveVideoInfoCard
-import javscraper.ui.screens.detail.DetailEscapeAction
-import javscraper.ui.screens.detail.PosterViewerState
-import javscraper.ui.screens.detail.VideoDetailActions
-import javscraper.ui.screens.detail.VideoDetailHeader
-import javscraper.ui.screens.detail.VideoEditDialog
-import javscraper.ui.screens.detail.detailEscapeAction
-import javscraper.ui.screens.detail.shouldRestoreDetailFocus
+import javscraper.ui.screens.galleryPosterModifier
 import javscraper.ui.theme.JavScraperTheme
 import java.io.File
 
@@ -76,6 +72,8 @@ fun VideoDetailScreen(
     var editVisible by remember { mutableStateOf(false) }
     // extrafanart 目录下的预览图:IO 读取后驱动 Carousel
     var extraFanartImages by remember(video.path) { mutableStateOf(listExtraFanartImages(video)) }
+    val partPosterImages = remember(video.path) { listPartPosters(video) }
+    var posterCardWidth by remember(video.path) { mutableStateOf(190.dp) }
     // 当前展开的大图索引;null 表示未打开。点击 Carousel 卡片时设置,
     // 大图与卡片通过 SharedTransition(文件路径 key)联动缩放
     var viewerImageIndex by remember { mutableStateOf<Int?>(null) }
@@ -175,7 +173,8 @@ fun VideoDetailScreen(
                                 onClick = {
                                     if (image != null) posterViewerState = PosterViewerState.VISIBLE
                                 },
-                                modifier = posterModifier.then(viewerBoundsModifier),
+                                modifier = posterModifier.then(viewerBoundsModifier)
+                                    .onSizeChanged { posterCardWidth = it.width.dp },
                                 posterRefreshKey = posterRefreshKey,
                                 // 详情页展示目录下的横版封面 fanart,卡片宽高比随图片自适应
                                 source = PosterSource.FANART
@@ -183,6 +182,13 @@ fun VideoDetailScreen(
                         }
                     }
                 )
+                // 多分段海报在信息卡后展示;单分段时收集结果为空,不改变现状。
+                PartPosterCarousel(
+                    posters = partPosterImages,
+                    width = posterCardWidth,
+                    posterRefreshKey = posterRefreshKey,
+                )
+
                 // extrafanart 预览图 Carousel:占满一整行,无图时不渲染。
                 // selectedIndex 驱动选中卡片"退出",为 SharedTransition 提供
                 // exiting bounds;viewer 弹层作为 incoming 端与之配对
