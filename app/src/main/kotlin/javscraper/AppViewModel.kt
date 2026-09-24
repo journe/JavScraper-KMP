@@ -266,17 +266,29 @@ class AppViewModel(
         batchScrape.clearResults()
         scrapedFiles = emptyList()
     }
-    suspend fun saveVideoMetadata(video: Video, mergeTags: Boolean): VideoMetadataEditResult {
-        val result = withContext(Dispatchers.IO) {
+    suspend fun saveVideoMetadata(video: Video, mergeTags: Boolean): VideoMetadataEditResult =
+        saveMetadata(video, mergeTags) { candidate, merge ->
             VideoMetadataEditor.update(
-                video = video,
+                video = candidate,
                 lockData = lockData,
                 folderLayers = folderLayers,
                 scanDir = scanDir,
                 multiPartSuffix = multiPartSuffix,
-                mergeTags = mergeTags
+                mergeTags = merge
             )
         }
+
+    suspend fun savePartVideoMetadata(video: Video, mergeTags: Boolean): VideoMetadataEditResult =
+        saveMetadata(video, mergeTags) { candidate, merge ->
+            VideoMetadataEditor.updatePart(candidate, lockData, merge)
+        }
+
+    private suspend fun saveMetadata(
+        video: Video,
+        mergeTags: Boolean,
+        editor: (Video, Boolean) -> VideoMetadataEditResult
+    ): VideoMetadataEditResult {
+        val result = withContext(Dispatchers.IO) { editor(video, mergeTags) }
         if (result is VideoMetadataEditResult.Success) {
             val state = SavedMetadataStateUpdater.apply(
                 scannedFiles = scannedFiles,
@@ -293,7 +305,6 @@ class AppViewModel(
     }
 
     // --- Single scrape dialog (forwarded to SingleScrapeController) ---
-
     fun updateSingleScrapeNumber(value: String) = singleScrape.updateSingleScrapeNumber(value)
     fun updateSingleScrapeSite(value: String?) = singleScrape.updateSingleScrapeSite(value)
     fun openSingleScrape(file: ScannedFile) = singleScrape.openSingleScrapeGroup(sameFolderSiblings(file, scannedFiles))

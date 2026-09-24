@@ -46,9 +46,11 @@ object NfoUpdater {
 
     private fun sanitize(original: String): String = illegalMmtvElement.replace(original, "")
 
+    private fun readNfoText(path: Path): String = Files.readString(path).removePrefix("\uFEFF")
+
     /** Strictly parses the NFO at [path]; throws [InvalidNfoException] with location context on failure. */
     fun validate(path: Path) {
-        val original = sanitize(Files.readString(path))
+        val original = sanitize(readNfoText(path))
         try {
             SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
         } catch (e: SAXParseException) {
@@ -64,7 +66,7 @@ object NfoUpdater {
         mergeTags: Boolean = false,
         enabledFields: Set<VideoUpdateField>? = null
     ): Boolean {
-        val original = sanitize(Files.readString(path))
+        val original = sanitize(readNfoText(path))
         try {
             SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(original)))
         } catch (e: SAXParseException) {

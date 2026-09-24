@@ -227,6 +227,7 @@ fun App() {
                                                         ?.let(viewModel::openSingleScrape)
                                                 },
                                                 onSaveMetadata = viewModel::saveVideoMetadata,
+                                                onSavePartMetadata = viewModel::savePartVideoMetadata,
                                                 onMetadataSaved = { saved ->
                                                     selectedVideoPath = saved.path
                                                 },

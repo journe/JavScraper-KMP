@@ -62,6 +62,23 @@ class FileScannerMultiPartTest {
         assertEquals("", FileScanner.parseFileName("011225_01.mp4").versionLabel)
     }
 
+    @Test
+    fun `recognizes first part and label-less master file as primary`() {
+        val root = Files.createTempDirectory("javscraper-primary-part")
+        try {
+            val folder = root.resolve("[FC2-1] Title")
+            Files.createDirectories(folder)
+            Files.writeString(folder.resolve("movie.nfo"), "<movie><title>Master</title></movie>")
+
+            assertTrue(FileScanner.isPrimaryPart("[FC2-1] Title - cd1.mp4", folder))
+            assertTrue(FileScanner.isPrimaryPart("[FC2-1] Title.mp4", folder))
+            assertFalse(FileScanner.isPrimaryPart("[FC2-1] Title - cd2.mp4", folder))
+            assertFalse(FileScanner.isPrimaryPart("[FC2-1] Title - 4k.mp4", folder))
+        } finally {
+            cleanup(root)
+        }
+    }
+
     private fun cleanup(root: Path) {
         Files.walk(root).sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
     }

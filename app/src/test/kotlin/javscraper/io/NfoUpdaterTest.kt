@@ -349,4 +349,26 @@ class NfoUpdaterTest {
             Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
         }
     }
+
+    @Test
+    fun `update supports NFO with UTF-8 BOM`() {
+        val directory = createTempDirectory("javscraper-nfo-bom")
+        try {
+            val nfo = directory.resolve("bom.nfo")
+            Files.writeString(
+                nfo,
+                "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                    "<movie><title>Old Title</title><num>OLD-001</num></movie>"
+            )
+            val video = Video(number = "NEW-001", title = "New Title")
+
+            NfoUpdater.validate(nfo)
+            val changed = NfoUpdater.update(nfo, video, lockData = false)
+
+            assertTrue(changed)
+            assertContains(Files.readString(nfo), "<title>New Title</title>")
+        } finally {
+            Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
 }

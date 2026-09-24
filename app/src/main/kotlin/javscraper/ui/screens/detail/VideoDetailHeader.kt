@@ -30,6 +30,7 @@ data class VideoDetailActions(
     val onBack: () -> Unit,
     val onRefresh: () -> Unit,
     val onSaveMetadata: suspend (Video, Boolean) -> VideoMetadataEditResult,
+    val onSavePartMetadata: suspend (Video, Boolean) -> VideoMetadataEditResult = { _, _ -> VideoMetadataEditResult.NfoMissing },
     val onMetadataSaved: (Video) -> Unit = {},
     val onCropPoster: (() -> Unit)? = null,
     val onPlayVideo: () -> Unit = {},

@@ -2,11 +2,13 @@ package javscraper.io.metadata
 
 import javscraper.io.FileScanner
 import javscraper.io.InvalidNfoException
+import javscraper.io.MediaArtPaths
 import javscraper.io.NfoReader
 import javscraper.io.NfoUpdater
 import javscraper.models.Video
 import javscraper.settings.MultiPartSuffix
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 
 sealed interface VideoMetadataEditResult {
@@ -66,6 +68,44 @@ object VideoMetadataEditor {
         } catch (e: Exception) {
             if (folderMoved) rollback(plannedMove!!, originalNfo, e)
             VideoMetadataEditResult.Failed(e.message.orEmpty())
+        }
+    }
+
+    fun updatePart(
+        video: Video,
+        lockData: Boolean,
+        mergeTags: Boolean = false
+    ): VideoMetadataEditResult {
+        if (video.path.isBlank()) return VideoMetadataEditResult.NfoMissing
+        val videoPath = Paths.get(video.path).toAbsolutePath().normalize()
+        val nfoPath = partNfoPath(videoPath) ?: return VideoMetadataEditResult.NfoMissing
+        if (!Files.isRegularFile(nfoPath)) return VideoMetadataEditResult.NfoMissing
+        return try {
+            NfoUpdater.validate(nfoPath)
+            val changed = NfoUpdater.update(
+                path = nfoPath,
+                video = video,
+                lockData = lockData,
+                insertMissingFields = true,
+                mergeTags = mergeTags
+            )
+            val savedVideo = NfoReader.read(nfoPath)?.copy(path = video.path)
+                ?: throw IllegalStateException("NFO read-back failed")
+            VideoMetadataEditResult.Success(savedVideo, changed, previousPath = video.path)
+        } catch (e: Exception) {
+            VideoMetadataEditResult.Failed(e.message.orEmpty())
+        }
+    }
+
+    // 多段视频的第一段（或无后缀主文件）使用 movie.nfo，后续分段使用各自的 NFO。
+    private fun partNfoPath(videoPath: Path): Path? {
+        val primaryPart = FileScanner.isPrimaryPart(videoPath.fileName.toString(), videoPath.parent)
+        return if (primaryPart) {
+            FileScanner.findMatchingNfo(videoPath)
+        } else {
+            videoPath.resolveSibling(
+                MediaArtPaths.videoBaseName(videoPath.fileName.toString()) + ".nfo"
+            )
         }
     }
 

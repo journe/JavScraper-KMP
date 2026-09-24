@@ -154,6 +154,15 @@ object FileScanner {
         return groups.drop(1).firstOrNull { it.isNotEmpty() }?.toIntOrNull()
     }
 
+    /** 多段视频中，第一段或没有分段后缀的主文件使用 movie.nfo 作为主元数据。 */
+    fun isPrimaryPart(fileName: String, directory: Path?): Boolean {
+        val label = parseFileName(fileName).versionLabel
+        val partNumber = multiPartLabelNumber(label)
+        val movieNfo = directory?.resolve("movie.nfo")
+        return partNumber == 1 ||
+            (label.isBlank() && movieNfo != null && Files.isRegularFile(movieNfo))
+    }
+
     fun isSample(n: String): Boolean =
         EXCLUDE.any { n.lowercase().contains(it) }
 

@@ -147,6 +147,25 @@ class PosterCardTest {
     }
 
     @Test
+    fun `local fanart model prefers same-name variant over generic fanart`() {
+        val directory = Files.createTempDirectory("javscraper")
+        val sameName = directory.resolve("ABP-123 - cd2-fanart.jpg")
+        val generic = directory.resolve("fanart.jpg")
+        try {
+            Files.createFile(sameName)
+            Files.createFile(generic)
+            val video = Video(
+                number = "ABP-123",
+                path = directory.resolve("ABP-123 - cd2.mp4").toString()
+            )
+
+            assertEquals(sameName.toFile(), localFanartModel(video))
+        } finally {
+            deleteRecursively(directory)
+        }
+    }
+
+    @Test
     fun `local poster path is resolved beside the video`() {
         val path = localPosterPath(Video(number = "ABP-123", path = "D:/videos/ABP-123.mp4"))
 

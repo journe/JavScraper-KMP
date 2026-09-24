@@ -186,10 +186,15 @@ internal fun localPosterModel(video: Video): File? =
 internal fun localFanartPath(video: Video): String {
     val directory = File(video.path).parentFile ?: return ""
     val baseName = MediaArtPaths.videoBaseName(File(video.path).name)
-    return MediaArtPaths.findFanart(directory.toPath(), baseName)?.toString() ?: ""
+    val sameNameFanart = listOf("jpg", "png")
+        .map { extension -> directory.resolve("$baseName-fanart.$extension") }
+        .firstOrNull(File::isFile)
+    return sameNameFanart?.path
+        ?: MediaArtPaths.findFanart(directory.toPath(), baseName)?.toString()
+        ?: ""
 }
 
-/** 详情页横版封面来源:取视频同目录的 fanart,缺省回退 poster(与裁剪源优先级一致)。 */
+/** 详情页横版封面来源:优先同名变体,缺省回退通用 fanart 与 poster。 */
 internal fun localFanartModel(video: Video): File? =
     localFanartPath(video).takeIf { it.isNotBlank() }
         ?.let(::File)

@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import javscraper.i18n.LocalTranslations
 import javscraper.i18n.TranslationZh
+import javscraper.io.FileScanner
 import javscraper.io.metadata.VideoMetadataEditResult
 import javscraper.models.Video
 import javscraper.ui.LocalSharedTransitionScope
@@ -53,7 +55,7 @@ import javscraper.ui.components.media.listExtraFanartImages
 import javscraper.ui.components.media.localFanartModel
 import javscraper.ui.components.media.posterViewerKey
 import javscraper.ui.components.media.partposter.PartPosterCarousel
-import javscraper.ui.components.media.partposter.listPartPosters
+import javscraper.ui.components.media.partposter.listPartEntries
 import javscraper.ui.previewVideoWithAllFields
 import javscraper.ui.screens.galleryPosterModifier
 import javscraper.ui.theme.JavScraperTheme
@@ -72,7 +74,18 @@ fun VideoDetailScreen(
     var editVisible by remember { mutableStateOf(false) }
     // extrafanart 目录下的预览图:IO 读取后驱动 Carousel
     var extraFanartImages by remember(video.path) { mutableStateOf(listExtraFanartImages(video)) }
-    val partPosterImages = remember(video.path) { listPartPosters(video) }
+    var partEntriesVersion by remember(video.path) { mutableIntStateOf(0) }
+    val partEntries = remember(video.path, partEntriesVersion) { listPartEntries(video) }
+    val partPosterEntryIndices = remember(partEntries) {
+        partEntries.mapIndexedNotNull { index, entry -> if (entry.poster != null) index else null }
+    }
+    val partPosterImages = remember(partPosterEntryIndices) {
+        partPosterEntryIndices.map { partEntries[it].poster!! }
+    }
+    var selectedPartIndex by remember(video.path) { mutableIntStateOf(0) }
+    val displayedVideo = remember(partEntries, selectedPartIndex) {
+        partEntries.getOrNull(selectedPartIndex)?.video ?: video
+    }
     var posterCardWidth by remember(video.path) { mutableStateOf(190.dp) }
     // 当前展开的大图索引;null 表示未打开。点击 Carousel 卡片时设置,
     // 大图与卡片通过 SharedTransition(文件路径 key)联动缩放
@@ -80,7 +93,7 @@ fun VideoDetailScreen(
     var posterViewerState by remember { mutableStateOf(PosterViewerState.HIDDEN) }
     val posterViewerTransitionState = remember { MutableTransitionState(false) }
     posterViewerTransitionState.targetState = posterViewerState == PosterViewerState.VISIBLE
-    val posterImage = remember(video.path, posterRefreshKey) { localFanartModel(video) }
+    val posterImage = remember(displayedVideo.path, posterRefreshKey) { localFanartModel(displayedVideo) }
     // Esc 退出:大图打开时先关大图,否则返回图库。焦点链方案与
     // ExtraFanartViewer 一致:可聚焦+主动抢焦点才能收到按键
     val focusRequester = remember { FocusRequester() }
@@ -133,7 +146,7 @@ fun VideoDetailScreen(
     ) {
         Column {
             VideoDetailHeader(
-                video = video,
+                video = displayedVideo,
                 actions = actions,
                 onEdit = { editVisible = true }
             )
@@ -151,7 +164,7 @@ fun VideoDetailScreen(
                     animatedVisibilityScope = animatedVisibilityScope
                 )
                 AdaptiveVideoInfoCard(
-                    video = video,
+                    video = displayedVideo,
                     modifier = Modifier.fillMaxWidth(),
                     poster = {
                         AnimatedVisibility(
@@ -169,7 +182,7 @@ fun VideoDetailScreen(
                                 )
                             } ?: Modifier
                             PosterCard(
-                                video = video,
+                                video = displayedVideo,
                                 onClick = {
                                     if (image != null) posterViewerState = PosterViewerState.VISIBLE
                                 },
@@ -187,6 +200,9 @@ fun VideoDetailScreen(
                     posters = partPosterImages,
                     width = posterCardWidth,
                     posterRefreshKey = posterRefreshKey,
+                    onItemClick = { posterIndex ->
+                        selectedPartIndex = partPosterEntryIndices.getOrNull(posterIndex) ?: selectedPartIndex
+                    },
                 )
 
                 // extrafanart 预览图 Carousel:占满一整行,无图时不渲染。
@@ -246,9 +262,22 @@ fun VideoDetailScreen(
 
     if (editVisible) {
         VideoEditDialog(
-            video = video,
-            onSaveMetadata = actions.onSaveMetadata,
-            onMetadataSaved = actions.onMetadataSaved,
+            video = displayedVideo,
+            onSaveMetadata = { candidate, mergeTags ->
+                val primaryPart = FileScanner.isPrimaryPart(
+                    File(candidate.path).name,
+                    File(candidate.path).parentFile?.toPath()
+                )
+                if (partEntries.isNotEmpty() && !primaryPart) {
+                    actions.onSavePartMetadata(candidate, mergeTags)
+                } else {
+                    actions.onSaveMetadata(candidate, mergeTags)
+                }
+            },
+            onMetadataSaved = { saved ->
+                partEntriesVersion++
+                actions.onMetadataSaved(saved)
+            },
             onDismiss = { editVisible = false }
         )
     }

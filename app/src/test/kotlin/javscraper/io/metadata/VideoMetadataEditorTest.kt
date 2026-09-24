@@ -117,6 +117,34 @@ class VideoMetadataEditorTest {
     }
 
     @Test
+    fun `update renames folder from edited title only`() {
+        val scanDirectory = Files.createTempDirectory("javscraper-metadata-title-rename")
+        try {
+            val oldFolder = scanDirectory.resolve("[ABC-001] Old title")
+            Files.createDirectory(oldFolder)
+            val videoPath = oldFolder.resolve("ABC-001.mp4")
+            Files.writeString(videoPath, "video")
+            Files.writeString(oldFolder.resolve("ABC-001.nfo"), "<movie><num>ABC-001</num><title>Old title</title></movie>")
+
+            val result = VideoMetadataEditor.update(
+                video = Video(number = "ABC-001", title = "New title", path = videoPath.toString()),
+                lockData = false,
+                folderLayers = listOf("[{num}] {title}"),
+                scanDir = scanDirectory.toString()
+            )
+
+            val newFolder = scanDirectory.resolve("[ABC-001] New title")
+            val success = assertIs<VideoMetadataEditResult.Success>(result)
+            assertEquals(newFolder.resolve("ABC-001.mp4").toString(), success.video.path)
+            assertFalse(Files.exists(oldFolder))
+            assertTrue(Files.isRegularFile(newFolder.resolve("ABC-001.mp4")))
+            assertTrue(Files.readString(newFolder.resolve("ABC-001.nfo")).contains("<title>New title</title>"))
+        } finally {
+            Files.walk(scanDirectory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
     fun `update keeps original folder when target folder already exists`() {
         val scanDirectory = Files.createTempDirectory("javscraper-metadata-rename-conflict")
         try {
@@ -266,5 +294,75 @@ class VideoMetadataEditorTest {
         assertEquals("https://example.com/cover.jpg", savedVideo.coverUrl)
         assertEquals("https://example.com/poster.jpg", savedVideo.posterUrl)
         assertEquals("https://example.com/sample.jpg", savedVideo.sampleImages.single())
+    }
+
+    @Test
+    fun `updatePart writes master movie nfo when editing the first part`() {
+        val directory = Files.createTempDirectory("javscraper-part-edit")
+        val video1 = directory.resolve("ABC-001 - cd1.mp4")
+        val video2 = directory.resolve("ABC-001 - cd2.mp4")
+        Files.writeString(video1, "v1")
+        Files.writeString(video2, "v2")
+        val masterNfo = directory.resolve("movie.nfo")
+        masterNfo.writeText(NfoWriter.generate(Video(number = "ABC-001", title = "Master")))
+        val partNfo1 = directory.resolve("ABC-001 - cd1.nfo")
+        val partNfo2 = directory.resolve("ABC-001 - cd2.nfo")
+        partNfo1.writeText("<movie><title>cd1</title><num>ABC-001</num></movie>")
+        partNfo2.writeText("<movie><title>cd2</title><num>ABC-001</num></movie>")
+
+        val result = VideoMetadataEditor.updatePart(
+            video = Video(number = "ABC-001", title = "Edited cd1", path = video1.toString()),
+            lockData = false
+        )
+
+        val success = assertIs<VideoMetadataEditResult.Success>(result)
+        assertEquals("Edited cd1", success.video.title)
+        assertTrue(Files.readString(masterNfo).contains("<title>Edited cd1</title>"))
+        assertTrue(Files.readString(partNfo1).contains("<title>cd1</title>"))
+        assertTrue(Files.readString(partNfo2).contains("<title>cd2</title>"))
+    }
+
+    @Test
+    fun `updatePart writes part nfo when editing a later part`() {
+        val directory = Files.createTempDirectory("javscraper-part-edit-later")
+        val video1 = directory.resolve("ABC-001 - cd1.mp4")
+        val video2 = directory.resolve("ABC-001 - cd2.mp4")
+        Files.writeString(video1, "v1")
+        Files.writeString(video2, "v2")
+        val masterNfo = directory.resolve("movie.nfo")
+        masterNfo.writeText(NfoWriter.generate(Video(number = "ABC-001", title = "Master")))
+        val partNfo1 = directory.resolve("ABC-001 - cd1.nfo")
+        val partNfo2 = directory.resolve("ABC-001 - cd2.nfo")
+        partNfo1.writeText("<movie><title>cd1</title><num>ABC-001</num></movie>")
+        partNfo2.writeText("<movie><title>cd2</title><num>ABC-001</num></movie>")
+
+        val result = VideoMetadataEditor.updatePart(
+            video = Video(number = "ABC-001", title = "Edited cd2", path = video2.toString()),
+            lockData = false
+        )
+
+        val success = assertIs<VideoMetadataEditResult.Success>(result)
+        assertEquals("Edited cd2", success.video.title)
+        assertTrue(Files.readString(masterNfo).contains("<title>Master</title>"))
+        assertTrue(Files.readString(partNfo1).contains("<title>cd1</title>"))
+        assertTrue(Files.readString(partNfo2).contains("<title>Edited cd2</title>"))
+    }
+
+    @Test
+    fun `updatePart edits movie nfo when first part nfo absent`() {
+        val directory = Files.createTempDirectory("javscraper-part-master-only")
+        val videoPath = directory.resolve("ABC-001 - cd1.mp4")
+        Files.writeString(videoPath, "v1")
+        val masterNfo = directory.resolve("movie.nfo")
+        masterNfo.writeText(NfoWriter.generate(Video(number = "ABC-001", title = "Master")))
+
+        val result = VideoMetadataEditor.updatePart(
+            video = Video(number = "ABC-001", title = "Edited cd1", path = videoPath.toString()),
+            lockData = false
+        )
+
+        val success = assertIs<VideoMetadataEditResult.Success>(result)
+        assertEquals("Edited cd1", success.video.title)
+        assertTrue(Files.readString(masterNfo).contains("<title>Edited cd1</title>"))
     }
 }

@@ -1,5 +1,6 @@
 package javscraper.ui.components.media.partposter
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,6 +30,7 @@ import javscraper.i18n.LocalTranslations
 import javscraper.io.FileNameInfo
 import javscraper.io.FileScanner
 import javscraper.io.MediaArtPaths
+import javscraper.io.NfoReader
 import javscraper.models.Video
 import javscraper.ui.PreviewImageProvider
 import javscraper.ui.components.media.carouselDesktopScrollInput
@@ -37,13 +39,29 @@ import java.io.File
 
 private val posterExtensions = listOf("jpg", "jpeg", "png")
 
+/** 分段海报条目：分段视频及其可展示的 poster。 */
+data class PartPosterEntry(
+    val video: Video,
+    val poster: File?
+)
+
 /**
  * 收集同一番号多个分段视频的 poster。
  *
  * 第一段通常没有专属图片，但通用 `poster.jpg` 就是它的海报；第二段起使用
  * `<分段视频基准名>-poster.jpg`。专属文件优先匹配，避免所有分段都回退到通用图。
  */
-fun listPartPosters(video: Video): List<File> {
+fun listPartPosters(video: Video): List<File> =
+    listPartEntries(video).mapNotNull { it.poster }
+
+/**
+ * 收集同一番号多个分段视频的展示条目。
+ *
+ * 第一段（或无后缀主文件）优先读取 movie.nfo；后续分段读取各自
+ * `<分段视频基准名>.nfo`；缺失时沿用主视频元数据，
+ * 仅替换视频路径，保证点击分段后详情页展示与编辑都指向该分段。
+ */
+fun listPartEntries(video: Video): List<PartPosterEntry> {
     val currentFile = File(video.path)
     val directory = currentFile.parentFile ?: return emptyList()
     if (!directory.isDirectory) return emptyList()
@@ -62,13 +80,34 @@ fun listPartPosters(video: Video): List<File> {
             }
                 .thenBy { it.file.name }
         )
-        .mapNotNull { part -> findPartPoster(directory, part.file) }
+        .map { part ->
+            PartPosterEntry(
+                video = partVideo(video, part.file),
+                poster = findPartPoster(directory, part.file)
+            )
+        }
 }
 
 private data class PartVideo(
     val file: File,
     val info: FileNameInfo
 )
+
+private fun partVideo(master: Video, file: File): Video {
+    val baseName = MediaArtPaths.videoBaseName(file.name)
+    val partNfo = file.parentFile?.resolve("$baseName.nfo")
+    val masterNfo = file.parentFile?.resolve("movie.nfo")
+    val primary = FileScanner.isPrimaryPart(file.name, file.parentFile?.toPath())
+    val preferredNfo = if (primary) masterNfo?.takeIf(File::isFile) ?: partNfo else partNfo
+    val partMetadata = preferredNfo
+        ?.takeIf(File::isFile)
+        ?.let { NfoReader.read(it.toPath()) }
+    val fallback = partMetadata ?: master
+    return fallback.copy(
+        number = fallback.number.ifBlank { master.number },
+        path = file.absolutePath
+    )
+}
 
 private fun findPartPoster(directory: File, videoFile: File): File? {
     val baseName = MediaArtPaths.videoBaseName(videoFile.name)
@@ -81,7 +120,7 @@ private fun findPartPoster(directory: File, videoFile: File): File? {
 /**
  * 单影片多分段的海报轮播。
  *
- * [listPartPosters] 只在多分段时返回内容；空列表和单文件在此直接不渲染。
+ * [listPartEntries] 只在多分段时返回内容；空列表和单文件在此直接不渲染。
  * 桌面端 Carousel 内置手势在 JVM 目标上不稳定，因此与额外图集一样手动
  * 转发滚轮和拖拽增量。
  */
@@ -92,6 +131,7 @@ fun PartPosterCarousel(
     width: Dp = 190.dp,
     height: Dp = 270.dp,
     posterRefreshKey: Any? = null,
+    onItemClick: (Int) -> Unit = {},
 ) {
     if (posters.isEmpty()) return
     val state = rememberCarouselState { posters.size }
@@ -121,6 +161,7 @@ fun PartPosterCarousel(
                     .fillMaxWidth()
                     .height(height)
                     .maskClip(MaterialTheme.shapes.medium)
+                    .clickable { onItemClick(page) }
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(PlatformContext.INSTANCE)
