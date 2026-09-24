@@ -349,9 +349,9 @@ private class TargetedNfoPatcher(
         val bounds = lineBounds(template)
         var line = original.substring(bounds.first, bounds.second)
         val children = listOf(
-            Triple("name", spans("name").getOrNull(order - 1), actress),
-            Triple("role", spans("role").getOrNull(order - 1), actress),
-            Triple("order", spans("order").getOrNull(order - 1), order.toString())
+            Triple("name", childSpan(template, "name"), actress),
+            Triple("role", childSpan(template, "role"), actress),
+            Triple("order", childSpan(template, "order"), order.toString())
         )
         children.forEach { (_, span, value) ->
             if (span != null) {
@@ -362,6 +362,9 @@ private class TargetedNfoPatcher(
         }
         return line
     }
+
+    private fun childSpan(parent: ElementSpan, name: String): ElementSpan? =
+        spans(name, "actor").firstOrNull { it.start >= parent.start && it.end <= parent.end }
     private fun lineBounds(span: ElementSpan): Pair<Int, Int> {
         val start = original.lastIndexOf('\n', maxOf(0, span.start - 1)) + 1
         val nextLine = original.indexOf('\n', span.end)

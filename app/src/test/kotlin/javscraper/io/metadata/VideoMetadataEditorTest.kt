@@ -365,4 +365,27 @@ class VideoMetadataEditorTest {
         assertEquals("Edited cd1", success.video.title)
         assertTrue(Files.readString(masterNfo).contains("<title>Edited cd1</title>"))
     }
+
+    @Test
+    fun `update adds a new actress to existing actors and persists in nfo`() {
+        val directory = Files.createTempDirectory("javscraper-metadata-add-actress")
+        val videoPath = directory.resolve("ABC-001.mp4")
+        val nfoPath = directory.resolve("ABC-001.nfo")
+        nfoPath.writeText(
+            NfoWriter.generate(
+                Video(number = "ABC-001", actresses = listOf("Actor A", "Actor B"))
+            )
+        )
+
+        val result = VideoMetadataEditor.update(
+            Video(number = "ABC-001", actresses = listOf("Actor A", "Actor B", "Actor C"), path = videoPath.toString()),
+            lockData = false
+        )
+
+        val success = assertIs<VideoMetadataEditResult.Success>(result)
+        assertEquals(listOf("Actor A", "Actor B", "Actor C"), success.video.actresses)
+        val savedNfo = Files.readString(nfoPath)
+        assertTrue(savedNfo.contains("<name>Actor C</name>"))
+        assertTrue(savedNfo.contains("<order>3</order>"))
+    }
 }

@@ -307,6 +307,39 @@ class NfoUpdaterTest {
     }
 
     @Test
+
+    fun `update appends new actress to single line actor blocks`() {
+        val directory = createTempDirectory("javscraper-nfo-single-line-actors")
+        try {
+            val nfo = directory.resolve("actors.nfo")
+            Files.writeString(
+                nfo,
+                listOf(
+                    "<movie>",
+                    "  <actor><name>Actor A</name><role>Actor A</role><order>1</order></actor>",
+                    "  <actor><name>Actor B</name><role>Actor B</role><order>2</order></actor>",
+                    "</movie>"
+                ).joinToString("\n")
+            )
+            val video = Video(
+                number = "ABC-001",
+                actresses = listOf("Actor A", "Actor B", "Actor C")
+            )
+
+            val changed = NfoUpdater.update(nfo, video, lockData = false)
+
+            assertTrue(changed)
+            val updated = Files.readString(nfo)
+            assertContains(updated, "<name>Actor C</name>")
+            assertContains(updated, "<order>3</order>")
+            assertFalse(updated.contains("<name>Actor A</name><name>Actor A</name>"))
+            SecureDocumentBuilderFactory.create().parse(InputSource(StringReader(updated)))
+        } finally {
+            Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
+
+    @Test
     fun `update synchronizes javdb extra fields`() {
         val directory = createTempDirectory("javscraper-nfo-javdb")
         try {

@@ -62,7 +62,7 @@ internal fun formatEditRating(value: Float): String {
 internal fun videoFieldEditValues(video: Video, t: TranslationEn): List<VideoFieldValue> = listOf(
     VideoFieldValue(t.commonNumber, video.number),
     VideoFieldValue(t.videoFieldTitle, video.title),
-    VideoFieldValue(t.videoFieldActresses, video.actresses.joinToString(", ")),
+    listFieldValue(t.videoFieldActresses, video.actresses),
     VideoFieldValue(t.videoFieldSummary, video.summary),
     VideoFieldValue(t.videoFieldRating, video.rating?.let { formatEditRating(it.toFloat()) }.orEmpty()),
     VideoFieldValue(t.videoFieldMaker, video.maker),

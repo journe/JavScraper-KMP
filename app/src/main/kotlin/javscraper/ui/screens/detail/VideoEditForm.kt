@@ -13,9 +13,8 @@ internal fun videoFromEditFields(
     if (fields.size != 12) return null
 
     val values = fields.map { it.value.trim() }
-    val actresses = parseList(values[2])
-    val tagItems = fields[9].items ?: return null
-    val tags = tagItems.filter { it.selected }.map { it.value }
+    val actresses = selectedFieldValues(fields[2]) ?: return null
+    val tags = selectedFieldValues(fields[9]) ?: return null
     val number = values[0]
     val rating = if (values[4].isBlank()) null else parseRating(values[4]) ?: return null
     if (number.isBlank()) return null
@@ -42,10 +41,8 @@ private fun parseRating(value: String): Double? {
     return value.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..10.0 }
 }
 
-private fun parseList(value: String): List<String> =
-    value.split(',', '，', '\n')
-        .map(String::trim)
-        .filter(String::isNotEmpty)
+private fun selectedFieldValues(field: VideoFieldValue): List<String>? =
+    field.items?.filter { it.selected }?.map { it.value }
 
 private fun VideoFieldValue.withItems(updatedItems: List<VideoFieldItem>): VideoFieldValue = copy(
     value = updatedItems.filter { it.selected }.joinToString(", "),

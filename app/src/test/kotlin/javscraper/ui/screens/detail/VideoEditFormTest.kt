@@ -33,7 +33,7 @@ class VideoEditFormTest {
         assertEquals("SONE-001", fields[0].value)
         assertEquals("Old title", fields[1].value)
         assertEquals("Actor A, Actor B", fields[2].value)
-        assertNull(fields[2].items)
+        assertEquals(listOf(VideoFieldItem("Actor A"), VideoFieldItem("Actor B")), fields[2].items)
         assertEquals("Old summary", fields[3].value)
         assertEquals("9.5", fields[4].value)
         assertEquals("Tag A, Tag B", fields[9].value)
@@ -44,22 +44,31 @@ class VideoEditFormTest {
     }
 
     @Test
-    fun `actress edit field parses text input`() {
+    fun `actress edit field toggles selection and adds new actress`() {
         val original = Video(
             number = "SONE-001",
             actresses = listOf("Actor A", "Actor B", "Actor C"),
             tags = listOf("Tag A", "Tag B")
         )
         val fields = videoFieldEditValues(original, TranslationEn())
-
-        val edited = videoFromEditFields(
-            original,
-            fields.mapIndexed { index, field ->
-                if (index == 2) field.copy(value = "Actor A, Actor C\nNew Actor") else field
-            }
+        val withToggle = updateVideoEditItemSelection(
+            fields,
+            fieldIndex = 2,
+            itemIndex = 0,
+            selected = false
         )
+        val withNew = addVideoEditItem(withToggle, fieldIndex = 2, value = " New Actor ")
 
-        assertEquals(listOf("Actor A", "Actor C", "New Actor"), edited?.actresses)
+        assertEquals(
+            listOf(
+                VideoFieldItem("Actor A", selected = false),
+                VideoFieldItem("Actor B"),
+                VideoFieldItem("Actor C"),
+                VideoFieldItem("New Actor")
+            ),
+            withNew[2].items
+        )
+        assertEquals(listOf("Actor B", "Actor C", "New Actor"), videoFromEditFields(original, withNew)?.actresses)
     }
 
     @Test
@@ -77,7 +86,10 @@ class VideoEditFormTest {
             selected = false
         )
 
-        assertNull(editedFields[2].items)
+        assertEquals(
+            listOf(VideoFieldItem("Actor A"), VideoFieldItem("Actor B"), VideoFieldItem("Actor C")),
+            editedFields[2].items
+        )
         assertEquals(
             listOf(VideoFieldItem("Tag A", selected = false), VideoFieldItem("Tag B")),
             editedFields[9].items
@@ -114,6 +126,19 @@ class VideoEditFormTest {
         }
 
         assertEquals(emptyList(), videoFromEditFields(original, noneSelected)?.tags)
+    }
+
+    @Test
+    fun `deselecting every actress saves an empty actress list`() {
+        val original = Video(number = "SONE-001", actresses = listOf("Actor A", "Actor B"))
+        val fields = videoFieldEditValues(original, TranslationEn())
+        val noneSelected = fields.mapIndexed { index, field ->
+            if (index != 2) field else field.copy(
+                items = field.items?.map { it.copy(selected = false) }
+            )
+        }
+
+        assertEquals(emptyList(), videoFromEditFields(original, noneSelected)?.actresses)
     }
 
     @Test
